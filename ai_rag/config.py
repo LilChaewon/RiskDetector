@@ -1,3 +1,3 @@
 """AI RAG configuration."""
 
-S3_BUCKET = "ddobak-rag-source"
+S3_BUCKET = "risk-detector-myongji"

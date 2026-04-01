@@ -1,4 +1,4 @@
-"""Easylaw Q&A crawler for local RAG dataset testing."""
+"""Easylaw Q&A crawler for local and S3 RAG dataset testing."""
 
 from __future__ import annotations
 
@@ -87,17 +87,20 @@ def parse_issue_qa_document(page_html: str, fallback_category: str, source_url: 
     )
 
 
-def crawl_easylaw() -> list[QaDocument]:
+def crawl_easylaw(verbose: bool = False) -> list[QaDocument]:
     documents: list[QaDocument] = []
-    for seed in SEEDS:
+    for index, seed in enumerate(SEEDS, start=1):
+        if verbose:
+            print(f"[INFO] Crawling page {index}...")
         page_html = fetch_html(seed.url)
-        documents.append(
-            parse_issue_qa_document(
-                page_html=page_html,
-                fallback_category=seed.category,
-                source_url=seed.url,
-            )
+        document = parse_issue_qa_document(
+            page_html=page_html,
+            fallback_category=seed.category,
+            source_url=seed.url,
         )
+        documents.append(document)
+        if verbose:
+            print(f"[INFO] Page {index}: Extracted 1 Q&A items")
     return documents
 
 
