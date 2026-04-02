@@ -39,8 +39,17 @@ dependencies {
 	testImplementation 'org.springframework.boot:spring-boot-starter-test'
 	testImplementation 'org.springframework.security:spring-security-test'
 	testRuntimeOnly 'org.junit.platform:junit-platform-launcher'
+
+	// AWS SDK v2
+	implementation platform('software.amazon.awssdk:bom:2.25.0') // AWS SDK 버전 통합 관리
+	implementation 'software.amazon.awssdk:s3'                   // S3 사용을 위한 라이브러리
+	implementation 'software.amazon.awssdk:lambda'               // Lambda 호출을 위한 라이브러리
 }
 
 tasks.named('test') {
 	useJUnitPlatform()
+}
+
+bootRun {
+	args = ['--spring.profiles.active=local']
 }

@@ -37,3 +37,10 @@ app:
     redirect-uri: ${OAUTH2_REDIRECT_URI:http://localhost:3000/oauth2/callback}
   cookie:
     secure: ${COOKIE_SECURE:false}
+
+aws:
+  region: ${AWS_REGION:ap-northeast-2}
+  s3:
+    service-bucket: ${AWS_S3_BUCKET:riskdetector-contracts}
+  lambda:
+    ocr-function-name: ${AWS_LAMBDA_OCR_FUNCTION:ocr-lambda}

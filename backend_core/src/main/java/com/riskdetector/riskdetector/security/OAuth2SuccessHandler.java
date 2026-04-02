@@ -47,7 +47,7 @@ public class OAuth2SuccessHandler extends SimpleUrlAuthenticationSuccessHandler 
                 .maxAge(Duration.ofMillis(jwtUtil.getExpirationMs()))
                 .build();
 
-        response.addHeader(HttpHeaders.SET_COOKIE, cookie.toHeaderValue());
+        response.addHeader(HttpHeaders.SET_COOKIE, cookie.toString());
 
         logger.info("OAuth2 login successful for user: {}", email);
 

@@ -1,0 +1,26 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(grep -v \"\\\\.class$\")",
+      "Bash(./gradlew bootRun)",
+      "Bash(psql:*)",
+      "Bash(where psql:*)",
+      "Read(//c/Program Files/PostgreSQL/**)",
+      "Read(//c/Program Files/PostgreSQL//**)",
+      "Bash(/c/Program Files/PostgreSQL/17/bin/psql:*)",
+      "Bash(\"/c/Program Files/PostgreSQL/17/bin/psql\" -U postgres -c \"\\\\du\")",
+      "Bash(echo \"EXIT:$?\")",
+      "Bash(PGPASSWORD=postgres \"/c/Program Files/PostgreSQL/17/bin/psql\" -U postgres -w -c \"\\\\du\")",
+      "Bash(PGPASSWORD=774517 /c/Program Files/PostgreSQL/17/bin/psql:*)",
+      "Bash(netstat -ano)",
+      "Bash(taskkill:*)",
+      "Bash(cmd:*)",
+      "Bash(powershell \"Stop-Process -Id 4720 -Force\")",
+      "Bash(powershell Get-Process -Id 4788 | Select-Object Id, ProcessName, MainWindowTitle:*)",
+      "Bash(powershell \"Stop-Process -Id 4788 -Force\")",
+      "Bash(powershell \"Get-Process java -ErrorAction SilentlyContinue | Stop-Process -Force\")",
+      "Bash(powershell \"Invoke-WebRequest -Uri 'http://localhost:8082/actuator/health' -UseBasicParsing 2>&1\")",
+      "Bash(curl -s http://localhost:8082/api/auth/me)"
+    ]
+  }
+}
