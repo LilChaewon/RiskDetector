@@ -11,7 +11,7 @@
       "Bash(\"/c/Program Files/PostgreSQL/17/bin/psql\" -U postgres -c \"\\\\du\")",
       "Bash(echo \"EXIT:$?\")",
       "Bash(PGPASSWORD=postgres \"/c/Program Files/PostgreSQL/17/bin/psql\" -U postgres -w -c \"\\\\du\")",
-      "Bash(PGPASSWORD=774517 /c/Program Files/PostgreSQL/17/bin/psql:*)",
+      "Bash(PGPASSWORD=****** /c/Program Files/PostgreSQL/17/bin/psql:*)",
       "Bash(netstat -ano)",
       "Bash(taskkill:*)",
       "Bash(cmd:*)",
