@@ -41,6 +41,8 @@ src/main/resources/application-local.yaml
 src/main/resources/application-*.yaml
 !src/main/resources/application.yaml
 !src/main/resources/application-local.yaml.example
+.claude/
+
 
 ### Environment variables ###
 .env
