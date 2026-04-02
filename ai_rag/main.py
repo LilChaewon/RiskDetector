@@ -11,6 +11,7 @@ from urllib.error import URLError
 
 from config import S3_BUCKET
 from easylaw_crawler import crawl_easylaw, save_qa_documents
+from law_open_api_crawler import crawl_law_open_api, save_law_search_results
 
 
 ENV_PATH = Path(".env")
@@ -119,6 +120,30 @@ def run_easylaw(mode: str) -> int:
     return 1
 
 
+def run_law_open_api(mode: str) -> int:
+    load_env_file()
+    load_backend_ai_fallback_env()
+    query = os.getenv("LAW_OPEN_API_QUERY", "").strip() or "근로계약"
+    output_dir = Path("data/law_open_api")
+
+    payload, items = crawl_law_open_api(query=query, verbose=True)
+    saved_paths = save_law_search_results(payload=payload, items=items, output_dir=output_dir)
+
+    print(f"Saved {len(saved_paths)} law_open_api files to {output_dir}")
+    for path in saved_paths:
+        print(path)
+
+    if mode == "local":
+        return 0
+
+    if mode == "s3":
+        upload_files_to_s3(saved_paths=saved_paths, bucket=get_s3_bucket(), prefix="law_open_api")
+        return 0
+
+    print(f"Unsupported mode: {mode}. Supported modes: local, s3")
+    return 1
+
+
 def main(argv: list[str]) -> int:
     if len(argv) != 3:
         print("Usage: python main.py easylaw [local|s3]")
@@ -129,6 +154,8 @@ def main(argv: list[str]) -> int:
 
     if source == "easylaw":
         return run_easylaw(mode)
+    if source == "law_open_api":
+        return run_law_open_api(mode)
 
     print(f"Unsupported source: {source}")
     return 1
