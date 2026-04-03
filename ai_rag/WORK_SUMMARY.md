@@ -17,7 +17,7 @@
 
 ### 2. Bedrock 분석 Lambda 확인함
 
-- `backend_ai`에서 Bedrock Lambda 로컬 테스트를 끝냄.
+- `backend_ai`에서 Bedrock   Lambda 로컬 테스트를 끝냄.
 - 계약서 조항 텍스트를 넣으면 위험도와 사유를 JSON으로 반환하는 것까지 확인함.
 - 배포용 ZIP, 배포 스크립트, 테스트 이벤트 파일도 준비함.
 - Knowledge Base ID도 환경변수에 연결해둠.
