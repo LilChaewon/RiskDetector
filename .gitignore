@@ -1,11 +1,47 @@
+# ========================
+# Environment files (환경 변수)
+# ========================
 .env
 **/.env
 *.env
 *.env.local
 *.env.*
 !*.env.example
+.env.*.local
+
+# ========================
+# Python / AI Backend
+# ========================
 __pycache__/
 **/__pycache__/
 *.pyc
-dist/
 *.zip
+
+# ========================
+# Node.js / Frontend
+# ========================
+node_modules/
+
+# ========================
+# Build output (빌드 결과물)
+# ========================
+dist/
+build/
+.next/
+out/
+
+# ========================
+# IDE (개발 도구 설정)
+# ========================
+.idea/
+.vscode/
+*.swp
+*.swo
+
+# ========================
+# OS & Logs (운영체제 및 로그)
+# ========================
+.DS_Store
+Thumbs.db
+*.log
+npm-debug.log*
