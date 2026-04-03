@@ -1,27 +1,47 @@
-# Dependencies
-node_modules/
-
-# Environment files
+# ========================
+# Environment files (환경 변수)
+# ========================
 .env
-.env.local
+**/.env
+*.env
+*.env.local
+*.env.*
+!*.env.example
 .env.*.local
 
-# Build output
+# ========================
+# Python / AI Backend
+# ========================
+__pycache__/
+**/__pycache__/
+*.pyc
+*.zip
+
+# ========================
+# Node.js / Frontend
+# ========================
+node_modules/
+
+# ========================
+# Build output (빌드 결과물)
+# ========================
 dist/
 build/
 .next/
 out/
 
-# IDE
+# ========================
+# IDE (개발 도구 설정)
+# ========================
 .idea/
 .vscode/
 *.swp
 *.swo
-.DS_Store
 
-# Logs
+# ========================
+# OS & Logs (운영체제 및 로그)
+# ========================
+.DS_Store
+Thumbs.db
 *.log
 npm-debug.log*
-
-# OS
-Thumbs.db
