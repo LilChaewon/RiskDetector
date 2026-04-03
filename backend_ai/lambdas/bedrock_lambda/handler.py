@@ -1,4 +1,4 @@
-"""Local-friendly Bedrock lambda for contract risk analysis without Knowledge Base."""
+"""Local-friendly Bedrock lambda for contract risk analysis with optional Knowledge Base."""
 
 from __future__ import annotations
 
@@ -150,7 +150,11 @@ def lambda_handler(event: dict[str, Any], context: Any) -> dict[str, Any]:
     contract_id = event.get("contractId")
     analysis_id = event.get("analysisId")
     contract_texts = event.get("contractTexts") or []
-    knowledge_base_id = os.getenv("KNOWLEDGE_BASE_ID", "").strip() or None
+    knowledge_base_id = (
+        str(event.get("knowledgeBaseId") or "").strip()
+        or os.getenv("KNOWLEDGE_BASE_ID", "").strip()
+        or None
+    )
 
     if not contract_texts:
         return {

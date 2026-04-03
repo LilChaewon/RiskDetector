@@ -11,12 +11,9 @@ from urllib import request
 
 
 USER_AGENT = "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) RiskDetector/1.0"
-
-
-@dataclass(frozen=True)
-class EasylawSeed:
-    url: str
-    category: str
+ISSUE_QA_LIST_URL = "https://easylaw.go.kr/CSP/IssueQaLstRetrieve.laf?topMenu=openUl7"
+ISSUE_QA_DETAIL_URL = "https://easylaw.go.kr/CSP/IssueQaRetrieve.laf?topMenu=openUl7&issueqaSeq={seq}&targetRow={target_row}"
+LIST_PAGE_SIZE = 20
 
 
 @dataclass(frozen=True)
@@ -25,22 +22,6 @@ class QaDocument:
     answer: str
     category: str
     source_url: str
-
-
-SEEDS: tuple[EasylawSeed, ...] = (
-    EasylawSeed(
-        url="https://easylaw.go.kr/CSP/IssueQaRetrieve.laf?issueqaSeq=244&targetRow=81&topMenu=openUl7",
-        category="부동산/임대차",
-    ),
-    EasylawSeed(
-        url="https://www.easylaw.go.kr/CSP/IssueQaRetrieve.laf?issueqaSeq=237&search_put=&targetRow=&topMenu=openUl7",
-        category="근로/노동",
-    ),
-    EasylawSeed(
-        url="https://www.easylaw.go.kr/CSP/IssueQaRetrieve.laf?issueqaSeq=206&search_put=&targetRow=&topMenu=openUl7",
-        category="근로/노동",
-    ),
-)
 
 
 def fetch_html(url: str) -> str:
@@ -65,6 +46,84 @@ def clean_html_text(raw_html: str) -> str:
     return normalized.strip()
 
 
+def guess_category(*values: str) -> str:
+    combined = " ".join(values)
+    housing_keywords = (
+        "임대차",
+        "임대인",
+        "임차인",
+        "전세",
+        "월세",
+        "보증금",
+        "전입신고",
+        "확정일자",
+        "주택",
+        "상가",
+        "원상복구",
+        "중개보수",
+        "권리금",
+        "특약",
+    )
+    labor_keywords = (
+        "근로",
+        "임금",
+        "퇴직금",
+        "해고",
+        "연차",
+        "최저임금",
+        "근로시간",
+        "주휴",
+        "수습",
+        "퇴직",
+    )
+
+    if any(keyword in combined for keyword in housing_keywords):
+        return "부동산/임대차"
+    if any(keyword in combined for keyword in labor_keywords):
+        return "근로/노동"
+    return "기타"
+
+
+def extract_issue_list_entries(page_html: str) -> list[tuple[str, str]]:
+    matches = re.findall(
+        r'IssueQaRetrieve\.laf\?topMenu=openUl7&amp;issueqaSeq=(\d+)&amp;targetRow=[^"]*" onclick="goRetrieve\(\'\d+\'\); return false;"[^>]*>\s*(.*?)\s*</a>',
+        page_html,
+        flags=re.DOTALL,
+    )
+    entries: list[tuple[str, str]] = []
+    for seq, raw_title in matches:
+        title = clean_html_text(raw_title)
+        entries.append((seq, title))
+    return entries
+
+
+def collect_latest_issue_entries(limit: int, verbose: bool = False) -> list[tuple[str, str, int]]:
+    collected: list[tuple[str, str, int]] = []
+    seen_sequences: set[str] = set()
+    target_row = 1
+
+    while len(collected) < limit:
+        page_html = fetch_html(f"{ISSUE_QA_LIST_URL}&targetRow={target_row}")
+        entries = extract_issue_list_entries(page_html)
+        if not entries:
+            break
+
+        for seq, title in entries:
+            if seq in seen_sequences:
+                continue
+            seen_sequences.add(seq)
+            collected.append((seq, title, target_row))
+            if len(collected) >= limit:
+                break
+
+        if verbose:
+            print(f"[INFO] Listing targetRow={target_row}: collected {len(collected)} / {limit}")
+
+        target_row += LIST_PAGE_SIZE
+
+    return collected
+
+
 def parse_issue_qa_document(page_html: str, fallback_category: str, source_url: str) -> QaDocument:
     body_match = re.search(
         r"Q\.\&nbsp;(.*?)A\.\&nbsp;(.*?)(?:※\s*이 내용은|</td>\s*</tr>\s*</tbody>\s*</table>|다운로드 바로보기)",
@@ -87,20 +146,40 @@ def parse_issue_qa_document(page_html: str, fallback_category: str, source_url: 
     )
 
 
-def crawl_easylaw(verbose: bool = False) -> list[QaDocument]:
+def crawl_easylaw(limit: int = 100, verbose: bool = False) -> list[QaDocument]:
     documents: list[QaDocument] = []
-    for index, seed in enumerate(SEEDS, start=1):
+    entries = collect_latest_issue_entries(limit=max(limit * 2, limit), verbose=verbose)
+
+    for index, (seq, title, target_row) in enumerate(entries, start=1):
+        if len(documents) >= limit:
+            break
         if verbose:
             print(f"[INFO] Crawling page {index}...")
-        page_html = fetch_html(seed.url)
-        document = parse_issue_qa_document(
-            page_html=page_html,
-            fallback_category=seed.category,
-            source_url=seed.url,
+
+        source_url = ISSUE_QA_DETAIL_URL.format(seq=seq, target_row=target_row)
+        page_html = fetch_html(source_url)
+        try:
+            document = parse_issue_qa_document(
+                page_html=page_html,
+                fallback_category="기타",
+                source_url=source_url,
+            )
+        except ValueError:
+            if verbose:
+                print(f"[WARN] Skipped unsupported Easylaw detail page: {source_url}")
+            continue
+
+        document = QaDocument(
+            question=document.question,
+            answer=document.answer,
+            category=guess_category(title, document.question, document.answer),
+            source_url=document.source_url,
         )
         documents.append(document)
+
         if verbose:
             print(f"[INFO] Page {index}: Extracted 1 Q&A items")
+
     return documents
 
 
@@ -114,6 +193,8 @@ def render_qa_document(document: QaDocument) -> str:
 
 def save_qa_documents(documents: Iterable[QaDocument], output_dir: Path) -> list[Path]:
     output_dir.mkdir(parents=True, exist_ok=True)
+    for old_path in output_dir.glob("qa_*.txt"):
+        old_path.unlink()
     saved_paths: list[Path] = []
     for index, document in enumerate(documents, start=1):
         path = output_dir / f"qa_{index}.txt"
