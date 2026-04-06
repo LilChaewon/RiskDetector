@@ -1,0 +1,47 @@
+spring:
+  datasource:
+    url: jdbc:postgresql://localhost:5432/riskdetector
+    username: ${DB_USERNAME}
+    password: ${DB_PASSWORD}
+    driver-class-name: org.postgresql.Driver
+  sql:
+    init:
+      mode: always
+  jpa:
+    hibernate:
+      ddl-auto: none
+    show-sql: false
+  security:
+    oauth2:
+      client:
+        registration:
+          google:
+            client-id: ${GOOGLE_CLIENT_ID}
+            client-secret: ${GOOGLE_CLIENT_SECRET}
+            scope:
+              - email
+              - profile
+
+server:
+  port: 8080
+
+jwt:
+  secret: ${JWT_SECRET}
+  expiration-ms: 86400000
+
+cors:
+  allowed-origins: ${CORS_ALLOWED_ORIGINS:http://localhost:3000}
+
+app:
+  oauth2:
+    redirect-uri: ${OAUTH2_REDIRECT_URI:http://localhost:3000/oauth2/callback}
+  cookie:
+    secure: ${COOKIE_SECURE:false}
+
+aws:
+  region: ${AWS_REGION:ap-northeast-2}
+  s3:
+    service-bucket: ${AWS_S3_BUCKET:risk-detector-myongji}
+  lambda:
+    ocr-function-name: ${AWS_LAMBDA_OCR_FUNCTION:detector_ocr_lambda}
+    analysis-function-name: ${AWS_LAMBDA_ANALYSIS_FUNCTION:detector_bedrock_lambda}
