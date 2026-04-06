@@ -43,5 +43,6 @@ public class AwsConfig {
     @Setter
     public static class LambdaProperties {
         private String ocrFunctionName;
+        private String analysisFunctionName;
     }
 }

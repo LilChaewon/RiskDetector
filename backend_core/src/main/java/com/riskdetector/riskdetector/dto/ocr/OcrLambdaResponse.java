@@ -12,6 +12,7 @@ import java.util.List;
 @NoArgsConstructor
 public class OcrLambdaResponse {
 
+    private boolean success;
     private Data data;
 
     @Getter

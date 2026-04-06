@@ -23,6 +23,10 @@ public class LambdaUtil {
                 .build());
     }
 
+    public boolean hasError(InvokeResponse response) {
+        return response.functionError() != null;
+    }
+
     public <T> T parseResponse(InvokeResponse response, Class<T> clazz) throws Exception {
         return objectMapper.readValue(response.payload().asUtf8String(), clazz);
     }
