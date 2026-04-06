@@ -17,7 +17,10 @@ import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.stereotype.Service;
 import org.springframework.web.multipart.MultipartFile;
 
+import software.amazon.awssdk.services.lambda.model.InvokeResponse;
+
 import java.util.ArrayList;
+import java.util.Collections;
 import java.util.Comparator;
 import java.util.List;
 import java.util.UUID;
@@ -129,36 +132,23 @@ public class OcrProcessService {
                 String s3Key = s3KeyPrefix + pageIdx + "_" + file.getOriginalFilename();
                 s3Util.upload(awsConfig.getS3().getServiceBucket(), s3Key, file);
 
-                // ======= 더미 처리 시작 (ocr_lambda 배포 전) =======
-                //TODO: AI팀 Lambda 배포 완료 후 아래 더미 블록 주석 처리하고
-                //       실제 Lambda 호출 코드 활성화
-                List<OcrLambdaResponse.HtmlElement> dummyElements = List.of(
-                        new OcrLambdaResponse.HtmlElement(
-                                "paragraph",
-                                "<p>제1조 (목적) 본 계약은 임대차를 목적으로 한다.</p>",
-                                "el_" + (pageIdx * 10)
-                        ),
-                        new OcrLambdaResponse.HtmlElement(
-                                "paragraph",
-                                "<p>제2조 (임대보증금) 임차인은 보증금 5천만원을 지불한다.</p>",
-                                "el_" + (pageIdx * 10 + 1)
-                        ),
-                        new OcrLambdaResponse.HtmlElement(
-                                "paragraph",
-                                "<p>제3조 (원상복구) 임차인은 퇴거 시 모든 비용을 부담한다.</p>",
-                                "el_" + (pageIdx * 10 + 2)
-                        )
-                );
-                return new OcrPageResult(pageIdx, dummyElements, true);
-                // ======= 더미 처리 끝 =======
+                // ======= 실제 Lambda 호출 =======
+                OcrLambdaPayload payload = new OcrLambdaPayload(s3Key, pageIdx);
+                InvokeResponse response = lambdaUtil.invokeAndWait(
+                        awsConfig.getLambda().getOcrFunctionName(), payload);
 
-                // ======= 실제 Lambda 호출 (AI팀 배포 후 활성화) =======
-                // OcrLambdaPayload payload = new OcrLambdaPayload(s3Key, pageIdx);
-                // InvokeResponse response = lambdaUtil.invokeAndWait(
-                //     awsConfig.getLambda().getOcrFunctionName(), payload);
-                // OcrLambdaResponse ocrResponse = lambdaUtil.parseResponse(
-                //     response, OcrLambdaResponse.class);
-                // return new OcrPageResult(pageIdx, ocrResponse.getData().getHtmlArray(), true);
+                if (lambdaUtil.hasError(response)) {
+                    log.error("OCR Lambda 에러: {}", response.payload().asUtf8String());
+                    return new OcrPageResult(pageIdx, Collections.emptyList(), false);
+                }
+
+                OcrLambdaResponse ocrResponse = lambdaUtil.parseResponse(response, OcrLambdaResponse.class);
+
+                if (!ocrResponse.isSuccess()) {
+                    return new OcrPageResult(pageIdx, Collections.emptyList(), false);
+                }
+
+                return new OcrPageResult(pageIdx, ocrResponse.getData().getHtmlArray(), true);
 
             } catch (Exception e) {
                 log.error("OCR 처리 실패: {}", e.getMessage());
