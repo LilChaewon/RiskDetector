@@ -6,6 +6,9 @@
 *.env
 *.env.local
 *.env.*
+ai_rag/.env
+backend_ai/lambdas/bedrock_lambda/.env
+backend_ai/lambdas/ocr_lambda/.env
 !*.env.example
 .env.*.local
 

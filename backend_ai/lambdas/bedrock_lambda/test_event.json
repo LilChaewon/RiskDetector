@@ -1,10 +1,11 @@
 {
-  "contractId": "test-001",
-  "analysisId": "analysis-001",
+  "contractId": "test-contract-001",
+  "analysisId": "test-analysis-001",
   "contractTexts": [
-    "제1조 (목적) 본 계약은 임대차를 목적으로 한다.",
-    "제2조 (보증금) 임차인은 보증금 5천만원을 지불한다.",
-    "제3조 (원상복구) 임차인은 퇴거 시 모든 비용을 부담한다."
+    "제1조 (목적) 본 계약은 서울시 강남구 소재 102호에 대한 임대차를 목적으로 한다.",
+    "제3조 (원상복구) 임차인은 퇴거 시 최초 임대 당시 상태로 원상복구하여야 하며, 이에 필요한 모든 비용은 임차인이 부담한다.",
+    "제5조 (관리비) 임차인은 매월 관리비 30만원을 별도로 부담한다."
   ],
-  "knowledgeBaseId": "UXAFF3UKTQ"
+  "knowledgeBaseId": "UXAFF3UKTQ",
+  "retrievalQuery": "임대차 계약서에서 원상복구 조항과 관리비 조항의 법적 위험"
 }
