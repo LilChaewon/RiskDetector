@@ -8,8 +8,11 @@ export default function Home() {
   const [loggedIn, setLoggedIn] = useState(false);
 
   useEffect(() => {
-    setLoggedIn(!!localStorage.getItem('accessToken'));
-  }, []);
+    const token = localStorage.getItem('accessToken');
+    if (token) {
+      router.replace('/upload');
+    }
+  }, [router]);
 
   return (
     <div className="min-h-screen flex flex-col items-center justify-center gap-6 px-4 bg-[#F0FDF4]">

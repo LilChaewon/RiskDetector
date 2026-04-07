@@ -13,6 +13,12 @@ backend_ai/lambdas/ocr_lambda/.env
 .env.*.local
 
 # ========================
+# Spring Boot 민감 설정 파일
+# ========================
+**/application-local.yaml
+!**/application-local.yaml.example
+
+# ========================
 # Python / AI Backend
 # ========================
 __pycache__/
