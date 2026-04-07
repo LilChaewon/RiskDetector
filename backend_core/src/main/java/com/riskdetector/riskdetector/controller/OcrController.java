@@ -1,5 +1,6 @@
 package com.riskdetector.riskdetector.controller;
 
+import com.riskdetector.riskdetector.dto.ocr.OcrResultResponse;
 import com.riskdetector.riskdetector.dto.ocr.OcrUploadResponse;
 import com.riskdetector.riskdetector.service.OcrProcessService;
 import lombok.RequiredArgsConstructor;
@@ -24,6 +25,14 @@ public class OcrController {
             @RequestParam String contractType,
             @RequestPart List<MultipartFile> files) {
         OcrUploadResponse response = ocrProcessService.processUpload(email, title, contractType, files);
+        return ResponseEntity.ok(response);
+    }
+
+    @GetMapping("/{contractId}")
+    public ResponseEntity<OcrResultResponse> getOcrResult(
+            @AuthenticationPrincipal String email,
+            @PathVariable String contractId) {
+        OcrResultResponse response = ocrProcessService.getOcrResult(email, contractId);
         return ResponseEntity.ok(response);
     }
 }
