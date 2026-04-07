@@ -4,6 +4,7 @@ import { useState } from 'react';
 import { useRouter } from 'next/navigation';
 import MaskingCanvas from '@/components/MaskingCanvas';
 import AppHeader from '@/components/AppHeader';
+import { uploadOCR } from '@/api/contract';
 
 type ContractType = 'RENTAL' | 'EMPLOYMENT';
 type Step = 'select-type' | 'upload' | 'masking' | 'uploading';
@@ -140,18 +141,28 @@ export default function UploadPage() {
   // Step 3: 마스킹
   if (step === 'masking') return (
     <main className="min-h-screen bg-[#191F28] flex flex-col p-4 sm:p-6 pb-12">
-      <AppHeader onBack={() => setStep('upload')} />
-      <div className="w-full max-w-[600px] mx-auto flex-1 flex flex-col pt-16">
+      <div className="w-full max-w-[600px] mx-auto flex-1 flex flex-col pt-4">
+        {/* 상단 네비게이션: 뒤로가기 & 진행 상황 */}
         <div className="flex items-center justify-between mb-8">
-          <div>
-             <h2 className="text-[24px] font-bold text-white tracking-tight">개인정보 지우기</h2>
-             <p className="text-[15px] font-medium text-[#8B95A1] mt-2">
-               주민번호 등 민감한 정보를 손가락으로 가려주세요
-             </p>
-          </div>
-          <div className="bg-[#333D4B] text-white px-4 py-1.5 rounded-full text-[14px] font-bold shadow-md">
-             {currentMaskingIdx + 1} <span className="text-[#8B95A1] font-medium">/ {files.length}</span>
-          </div>
+           <button 
+             onClick={() => setStep('upload')} 
+             className="text-white flex items-center gap-2 font-bold text-[16px] hover:text-[#8B95A1] transition-colors"
+           >
+             <svg width="24" height="24" viewBox="0 0 24 24" fill="none">
+               <path d="M15 18L9 12L15 6" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"/>
+             </svg>
+             이전으로
+           </button>
+           <div className="bg-[#333D4B] text-white px-4 py-1.5 rounded-full text-[14px] font-bold shadow-md">
+              {currentMaskingIdx + 1} <span className="text-[#8B95A1] font-medium">/ {files.length}</span>
+           </div>
+        </div>
+        
+        <div>
+           <h2 className="text-[26px] font-bold text-white tracking-tight">개인정보 지우기</h2>
+           <p className="text-[15px] font-medium text-[#8B95A1] mt-2 mb-8">
+             주민번호 등 민감한 정보를 손가락으로 가려주세요
+           </p>
         </div>
         
         <div className="flex-1 bg-black/50 rounded-[28px] overflow-hidden shadow-2xl relative border border-[#333D4B] flex items-center justify-center min-h-[400px]">
@@ -175,9 +186,20 @@ export default function UploadPage() {
   // Step 4: 업로드 중
   async function handleUpload(masked: File[]) {
     setStep('uploading');
-    // TODO: 실제 서버 업로드 로직으로 교체
-    await new Promise(r => setTimeout(r, 2000));
-    router.push('/ocr?contId=mock-contract-001');
+    try {
+      const result = await uploadOCR(masked, contractType);
+
+      if (result.ocrStatus === 'success') {
+        router.push(`/ocr?contractId=${result.contractId}`);
+      } else {
+        alert('OCR 처리에 실패했습니다. 다시 시도해주세요.');
+        setStep('masking');
+      }
+    } catch (err) {
+      console.error('업로드 실패:', err);
+      alert('업로드에 실패했습니다. 다시 시도해주세요.');
+      setStep('masking');
+    }
   }
 
   return (
