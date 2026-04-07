@@ -1,6 +1,6 @@
 package com.riskdetector.riskdetector.dto.ocr;
 
-import lombok.AllArgsConstructor;
+import com.fasterxml.jackson.annotation.JsonProperty;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
 import lombok.Setter;
@@ -19,15 +19,10 @@ public class OcrLambdaResponse {
     @Setter
     @NoArgsConstructor
     public static class Data {
-        private List<HtmlElement> htmlArray;
-    }
+        @JsonProperty("html_entire")
+        private String htmlEntire;
 
-    @Getter
-    @AllArgsConstructor
-    @NoArgsConstructor
-    public static class HtmlElement {
-        private String type;
-        private String html;
-        private String elementId;
+        @JsonProperty("html_array")
+        private List<String> htmlArray;
     }
 }
