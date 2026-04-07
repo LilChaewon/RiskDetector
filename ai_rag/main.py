@@ -11,7 +11,12 @@ from urllib.error import URLError
 
 from config import S3_BUCKET
 from easylaw_crawler import crawl_easylaw, save_qa_documents
-from law_open_api_crawler import crawl_law_open_api, save_law_search_results
+from law_open_api_crawler import (
+    crawl_law_open_api,
+    crawl_precedent_open_api,
+    save_law_search_results,
+    save_precedent_results,
+)
 
 
 ENV_PATH = Path(".env")
@@ -95,8 +100,9 @@ def run_easylaw(mode: str) -> int:
     load_env_file()
     load_backend_ai_fallback_env()
     output_dir = Path("data/easylaw/qa_data")
+    limit = int(os.getenv("EASYLAW_LIMIT", "600").strip() or "600")
     try:
-        documents = crawl_easylaw(verbose=True)
+        documents = crawl_easylaw(limit=limit, verbose=True)
         saved_paths = save_qa_documents(documents, output_dir=output_dir)
 
         print(f"Saved {len(saved_paths)} Easylaw Q&A files to {output_dir}")
@@ -144,9 +150,34 @@ def run_law_open_api(mode: str) -> int:
     return 1
 
 
+def run_law_open_api_precedent(mode: str) -> int:
+    load_env_file()
+    load_backend_ai_fallback_env()
+    raw_keywords = os.getenv("LAW_OPEN_API_PRECEDENT_KEYWORDS", "").strip()
+    keywords = [item.strip() for item in raw_keywords.split(",") if item.strip()] if raw_keywords else None
+    output_dir = Path("data/law_open_api/precedent")
+
+    payloads, precedents = crawl_precedent_open_api(keywords=keywords, verbose=True)
+    saved_paths = save_precedent_results(payloads, precedents, output_dir=output_dir)
+
+    print(f"Saved {len(saved_paths)} law_open_api precedent files to {output_dir}")
+    for path in saved_paths:
+        print(path)
+
+    if mode == "local":
+        return 0
+
+    if mode == "s3":
+        upload_files_to_s3(saved_paths=saved_paths, bucket=get_s3_bucket(), prefix="law_open_api/precedent")
+        return 0
+
+    print(f"Unsupported mode: {mode}. Supported modes: local, s3")
+    return 1
+
+
 def main(argv: list[str]) -> int:
     if len(argv) != 3:
-        print("Usage: python main.py easylaw [local|s3]")
+        print("Usage: python main.py [easylaw|law_open_api|las_open_api|law_open_api_precedent] [local|s3]")
         return 1
 
     source = argv[1].strip().lower()
@@ -154,8 +185,10 @@ def main(argv: list[str]) -> int:
 
     if source == "easylaw":
         return run_easylaw(mode)
-    if source == "law_open_api":
+    if source in {"law_open_api", "las_open_api"}:
         return run_law_open_api(mode)
+    if source in {"law_open_api_precedent", "las_open_api_precedent"}:
+        return run_law_open_api_precedent(mode)
 
     print(f"Unsupported source: {source}")
     return 1

@@ -8,12 +8,15 @@ import shutil
 import subprocess
 from pathlib import Path
 
+import boto3
+
 from build_package import build_package
 
 
 REGION = "ap-northeast-2"
 ENV_PATH = Path(__file__).with_name(".env")
 DEFAULT_FUNCTION_NAME = "detector_bedrock_lambda"
+DEFAULT_REFERENCE_FUNCTION_NAME = "detector_ocr_lambda"
 
 
 def load_env_file() -> dict[str, str]:
@@ -33,7 +36,7 @@ def load_env_file() -> dict[str, str]:
 def build_aws_env() -> dict[str, str]:
     values = load_env_file()
     env = os.environ.copy()
-    for key in ["AWS_ACCESS_KEY_ID", "AWS_SECRET_ACCESS_KEY", "AWS_SESSION_TOKEN", "AWS_REGION"]:
+    for key in ["AWS_ACCESS_KEY_ID", "AWS_SECRET_ACCESS_KEY", "AWS_SESSION_TOKEN", "AWS_REGION", "AWS_DEFAULT_REGION"]:
         value = values.get(key, "").strip()
         if value:
             env[key] = value
@@ -52,6 +55,51 @@ def run(cmd: list[str], env: dict[str, str]) -> None:
     result.check_returncode()
 
 
+def build_boto3_session(env: dict[str, str]) -> boto3.session.Session:
+    return boto3.Session(
+        aws_access_key_id=env.get("AWS_ACCESS_KEY_ID") or None,
+        aws_secret_access_key=env.get("AWS_SECRET_ACCESS_KEY") or None,
+        aws_session_token=env.get("AWS_SESSION_TOKEN") or None,
+        region_name=env.get("AWS_REGION") or env.get("AWS_DEFAULT_REGION") or REGION,
+    )
+
+
+def ensure_function_exists(
+    function_name: str,
+    zip_path: Path,
+    env: dict[str, str],
+    env_vars: dict[str, object],
+) -> None:
+    session = build_boto3_session(env)
+    client = session.client("lambda")
+
+    try:
+        client.get_function(FunctionName=function_name)
+        return
+    except client.exceptions.ResourceNotFoundException:
+        pass
+
+    reference = client.get_function_configuration(FunctionName=DEFAULT_REFERENCE_FUNCTION_NAME)
+    role_arn = load_env_file().get("LAMBDA_ROLE_ARN", "").strip() or reference["Role"]
+    runtime = load_env_file().get("LAMBDA_RUNTIME", "").strip() or reference.get("Runtime") or "python3.14"
+    timeout = int(load_env_file().get("LAMBDA_TIMEOUT", "").strip() or reference.get("Timeout") or 120)
+    memory_size = int(load_env_file().get("LAMBDA_MEMORY_SIZE", "").strip() or reference.get("MemorySize") or 512)
+    architectures = reference.get("Architectures") or ["x86_64"]
+
+    client.create_function(
+        FunctionName=function_name,
+        Runtime=runtime,
+        Role=role_arn,
+        Handler="lambdas.bedrock_lambda.handler.lambda_handler",
+        Code={"ZipFile": zip_path.read_bytes()},
+        Timeout=timeout,
+        MemorySize=memory_size,
+        Architectures=architectures,
+        Environment=env_vars,
+        Publish=True,
+    )
+
+
 def deploy() -> None:
     aws_bin = shutil.which("aws")
     if not aws_bin:
@@ -64,12 +112,18 @@ def deploy() -> None:
 
     env_vars = {
         "Variables": {
-            "AWS_REGION": values.get("AWS_REGION", REGION),
+            "LLM_PROVIDER": values.get("LLM_PROVIDER", "bedrock"),
             "BEDROCK_MODEL_ID": values.get("BEDROCK_MODEL_ID", ""),
             "BEDROCK_INFERENCE_PROFILE_ID": values.get("BEDROCK_INFERENCE_PROFILE_ID", ""),
+            "BEDROCK_RETRIEVAL_RESULT_COUNT": values.get("BEDROCK_RETRIEVAL_RESULT_COUNT", ""),
+            "GEMINI_API_KEY": values.get("GEMINI_API_KEY", ""),
+            "GEMINI_MODEL_ID": values.get("GEMINI_MODEL_ID", ""),
             "KNOWLEDGE_BASE_ID": values.get("KNOWLEDGE_BASE_ID", ""),
+            "ANALYSIS_RESULT_LOADER_FUNCTION_NAME": values.get("ANALYSIS_RESULT_LOADER_FUNCTION_NAME", ""),
         }
     }
+
+    ensure_function_exists(function_name=function_name, zip_path=zip_path, env=env, env_vars=env_vars)
 
     run(
         [
