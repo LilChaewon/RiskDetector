@@ -9,6 +9,6 @@ import java.util.List;
 @AllArgsConstructor
 public class OcrPageResult {
     private int pageIdx;
-    private List<OcrLambdaResponse.HtmlElement> elements;
+    private List<String> elements;
     private boolean success;
 }

@@ -91,15 +91,15 @@ public class OcrProcessService {
         // OcrContent 저장 (tagIdx: 페이지 순서 * 100 + 요소 순서)
         List<OcrContent> savedContents = new ArrayList<>();
         for (OcrPageResult result : results) {
-            List<OcrLambdaResponse.HtmlElement> elements = result.getElements();
+            List<String> elements = result.getElements();
             for (int elIdx = 0; elIdx < elements.size(); elIdx++) {
-                OcrLambdaResponse.HtmlElement el = elements.get(elIdx);
+                String html = elements.get(elIdx);
                 OcrContent ocrContent = ocrContentRepository.save(
                         OcrContent.builder()
                                 .id(UUID.randomUUID().toString())
                                 .contract(contract)
-                                .content(el.getHtml())
-                                .category(el.getType())
+                                .content(html)
+                                .category(extractCategory(html))
                                 .tagIdx(result.getPageIdx() * 100 + elIdx)
                                 .build()
                 );
@@ -123,6 +123,44 @@ public class OcrProcessService {
                 .build();
     }
 
+    public OcrResultResponse getOcrResult(String email, String contractId) {
+        Contract contract = contractRepository.findById(contractId)
+                .orElseThrow(() -> new ResourceNotFoundException("Contract not found: " + contractId));
+
+        if (!contract.getUser().getEmail().equals(email)) {
+            throw new ResourceNotFoundException("Contract not found: " + contractId);
+        }
+
+        List<OcrContent> contents = ocrContentRepository.findByContractIdOrderByTagIdx(contractId);
+
+        List<OcrUploadResponse.OcrContentDto> htmlArray = contents.stream()
+                .map(c -> OcrUploadResponse.OcrContentDto.builder()
+                        .id(c.getId())
+                        .category(c.getCategory())
+                        .content(c.getContent())
+                        .tagIdx(c.getTagIdx())
+                        .build())
+                .collect(Collectors.toList());
+
+        String htmlEntire = contents.stream()
+                .map(OcrContent::getContent)
+                .collect(Collectors.joining("\n"));
+
+        return OcrResultResponse.builder()
+                .contractId(contractId)
+                .title(contract.getTitle())
+                .htmlEntire(htmlEntire)
+                .htmlArray(htmlArray)
+                .build();
+    }
+
+    private String extractCategory(String html) {
+        if (html.contains("<h1")) return "heading";
+        if (html.contains("<p")) return "paragraph";
+        if (html.contains("<table")) return "table";
+        return "unknown";
+    }
+
     private CompletableFuture<OcrPageResult> processOcrPageAsync(
             MultipartFile file, String contractId, String s3KeyPrefix, int pageIdx) {
 
@@ -137,18 +175,23 @@ public class OcrProcessService {
                 InvokeResponse response = lambdaUtil.invokeAndWait(
                         awsConfig.getLambda().getOcrFunctionName(), payload);
 
+                String rawPayload = response.payload().asUtf8String();
+                log.info("OCR Lambda 응답 (pageIdx={}): {}", pageIdx, rawPayload);
+
                 if (lambdaUtil.hasError(response)) {
-                    log.error("OCR Lambda 에러: {}", response.payload().asUtf8String());
+                    log.error("OCR Lambda functionError (pageIdx={}): {}", pageIdx, rawPayload);
                     return new OcrPageResult(pageIdx, Collections.emptyList(), false);
                 }
 
                 OcrLambdaResponse ocrResponse = lambdaUtil.parseResponse(response, OcrLambdaResponse.class);
 
                 if (!ocrResponse.isSuccess()) {
+                    log.warn("OCR Lambda success=false (pageIdx={}): {}", pageIdx, rawPayload);
                     return new OcrPageResult(pageIdx, Collections.emptyList(), false);
                 }
 
-                return new OcrPageResult(pageIdx, ocrResponse.getData().getHtmlArray(), true);
+                List<String> htmlArray = ocrResponse.getData().getHtmlArray();
+                return new OcrPageResult(pageIdx, htmlArray != null ? htmlArray : Collections.emptyList(), true);
 
             } catch (Exception e) {
                 log.error("OCR 처리 실패: {}", e.getMessage());
