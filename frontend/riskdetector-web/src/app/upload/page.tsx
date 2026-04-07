@@ -3,6 +3,7 @@
 import { useState } from 'react';
 import { useRouter } from 'next/navigation';
 import MaskingCanvas from '@/components/MaskingCanvas';
+import AppHeader from '@/components/AppHeader';
 
 type ContractType = 'RENTAL' | 'EMPLOYMENT';
 type Step = 'select-type' | 'upload' | 'masking' | 'uploading';
@@ -19,6 +20,7 @@ export default function UploadPage() {
   // Step 1: 종류 선택
   if (step === 'select-type') return (
     <main className="min-h-screen bg-[#F2F4F6] flex justify-center p-4 sm:p-6">
+      <AppHeader />
       <div className="w-full max-w-[500px] mt-16 sm:mt-24 mb-10">
         <h1 className="text-[26px] sm:text-[28px] font-bold text-[#191F28] mb-2 tracking-tight leading-snug">
           어떤 계약서인가요?
@@ -75,17 +77,8 @@ export default function UploadPage() {
   // Step 2: 파일 업로드
   if (step === 'upload') return (
     <main className="min-h-screen bg-[#F2F4F6] flex justify-center p-4 sm:p-6">
+      <AppHeader onBack={() => setStep('select-type')} />
       <div className="w-full max-w-[500px] mt-16 sm:mt-24 mb-10">
-        <button
-          onClick={() => setStep('select-type')}
-          className="text-[#8B95A1] hover:text-[#505967] transition-colors flex items-center gap-1 mb-6 font-medium text-[15px]"
-        >
-          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
-            <path d="M14 18L8 12L14 6" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
-          </svg>
-          뒤로가기
-        </button>
-
         <h2 className="text-[26px] sm:text-[28px] font-bold text-[#191F28] mb-2 tracking-tight">
           계약서를 올려주세요
         </h2>
@@ -147,7 +140,8 @@ export default function UploadPage() {
   // Step 3: 마스킹
   if (step === 'masking') return (
     <main className="min-h-screen bg-[#191F28] flex flex-col p-4 sm:p-6 pb-12">
-      <div className="w-full max-w-[600px] mx-auto flex-1 flex flex-col pt-8">
+      <AppHeader onBack={() => setStep('upload')} />
+      <div className="w-full max-w-[600px] mx-auto flex-1 flex flex-col pt-16">
         <div className="flex items-center justify-between mb-8">
           <div>
              <h2 className="text-[24px] font-bold text-white tracking-tight">개인정보 지우기</h2>
