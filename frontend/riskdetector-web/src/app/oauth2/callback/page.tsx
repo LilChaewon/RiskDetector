@@ -10,7 +10,7 @@ export default function OAuth2CallbackPage() {
         async function fetchUserAndRedirect() {
             try {
                 // 백엔드가 auth_token HttpOnly 쿠키를 심어준 상태에서 유저 정보 조회
-                const res = await fetch('http://localhost:8080/api/auth/me', {
+                const res = await fetch('http://localhost:8082/api/auth/me', {
                     credentials: 'include', // 쿠키 자동 포함
                 });
 
