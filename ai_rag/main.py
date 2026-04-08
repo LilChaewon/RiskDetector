@@ -71,29 +71,26 @@ def get_existing_saved_paths(output_dir: Path) -> list[Path]:
     return sorted(output_dir.glob("qa_*.txt"))
 
 
-def run_aws_command(args: list[str]) -> subprocess.CompletedProcess[str]:
-    aws_bin = shutil.which("aws")
-    if not aws_bin:
-        raise RuntimeError("AWS CLI is not installed.")
-    return subprocess.run(
-        [aws_bin, *args],
-        check=True,
-        text=True,
-        capture_output=True,
-    )
-
-
 def upload_files_to_s3(saved_paths: list[Path], bucket: str, prefix: str) -> None:
+    import boto3
+    from concurrent.futures import ThreadPoolExecutor
+
     profile = get_aws_profile()
-    uploaded_count = 0
-    for path in saved_paths:
+    session_kwargs = {}
+    if profile:
+        session_kwargs["profile_name"] = profile
+    
+    session = boto3.Session(**session_kwargs)
+    s3_client = session.client("s3")
+    
+    def upload_single_file(path: Path) -> None:
         key = f"{prefix}/{path.name}"
-        command = ["s3", "cp", str(path), f"s3://{bucket}/{key}"]
-        if profile:
-            command.extend(["--profile", profile])
-        run_aws_command(command)
-        uploaded_count += 1
-    print(f"[INFO] Uploaded {uploaded_count} individual txt files to S3")
+        s3_client.upload_file(str(path), bucket, key)
+
+    with ThreadPoolExecutor(max_workers=10) as executor:
+        list(executor.map(upload_single_file, saved_paths))
+
+    print(f"[INFO] Uploaded {len(saved_paths)} individual txt files to S3 via boto3")
 
 
 def run_easylaw(mode: str) -> int:

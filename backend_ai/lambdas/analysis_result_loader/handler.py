@@ -1,18 +1,21 @@
-"""Persist contract analysis results into PostgreSQL."""
+"""Persist analysis results into the backend_core-compatible PostgreSQL schema."""
 
 from __future__ import annotations
 
 import json
 import os
 from pathlib import Path
+import ssl
 from typing import Any
+from uuid import uuid4
 
-import psycopg
-from psycopg.rows import dict_row
+import pg8000
 
 
 ENV_PATH = Path(__file__).with_name(".env")
-DEFAULT_TABLE_NAME = "analysis_results"
+SCHEMA_NAME = "prod"
+ANALYSES_TABLE = f"{SCHEMA_NAME}.contract_analyses"
+TOXICS_TABLE = f"{SCHEMA_NAME}.toxic_clauses"
 
 
 def load_env_file(env_path: Path = ENV_PATH) -> None:
@@ -34,46 +37,56 @@ def get_required_env(name: str) -> str:
     return value
 
 
-def get_table_name() -> str:
-    return os.getenv("DB_TABLE_NAME", "").strip() or DEFAULT_TABLE_NAME
-
-
-def build_connection_string() -> str:
-    host = get_required_env("DB_HOST")
-    port = get_required_env("DB_PORT")
-    dbname = get_required_env("DB_NAME")
-    user = get_required_env("DB_USERNAME")
-    password = get_required_env("DB_PASSWORD")
+def build_ssl_context() -> ssl.SSLContext | None:
     sslmode = os.getenv("DB_SSLMODE", "").strip() or "disable"
+    if sslmode == "disable":
+        return None
+    return ssl.create_default_context()
 
-    return (
-        f"host={host} port={port} dbname={dbname} "
-        f"user={user} password={password} sslmode={sslmode}"
+
+def connect_db() -> Any:
+    return pg8000.connect(
+        user=get_required_env("DB_USERNAME"),
+        password=get_required_env("DB_PASSWORD"),
+        host=get_required_env("DB_HOST"),
+        port=int(get_required_env("DB_PORT")),
+        database=get_required_env("DB_NAME"),
+        ssl_context=build_ssl_context(),
+        timeout=30,
     )
 
 
-def ensure_table(conn: psycopg.Connection[Any]) -> None:
-    table_name = get_table_name()
+def ensure_backend_core_tables(conn: Any) -> None:
     with conn.cursor() as cur:
+        cur.execute(f"CREATE SCHEMA IF NOT EXISTS {SCHEMA_NAME}")
         cur.execute(
             f"""
-            CREATE TABLE IF NOT EXISTS {table_name} (
-                id BIGSERIAL PRIMARY KEY,
-                contract_id TEXT NOT NULL,
-                analysis_id TEXT NOT NULL UNIQUE,
-                title TEXT,
+            CREATE TABLE IF NOT EXISTS {ANALYSES_TABLE} (
+                id VARCHAR(50) PRIMARY KEY,
+                contract_id VARCHAR(50),
                 summary TEXT,
-                risk_level TEXT,
-                grounding_status TEXT,
-                toxic_count INTEGER NOT NULL DEFAULT 0,
-                toxics_json JSONB NOT NULL DEFAULT '[]'::jsonb,
-                analysis_json JSONB NOT NULL DEFAULT '{{}}'::jsonb,
-                retrieval_json JSONB NOT NULL DEFAULT '[]'::jsonb,
-                provider TEXT,
-                model_id TEXT,
-                knowledge_base_id TEXT,
-                created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
-                updated_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
+                status VARCHAR(50),
+                process_status VARCHAR(50),
+                ddobak_overall_comment TEXT,
+                ddobak_warning_comment TEXT,
+                ddobak_advice TEXT,
+                created_at TIMESTAMP DEFAULT NOW(),
+                updated_at TIMESTAMP DEFAULT NOW()
+            )
+            """
+        )
+        cur.execute(
+            f"""
+            CREATE TABLE IF NOT EXISTS {TOXICS_TABLE} (
+                id VARCHAR(50) PRIMARY KEY,
+                analysis_id VARCHAR(50),
+                title VARCHAR(500),
+                clause TEXT,
+                reason TEXT,
+                reason_reference TEXT,
+                source_contract_tag_idx INTEGER,
+                warn_level INTEGER,
+                created_at TIMESTAMP DEFAULT NOW()
             )
             """
         )
@@ -82,20 +95,16 @@ def ensure_table(conn: psycopg.Connection[Any]) -> None:
 def normalize_event(event: dict[str, Any]) -> dict[str, Any]:
     data = event.get("data", event) or {}
     analysis_result = data.get("analysisResult", {}) or {}
+    toxics = analysis_result.get("toxics", []) or []
     return {
+        "success": bool(event.get("success", True)),
         "contract_id": data.get("contractId") or event.get("contractId"),
         "analysis_id": data.get("analysisId") or event.get("analysisId"),
         "title": analysis_result.get("title", ""),
-        "summary": analysis_result.get("summary", ""),
-        "risk_level": analysis_result.get("riskLevel", ""),
+        "summary": analysis_result.get("summary", "") or (data.get("analysis", {}) or {}).get("summary", ""),
+        "risk_level": str(analysis_result.get("riskLevel", "") or "").lower(),
         "grounding_status": analysis_result.get("groundingStatus", ""),
-        "toxic_count": int(analysis_result.get("toxicCount") or 0),
-        "toxics_json": analysis_result.get("toxics", []) or [],
-        "analysis_json": data.get("analysis", {}) or {},
-        "retrieval_json": data.get("retrievalResults", []) or [],
-        "provider": data.get("provider", ""),
-        "model_id": data.get("modelId", ""),
-        "knowledge_base_id": data.get("knowledgeBaseId", ""),
+        "toxics": toxics,
     }
 
 
@@ -106,67 +115,128 @@ def validate_payload(payload: dict[str, Any]) -> None:
         raise ValueError("Missing analysis_id")
 
 
-def upsert_analysis_result(conn: psycopg.Connection[Any], payload: dict[str, Any]) -> dict[str, Any]:
-    table_name = get_table_name()
-    with conn.cursor(row_factory=dict_row) as cur:
+def map_process_status(success: bool) -> tuple[str, str]:
+    if success:
+        return ("success", "COMPLETED")
+    return ("error", "FAILED")
+
+
+def map_warn_level(risk_level: str) -> int:
+    normalized = (risk_level or "").strip().lower()
+    if normalized == "high":
+        return 3
+    if normalized == "medium":
+        return 2
+    return 1
+
+
+def build_warning_comment(toxics: list[dict[str, Any]]) -> str:
+    if not toxics:
+        return ""
+    return " / ".join(
+        str(item.get("reason", "")).strip()
+        for item in toxics[:3]
+        if str(item.get("reason", "")).strip()
+    )
+
+
+def build_advice(toxics: list[dict[str, Any]]) -> str:
+    if not toxics:
+        return ""
+    return " / ".join(
+        str(item.get("suggestion", "")).strip()
+        for item in toxics[:3]
+        if str(item.get("suggestion", "")).strip()
+    )
+
+
+def upsert_contract_analysis(conn: Any, payload: dict[str, Any]) -> dict[str, Any]:
+    status, process_status = map_process_status(payload["success"])
+    with conn.cursor() as cur:
         cur.execute(
             f"""
-            INSERT INTO {table_name} (
+            INSERT INTO {ANALYSES_TABLE} (
+                id,
                 contract_id,
-                analysis_id,
-                title,
                 summary,
-                risk_level,
-                grounding_status,
-                toxic_count,
-                toxics_json,
-                analysis_json,
-                retrieval_json,
-                provider,
-                model_id,
-                knowledge_base_id
-            ) VALUES (
-                %(contract_id)s,
-                %(analysis_id)s,
-                %(title)s,
-                %(summary)s,
-                %(risk_level)s,
-                %(grounding_status)s,
-                %(toxic_count)s,
-                %(toxics_json)s::jsonb,
-                %(analysis_json)s::jsonb,
-                %(retrieval_json)s::jsonb,
-                %(provider)s,
-                %(model_id)s,
-                %(knowledge_base_id)s
-            )
-            ON CONFLICT (analysis_id) DO UPDATE SET
+                status,
+                process_status,
+                ddobak_overall_comment,
+                ddobak_warning_comment,
+                ddobak_advice
+            ) VALUES (%s, %s, %s, %s, %s, %s, %s, %s)
+            ON CONFLICT (id) DO UPDATE SET
                 contract_id = EXCLUDED.contract_id,
-                title = EXCLUDED.title,
                 summary = EXCLUDED.summary,
-                risk_level = EXCLUDED.risk_level,
-                grounding_status = EXCLUDED.grounding_status,
-                toxic_count = EXCLUDED.toxic_count,
-                toxics_json = EXCLUDED.toxics_json,
-                analysis_json = EXCLUDED.analysis_json,
-                retrieval_json = EXCLUDED.retrieval_json,
-                provider = EXCLUDED.provider,
-                model_id = EXCLUDED.model_id,
-                knowledge_base_id = EXCLUDED.knowledge_base_id,
+                status = EXCLUDED.status,
+                process_status = EXCLUDED.process_status,
+                ddobak_overall_comment = EXCLUDED.ddobak_overall_comment,
+                ddobak_warning_comment = EXCLUDED.ddobak_warning_comment,
+                ddobak_advice = EXCLUDED.ddobak_advice,
                 updated_at = NOW()
-            RETURNING id, contract_id, analysis_id, updated_at
+            RETURNING id, contract_id, status, process_status, updated_at
             """,
-            {
-                **payload,
-                "toxics_json": json.dumps(payload["toxics_json"], ensure_ascii=False),
-                "analysis_json": json.dumps(payload["analysis_json"], ensure_ascii=False),
-                "retrieval_json": json.dumps(payload["retrieval_json"], ensure_ascii=False),
-            },
+            (
+                payload["analysis_id"],
+                payload["contract_id"],
+                payload["summary"],
+                status,
+                process_status,
+                payload["summary"],
+                build_warning_comment(payload["toxics"]),
+                build_advice(payload["toxics"]),
+            ),
         )
         row = cur.fetchone()
         if not row:
-            raise RuntimeError("Failed to save analysis result")
-        return dict(row)
+            raise RuntimeError("Failed to save contract analysis")
+        return {
+            "id": row[0],
+            "contract_id": row[1],
+            "status": row[2],
+            "process_status": row[3],
+            "updated_at": str(row[4]),
+        }
+
+
+def replace_toxic_clauses(conn: Any, payload: dict[str, Any]) -> dict[str, Any]:
+    analysis_id = payload["analysis_id"]
+    toxics = payload["toxics"]
+    inserted = 0
+    with conn.cursor() as cur:
+        cur.execute(f"DELETE FROM {TOXICS_TABLE} WHERE analysis_id = %s", (analysis_id,))
+
+        for item in toxics:
+            cur.execute(
+                f"""
+                INSERT INTO {TOXICS_TABLE} (
+                    id,
+                    analysis_id,
+                    title,
+                    clause,
+                    reason,
+                    reason_reference,
+                    source_contract_tag_idx,
+                    warn_level
+                ) VALUES (%s, %s, %s, %s, %s, %s, %s, %s)
+                """,
+                (
+                    str(uuid4()),
+                    analysis_id,
+                    str(item.get("riskType", "") or item.get("title", "") or "독소 조항"),
+                    str(item.get("clauseText", "") or item.get("clause", "")),
+                    str(item.get("reason", "")),
+                    ", ".join(str(source_id) for source_id in (item.get("sourceIds", []) or [])),
+                    item.get("sourceContractTagIdx"),
+                    map_warn_level(str(item.get("riskLevel", "") or payload["risk_level"])),
+                ),
+            )
+            inserted += 1
+
+    return {
+        "analysis_id": analysis_id,
+        "deleted_and_reinserted": inserted,
+    }
 
 
 def lambda_handler(event: dict[str, Any], context: Any) -> dict[str, Any]:
@@ -177,20 +247,19 @@ def lambda_handler(event: dict[str, Any], context: Any) -> dict[str, Any]:
         payload = normalize_event(event)
         validate_payload(payload)
 
-        with psycopg.connect(build_connection_string(), autocommit=False) as conn:
-            ensure_table(conn)
-            saved = upsert_analysis_result(conn, payload)
+        with connect_db() as conn:
+            ensure_backend_core_tables(conn)
+            saved_analysis = upsert_contract_analysis(conn, payload)
+            toxic_result = replace_toxic_clauses(conn, payload)
             conn.commit()
 
         return {
             "success": True,
             "data": {
-                "table": get_table_name(),
-                "saved": saved,
+                "schema": SCHEMA_NAME,
+                "analysis": saved_analysis,
+                "toxics": toxic_result,
             },
         }
     except Exception as exc:
-        return {
-            "success": False,
-            "error": str(exc),
-        }
+        raise RuntimeError(f"Failed to upsert analysis result: {exc}") from exc

@@ -15,16 +15,18 @@ from build_package import build_package
 
 REGION = "ap-northeast-2"
 ENV_PATH = Path(__file__).with_name(".env")
+OCR_ENV_PATH = Path(__file__).resolve().parents[1] / "ocr_lambda" / ".env"
+BEDROCK_ENV_PATH = Path(__file__).resolve().parents[1] / "bedrock_lambda" / ".env"
 DEFAULT_FUNCTION_NAME = "analysis_result_loader"
 DEFAULT_REFERENCE_FUNCTION_NAME = "detector_ocr_lambda"
 
 
-def load_env_file() -> dict[str, str]:
+def read_env_file(env_path: Path) -> dict[str, str]:
     values: dict[str, str] = {}
-    if not ENV_PATH.exists():
+    if not env_path.exists():
         return values
 
-    for raw_line in ENV_PATH.read_text(encoding="utf-8").splitlines():
+    for raw_line in env_path.read_text(encoding="utf-8").splitlines():
         line = raw_line.strip()
         if not line or line.startswith("#") or "=" not in line:
             continue
@@ -33,11 +35,16 @@ def load_env_file() -> dict[str, str]:
     return values
 
 
+def load_env_file() -> dict[str, str]:
+    return read_env_file(ENV_PATH)
+
+
 def build_aws_env() -> dict[str, str]:
     values = load_env_file()
     env = os.environ.copy()
-    for key in ["AWS_ACCESS_KEY_ID", "AWS_SECRET_ACCESS_KEY", "AWS_SESSION_TOKEN", "AWS_REGION"]:
-        value = values.get(key, "").strip()
+    fallback_values = read_env_file(BEDROCK_ENV_PATH) or read_env_file(OCR_ENV_PATH)
+    for key in ["AWS_ACCESS_KEY_ID", "AWS_SECRET_ACCESS_KEY", "AWS_SESSION_TOKEN", "AWS_REGION", "AWS_DEFAULT_REGION"]:
+        value = values.get(key, "").strip() or fallback_values.get(key, "").strip()
         if value:
             env[key] = value
     env.pop("AWS_PROFILE", None)
@@ -59,8 +66,15 @@ def build_boto3_session(env: dict[str, str]) -> boto3.session.Session:
         aws_access_key_id=env.get("AWS_ACCESS_KEY_ID") or None,
         aws_secret_access_key=env.get("AWS_SECRET_ACCESS_KEY") or None,
         aws_session_token=env.get("AWS_SESSION_TOKEN") or None,
-        region_name=env.get("AWS_REGION") or REGION,
+        region_name=env.get("AWS_REGION") or env.get("AWS_DEFAULT_REGION") or REGION,
     )
+
+
+def wait_until_function_ready(function_name: str, env: dict[str, str]) -> None:
+    session = build_boto3_session(env)
+    client = session.client("lambda")
+    waiter = client.get_waiter("function_updated_v2")
+    waiter.wait(FunctionName=function_name)
 
 
 def ensure_function_exists(function_name: str, zip_path: Path, env: dict[str, str], env_vars: dict[str, object]) -> None:
@@ -133,6 +147,7 @@ def deploy() -> None:
         ],
         env=env,
     )
+    wait_until_function_ready(function_name=function_name, env=env)
     run(
         [
             aws_bin,
@@ -149,6 +164,7 @@ def deploy() -> None:
         ],
         env=env,
     )
+    wait_until_function_ready(function_name=function_name, env=env)
 
 
 def main() -> int:

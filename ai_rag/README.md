@@ -1,5 +1,11 @@
 ai_rag
 
+문서:
+
+```text
+docs/WORK_SUMMARY.md
+```
+
 로컬 Easylaw 크롤링 테스트:
 
 ```bash

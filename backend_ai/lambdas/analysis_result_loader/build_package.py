@@ -20,8 +20,16 @@ PACKAGE_FILES = [
 
 SITE_PACKAGES_DIR = Path(site.getsitepackages()[0])
 PACKAGE_DIRS = [
-    (SITE_PACKAGES_DIR / "psycopg", "psycopg"),
-    (SITE_PACKAGES_DIR / "psycopg_binary", "psycopg_binary"),
+    (SITE_PACKAGES_DIR / "pg8000", "pg8000"),
+    (SITE_PACKAGES_DIR / "scramp", "scramp"),
+    (SITE_PACKAGES_DIR / "asn1crypto", "asn1crypto"),
+    (SITE_PACKAGES_DIR / "dateutil", "dateutil"),
+    (SITE_PACKAGES_DIR / "six.py", "six.py"),
+    (SITE_PACKAGES_DIR / "pg8000-1.31.5.dist-info", "pg8000-1.31.5.dist-info"),
+    (SITE_PACKAGES_DIR / "scramp-1.4.8.dist-info", "scramp-1.4.8.dist-info"),
+    (SITE_PACKAGES_DIR / "asn1crypto-1.5.1.dist-info", "asn1crypto-1.5.1.dist-info"),
+    (SITE_PACKAGES_DIR / "python_dateutil-2.9.0.post0.dist-info", "python_dateutil-2.9.0.post0.dist-info"),
+    (SITE_PACKAGES_DIR / "six-1.17.0.dist-info", "six-1.17.0.dist-info"),
 ]
 
 
