@@ -15,4 +15,9 @@ public class AsyncConfig {
     public Executor ocrExecutor() {
         return Executors.newFixedThreadPool(5);
     }
+
+    @Bean(name = "analysisExecutor")
+    public Executor analysisExecutor() {
+        return Executors.newFixedThreadPool(5);
+    }
 }
