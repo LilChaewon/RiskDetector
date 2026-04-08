@@ -45,9 +45,9 @@ CREATE TABLE IF NOT EXISTS prod.contract_analyses (
     summary                TEXT,
     status                 VARCHAR(50),         -- 'success', 'error'
     process_status         VARCHAR(50),         -- 'IN_PROGRESS', 'COMPLETED', 'FAILED'
-    ddobak_overall_comment TEXT,
-    ddobak_warning_comment TEXT,
-    ddobak_advice          TEXT,
+    riskdetector_overall_comment TEXT,
+    riskdetector_warning_comment TEXT,
+    riskdetector_advice          TEXT,
     created_at             TIMESTAMP    DEFAULT NOW(),
     updated_at             TIMESTAMP    DEFAULT NOW()
 );

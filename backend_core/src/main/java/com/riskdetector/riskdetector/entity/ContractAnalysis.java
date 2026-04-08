@@ -28,14 +28,14 @@ public class ContractAnalysis {
     @Column(name = "process_status")
     private String processStatus; // 'IN_PROGRESS', 'COMPLETED', 'FAILED'
 
-    @Column(name = "ddobak_overall_comment", columnDefinition = "TEXT")
-    private String ddobakOverallComment;
+    @Column(name = "riskdetector_overall_comment", columnDefinition = "TEXT")
+    private String riskdetectorOverallComment;
 
-    @Column(name = "ddobak_warning_comment", columnDefinition = "TEXT")
-    private String ddobakWarningComment;
+    @Column(name = "riskdetector_warning_comment", columnDefinition = "TEXT")
+    private String riskdetectorWarningComment;
 
-    @Column(name = "ddobak_advice", columnDefinition = "TEXT")
-    private String ddobakAdvice;
+    @Column(name = "riskdetector_advice", columnDefinition = "TEXT")
+    private String riskdetectorAdvice;
 
     @Column(name = "created_at")
     private LocalDateTime createdAt;
@@ -45,17 +45,27 @@ public class ContractAnalysis {
 
     @Builder
     public ContractAnalysis(String id, Contract contract, String summary, String status,
-                            String processStatus, String ddobakOverallComment,
-                            String ddobakWarningComment, String ddobakAdvice) {
+                            String processStatus, String riskdetectorOverallComment,
+                            String riskdetectorWarningComment, String riskdetectorAdvice) {
         this.id = id;
         this.contract = contract;
         this.summary = summary;
         this.status = status;
         this.processStatus = processStatus;
-        this.ddobakOverallComment = ddobakOverallComment;
-        this.ddobakWarningComment = ddobakWarningComment;
-        this.ddobakAdvice = ddobakAdvice;
+        this.riskdetectorOverallComment = riskdetectorOverallComment;
+        this.riskdetectorWarningComment = riskdetectorWarningComment;
+        this.riskdetectorAdvice = riskdetectorAdvice;
         this.createdAt = LocalDateTime.now();
+        this.updatedAt = LocalDateTime.now();
+    }
+
+    public void complete(String summary, String riskdetectorOverallComment,
+                         String riskdetectorWarningComment, String riskdetectorAdvice) {
+        this.processStatus = "COMPLETED";
+        this.summary = summary;
+        this.riskdetectorOverallComment = riskdetectorOverallComment;
+        this.riskdetectorWarningComment = riskdetectorWarningComment;
+        this.riskdetectorAdvice = riskdetectorAdvice;
         this.updatedAt = LocalDateTime.now();
     }
 }
