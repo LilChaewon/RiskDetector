@@ -9,22 +9,14 @@ export default function OAuth2CallbackPage() {
     useEffect(() => {
         async function fetchUserAndRedirect() {
             try {
-                // 1. URL에서 토큰 추출
-                const urlParams = new URLSearchParams(window.location.search);
-                const token = urlParams.get('token');
-                
-                if (token) {
-                    localStorage.setItem('accessToken', token);
-                }
-
-                // 2. 백엔드에서 유저 정보 조회 (쿠키 혹은 헤더 토큰 사용)
+                // 1. 백엔드에서 유저 정보 조회 (HttpOnly 쿠키 기반 인증)
                 const res = await fetch('http://localhost:8080/api/auth/me', {
-                    headers: token ? { 'Authorization': `Bearer ${token}` } : {},
                     credentials: 'include',
                 });
 
                 if (res.ok) {
                     const data = await res.json();
+                    localStorage.setItem('isLoggedIn', 'true'); // 토큰 대신 단순 마커 저장
                     if (data.email) localStorage.setItem('userEmail', data.email);
                     if (data.name)  localStorage.setItem('userName', data.name);
                     if (data.picture) localStorage.setItem('userPicture', data.picture);
