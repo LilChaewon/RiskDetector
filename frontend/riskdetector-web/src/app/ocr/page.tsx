@@ -4,6 +4,7 @@ import { useSearchParams, useRouter } from 'next/navigation';
 import { useEffect, useState } from 'react';
 import { getOcrResult, updateOcrBlock, startAnalysis } from '@/api/contract';
 import type { ContractOcrHtml } from '@/types/api';
+import DOMPurify from 'dompurify';
 
 export default function OcrPage() {
   const searchParams = useSearchParams();
@@ -89,7 +90,7 @@ export default function OcrPage() {
             ) : (
               <div
                 className="text-gray-700 leading-relaxed"
-                dangerouslySetInnerHTML={{ __html: item.content }}
+                dangerouslySetInnerHTML={{ __html: DOMPurify.sanitize(item.content) }}
               />
             )}
           </div>

@@ -9,8 +9,8 @@ spring:
       mode: always
   jpa:
     hibernate:
-      ddl-auto: update
-    show-sql: true
+      ddl-auto: none # 운영 환경에서는 none 또는 validate 권장
+    show-sql: false
   servlet:
     multipart:
       enabled: true

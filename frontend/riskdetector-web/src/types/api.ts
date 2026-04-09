@@ -28,7 +28,7 @@ export interface ContractAnalysisDTO {
     }>;
 }
 
-export type ContractAnalysisResponse = ResponseDTO<ContractAnalysisDTO>;
+export type ContractAnalysisResponse = ContractAnalysisDTO;
 
 export interface HtmlBlock {
     category: string;
@@ -44,7 +44,7 @@ export interface ContractOcrHtml {
     htmlArray: HtmlBlock[];
 }
 
-export type ContractOcrResponse = ResponseDTO<ContractOcrHtml>;
+export type ContractOcrResponse = ContractOcrHtml;
 
 export interface CreateAnalysisRequest {
     contractId: string;

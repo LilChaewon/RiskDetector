@@ -51,15 +51,12 @@ export async function getOcrResult(contractId: string) {
         {
             method: 'GET',
             mockData: {
-                success: true, code: 200, message: 'ok',
-                userMessage: null, timestamp: '', trace_id: '',
-                data: {
-                    pageIdx: 0,
-                    htmlEntire: '<p>제1조 (목적) 본 계약은 임대차를 목적으로 한다.</p>',
-                    htmlArray: [
-                        { id: 'el_0', category: 'paragraph', element: '<p>제1조 (목적) 본 계약은 임대차를 목적으로 한다.</p>', tagIdx: 1000 },
-                    ]
-                }
+                contractId: 'mock-ocr-1',
+                title: '임대차 계약서',
+                htmlEntire: '<p>제1조 (목적) 본 계약은 임대차를 목적으로 한다.</p>',
+                htmlArray: [
+                    { id: 'el_0', category: 'paragraph', content: '<p>제1조 (목적) 본 계약은 임대차를 목적으로 한다.</p>', tagIdx: 1000 },
+                ]
             }
         }
     );
@@ -78,11 +75,12 @@ export async function updateOcrBlock(contractId: string, blockId: string, text: 
 
 // 4) 수정을 마친 후 AI에게 본격적인 분석을 요청할 때 사용
 export async function startAnalysis(contractId: string) {
-    return apiFetch<{ success: boolean; data: { analysisId: string } }>(
+    return apiFetch<{ analysisId: string }>(
         '/analysis',
         {
             method: 'POST',
             body: JSON.stringify({ contractId, ocrSucceeded: 'true' }),
+            mockData: { analysisId: 'mock-analysis-1' }
         }
     );
 }
