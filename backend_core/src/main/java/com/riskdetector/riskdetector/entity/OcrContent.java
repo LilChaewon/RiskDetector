@@ -2,14 +2,14 @@ package com.riskdetector.riskdetector.entity;
 
 import jakarta.persistence.*;
 import lombok.Builder;
-import lombok.Getter;
+import lombok.Data;
 import lombok.NoArgsConstructor;
 
 import java.time.LocalDateTime;
 
 @Entity
-@Table(schema = "prod", name = "ocr_content")
-@Getter
+@Table(name = "ocr_content")
+@Data
 @NoArgsConstructor
 public class OcrContent {
 

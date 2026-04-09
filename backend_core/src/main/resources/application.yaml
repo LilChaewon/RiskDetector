@@ -1,6 +1,6 @@
 spring:
   datasource:
-    url: jdbc:postgresql://localhost:5432/riskdetector
+    url: ${SPRING_DATASOURCE_URL:jdbc:postgresql://localhost:5432/riskdetector}
     username: ${DB_USERNAME}
     password: ${DB_PASSWORD}
     driver-class-name: org.postgresql.Driver
@@ -9,8 +9,8 @@ spring:
       mode: always
   jpa:
     hibernate:
-      ddl-auto: none
-    show-sql: false
+      ddl-auto: update
+    show-sql: true
   servlet:
     multipart:
       enabled: true

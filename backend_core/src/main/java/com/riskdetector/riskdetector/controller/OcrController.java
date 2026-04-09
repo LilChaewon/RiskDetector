@@ -1,6 +1,7 @@
 package com.riskdetector.riskdetector.controller;
 
 import com.riskdetector.riskdetector.dto.ocr.OcrResultResponse;
+import com.riskdetector.riskdetector.dto.ocr.OcrUpdateRequest;
 import com.riskdetector.riskdetector.dto.ocr.OcrUploadResponse;
 import com.riskdetector.riskdetector.service.OcrProcessService;
 import lombok.RequiredArgsConstructor;
@@ -32,7 +33,18 @@ public class OcrController {
     public ResponseEntity<OcrResultResponse> getOcrResult(
             @AuthenticationPrincipal String email,
             @PathVariable String contractId) {
+        System.out.println("GET /api/ocr/" + contractId + " requested by " + email);
         OcrResultResponse response = ocrProcessService.getOcrResult(email, contractId);
+        System.out.println("Returning " + (response.getHtmlArray() != null ? response.getHtmlArray().size() : 0) + " items");
+        return ResponseEntity.ok(response);
+    }
+
+    @PatchMapping("/{contractId}")
+    public ResponseEntity<OcrResultResponse> updateOcrContent(
+            @AuthenticationPrincipal String email,
+            @PathVariable String contractId,
+            @RequestBody OcrUpdateRequest request) {
+        OcrResultResponse response = ocrProcessService.updateOcrContent(email, contractId, request);
         return ResponseEntity.ok(response);
     }
 }

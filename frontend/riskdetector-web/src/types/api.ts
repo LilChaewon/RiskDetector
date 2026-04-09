@@ -32,13 +32,14 @@ export type ContractAnalysisResponse = ResponseDTO<ContractAnalysisDTO>;
 
 export interface HtmlBlock {
     category: string;
-    element: string;
+    content: string;
     id: string;
     tagIdx: number;
 }
 
 export interface ContractOcrHtml {
-    pageIdx: number;
+    contractId: string;
+    title: string;
     htmlEntire: string;
     htmlArray: HtmlBlock[];
 }
