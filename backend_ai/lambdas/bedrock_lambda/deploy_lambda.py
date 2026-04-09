@@ -127,6 +127,7 @@ def deploy() -> None:
             "GEMINI_MODEL_ID": values.get("GEMINI_MODEL_ID", ""),
             "GEMINI_FALLBACK_MODEL_ID": values.get("GEMINI_FALLBACK_MODEL_ID", ""),
             "KNOWLEDGE_BASE_ID": values.get("KNOWLEDGE_BASE_ID", ""),
+            "ANALYSIS_RESULT_LOADER_MODE": values.get("ANALYSIS_RESULT_LOADER_MODE", ""),
             "ANALYSIS_RESULT_LOADER_FUNCTION_NAME": values.get("ANALYSIS_RESULT_LOADER_FUNCTION_NAME", ""),
         }
     }

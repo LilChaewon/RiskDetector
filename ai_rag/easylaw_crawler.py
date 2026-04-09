@@ -303,12 +303,19 @@ def render_qa_document(document: QaDocument) -> str:
     )
 
 
-def save_qa_documents(documents: Iterable[QaDocument], output_dir: Path) -> list[Path]:
+def save_qa_documents(
+    documents: Iterable[QaDocument],
+    output_dir: Path,
+    *,
+    clear_existing: bool = True,
+    start_index: int = 1,
+) -> list[Path]:
     output_dir.mkdir(parents=True, exist_ok=True)
-    for old_path in output_dir.glob("qa_*.txt"):
-        old_path.unlink()
+    if clear_existing:
+        for old_path in output_dir.glob("qa_*.txt"):
+            old_path.unlink()
     saved_paths: list[Path] = []
-    for index, document in enumerate(documents, start=1):
+    for index, document in enumerate(documents, start=start_index):
         path = output_dir / f"qa_{index}.txt"
         path.write_text(render_qa_document(document), encoding="utf-8")
         saved_paths.append(path)

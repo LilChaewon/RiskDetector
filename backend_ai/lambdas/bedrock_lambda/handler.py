@@ -669,6 +669,13 @@ def build_analysis_result(
 def invoke_result_loader_async(payload: dict[str, Any]) -> dict[str, Any] | None:
     mode = get_result_loader_mode()
     function_name = get_result_loader_function_name()
+    if mode in {"sqs", "destination", "disabled", "none"}:
+        return {
+            "mode": mode,
+            "success": True,
+            "message": "analysis_result_loader direct invoke skipped; relying on Lambda Destination / SQS pipeline.",
+        }
+
     if mode == "local":
         from lambdas.analysis_result_loader.handler import lambda_handler as loader_handler
 

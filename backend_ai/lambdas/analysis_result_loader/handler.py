@@ -92,6 +92,34 @@ def ensure_backend_core_tables(conn: Any) -> None:
         )
 
 
+def parse_sqs_body(body: str) -> dict[str, Any]:
+    parsed = json.loads(body)
+    if isinstance(parsed, dict) and "responsePayload" in parsed:
+        response_payload = parsed.get("responsePayload")
+        if isinstance(response_payload, str):
+            return json.loads(response_payload)
+        if isinstance(response_payload, dict):
+            return response_payload
+    return parsed
+
+
+def extract_events(event: dict[str, Any]) -> list[dict[str, Any]]:
+    records = event.get("Records")
+    if not isinstance(records, list) or not records:
+        return [event]
+
+    extracted: list[dict[str, Any]] = []
+    for record in records:
+        body = record.get("body")
+        if not body:
+            continue
+        if isinstance(body, str):
+            extracted.append(parse_sqs_body(body))
+        elif isinstance(body, dict):
+            extracted.append(body)
+    return extracted or [event]
+
+
 def normalize_event(event: dict[str, Any]) -> dict[str, Any]:
     data = event.get("data", event) or {}
     analysis_result = data.get("analysisResult", {}) or {}
@@ -244,21 +272,34 @@ def lambda_handler(event: dict[str, Any], context: Any) -> dict[str, Any]:
     load_env_file()
 
     try:
-        payload = normalize_event(event)
-        validate_payload(payload)
+        raw_events = extract_events(event)
+        processed_items: list[dict[str, Any]] = []
 
         with connect_db() as conn:
             ensure_backend_core_tables(conn)
-            saved_analysis = upsert_contract_analysis(conn, payload)
-            toxic_result = replace_toxic_clauses(conn, payload)
+
+            for raw_event in raw_events:
+                payload = normalize_event(raw_event)
+                validate_payload(payload)
+                saved_analysis = upsert_contract_analysis(conn, payload)
+                toxic_result = replace_toxic_clauses(conn, payload)
+                processed_items.append(
+                    {
+                        "analysis": saved_analysis,
+                        "toxics": toxic_result,
+                    }
+                )
+
             conn.commit()
 
         return {
             "success": True,
             "data": {
                 "schema": SCHEMA_NAME,
-                "analysis": saved_analysis,
-                "toxics": toxic_result,
+                "processedCount": len(processed_items),
+                "analysis": processed_items[0]["analysis"] if processed_items else None,
+                "toxics": processed_items[0]["toxics"] if processed_items else None,
+                "items": processed_items,
             },
         }
     except Exception as exc:

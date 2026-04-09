@@ -17,6 +17,16 @@ cat data/easylaw/qa_data/qa_1.txt
 
 기본적으로 `부동산/임대차`, `근로/노동` 카테고리만 수집하며, 기본 목표 개수는 `600`개임.
 
+신규 Easylaw 데이터만 수집:
+
+```bash
+cd ai_rag
+python3 main.py easylaw local only_new
+python3 main.py easylaw s3 only_new
+```
+
+`only_new`는 기존 `qa_*.txt`와 `data/easylaw/.crawl_state.json`의 `원문URL`을 기준으로 새 문서만 append 저장/업로드함.
+
 출력 형식:
 
 ```text
