@@ -116,9 +116,13 @@ public class OcrProcessService {
                         .build())
                 .collect(Collectors.toList());
 
+        String ocrStatus = results.isEmpty() ? "fail" : 
+                          (results.size() < files.size() ? "partial_success" : "success");
+
         return OcrUploadResponse.builder()
                 .contractId(contractId)
                 .title(title)
+                .ocrStatus(ocrStatus)
                 .contents(contentDtos)
                 .build();
     }
@@ -152,6 +156,22 @@ public class OcrProcessService {
                 .htmlEntire(htmlEntire)
                 .htmlArray(htmlArray)
                 .build();
+    }
+    public OcrResultResponse updateOcrContent(String email, String contractId, OcrUpdateRequest request) {
+        Contract contract = contractRepository.findById(contractId)
+                .orElseThrow(() -> new ResourceNotFoundException("Contract not found: " + contractId));
+
+        if (!contract.getUser().getEmail().equals(email)) {
+            throw new ResourceNotFoundException("Unauthorized access to contract");
+        }
+
+        OcrContent content = ocrContentRepository.findById(request.getId())
+                .orElseThrow(() -> new ResourceNotFoundException("OCR Block not found: " + request.getId()));
+
+        content.setContent(request.getContent());
+        ocrContentRepository.save(content);
+
+        return getOcrResult(email, contractId);
     }
 
     private String extractCategory(String html) {

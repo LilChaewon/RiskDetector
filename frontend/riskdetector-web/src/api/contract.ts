@@ -41,13 +41,13 @@ export async function uploadOCR(files: File[], contractType: string) {
 
     if (!res.ok) throw new Error('업로드 실패');
     const json = await res.json();
-    return json.data; // { contractId, ocrStatus }
+    return json; // { contractId, ocrStatus, contents, ... }
 }
 
 // 2) OCR 결과 조회
-export async function fetchOcrResult(contId: string) {
+export async function getOcrResult(contractId: string) {
     return apiFetch<ContractOcrResponse>(
-        `/contract/ocr/${contId}`,
+        `/ocr/${contractId}`,
         {
             method: 'GET',
             mockData: {
@@ -55,10 +55,9 @@ export async function fetchOcrResult(contId: string) {
                 userMessage: null, timestamp: '', trace_id: '',
                 data: {
                     pageIdx: 0,
-                    htmlEntire: '<p>계약서 내용</p>',
+                    htmlEntire: '<p>제1조 (목적) 본 계약은 임대차를 목적으로 한다.</p>',
                     htmlArray: [
-                        { id: 'b1', category: 'p', element: '<p>제1조 목적</p>', tagIdx: 0 },
-                        { id: 'b2', category: 'p', element: '<p>임대인과 임차인은 다음과 같이 계약한다</p>', tagIdx: 1 }
+                        { id: 'el_0', category: 'paragraph', element: '<p>제1조 (목적) 본 계약은 임대차를 목적으로 한다.</p>', tagIdx: 1000 },
                     ]
                 }
             }
@@ -67,23 +66,23 @@ export async function fetchOcrResult(contId: string) {
 }
 
 // 3) OCR로 인식된 특정 블록의 텍스트를 수정할 때 사용
-export async function updateOcrBlock(contractId: string, blockId: string, element: string) {
+export async function updateOcrBlock(contractId: string, blockId: string, text: string) {
     return apiFetch<ContractOcrResponse>(
-        `/contract/ocr/${contractId}`,
+        `/ocr/${contractId}`,
         {
             method: 'PATCH',
-            body: JSON.stringify({ id: blockId, element }),
+            body: JSON.stringify({ id: blockId, content: text }),
         }
     );
 }
 
 // 4) 수정을 마친 후 AI에게 본격적인 분석을 요청할 때 사용
-export async function requestAnalysis(contractId: string, ocrSucceeded: boolean) {
+export async function startAnalysis(contractId: string) {
     return apiFetch<{ success: boolean; data: { analysisId: string } }>(
-        '/contract/analysis',
+        '/analysis',
         {
             method: 'POST',
-            body: JSON.stringify({ contractId, ocrSucceeded: String(ocrSucceeded) }),
+            body: JSON.stringify({ contractId, ocrSucceeded: 'true' }),
         }
     );
 }
@@ -91,7 +90,7 @@ export async function requestAnalysis(contractId: string, ocrSucceeded: boolean)
 // 5) AI 분석이 완료된 최종 결과(독소 조항 등)를 가져올 때 사용
 export async function fetchAnalysis(contractId: string, analysisId: string) {
     return apiFetch<ContractAnalysisResponse>(
-        `/contract/${contractId}/analysis/${analysisId}`,
+        `/analysis/${analysisId}`,
         {
             method: 'GET',
         }

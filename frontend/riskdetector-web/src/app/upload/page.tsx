@@ -189,7 +189,10 @@ export default function UploadPage() {
     try {
       const result = await uploadOCR(masked, contractType);
 
-      if (result.ocrStatus === 'success') {
+      if (result.ocrStatus === 'success' || result.ocrStatus === 'partial_success') {
+        if (result.ocrStatus === 'partial_success') {
+          console.warn('일부 페이지 OCR 처리에 실패했습니다.');
+        }
         router.push(`/ocr?contractId=${result.contractId}`);
       } else {
         alert('OCR 처리에 실패했습니다. 다시 시도해주세요.');
@@ -206,8 +209,8 @@ export default function UploadPage() {
     <main className="min-h-screen bg-[#F2F4F6] flex items-center justify-center p-6">
       <div className="text-center flex flex-col items-center bg-white rounded-[32px] p-12 shadow-[0_8px_30px_rgba(0,0,0,0.04)] w-full max-w-[400px]">
         <div className="w-16 h-16 border-4 border-[#F2F4F6] border-t-[#3182F6] rounded-full animate-[spin_1s_cubic-bezier(0.5,0.1,0.1,0.8)_infinite] mb-8"></div>
-        <h2 className="text-[22px] font-bold text-[#191F28] mb-3 tracking-tight">안전하게 분석하고 있어요</h2>
-        <p className="text-[16px] font-medium text-[#8B95A1]">잠시만 기다려주세요</p>
+        <h2 className="text-[22px] font-bold text-[#191F28] mb-3 tracking-tight">계약서를 읽고 있어요</h2>
+        <p className="text-[16px] font-medium text-[#8B95A1]">내용을 추출하는 중이니 잠시만 기다려주세요</p>
       </div>
     </main>
   );

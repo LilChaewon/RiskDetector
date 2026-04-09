@@ -25,12 +25,14 @@ export async function apiFetch<T>(
         headers['Content-Type'] = 'application/json';
     }
 
-    if (token) {
+    // JWT 형식이 아닌 토큰(guest 등)은 헤더에 담지 않음 -> 백엔드가 쿠키를 보게 함
+    if (token && token.includes('.')) {
         headers['Authorization'] = `Bearer ${token}`;
     }
 
     const res = await fetch(`${API_BASE}${path}`, {
         ...fetchOptions,
+        credentials: 'include', // 쿠키 자동 포함 (백엔드 auth_token 처리용)
         headers: { ...headers, ...(fetchOptions.headers as Record<string, string>) },
     });
 
