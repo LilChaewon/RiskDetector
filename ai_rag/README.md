@@ -27,6 +27,19 @@ python3 main.py easylaw s3 only_new
 
 `only_new`는 기존 `qa_*.txt`와 `data/easylaw/.crawl_state.json`의 `원문URL`을 기준으로 새 문서만 append 저장/업로드함.
 
+주간 cron 자동화 권장:
+
+```cron
+0 2 * * 0 /bin/bash /Users/onyu/Desktop/RiskDetector/ai_rag/scripts/run_easylaw_weekly.sh
+```
+
+직접 명령으로 돌릴 경우:
+
+```bash
+cd /Users/onyu/Desktop/RiskDetector/ai_rag
+/usr/bin/python3 main.py easylaw s3 only_new
+```
+
 출력 형식:
 
 ```text

@@ -120,6 +120,34 @@ def get_next_qa_index(output_dir: Path) -> int:
     return (max(indices) + 1) if indices else 1
 
 
+def sync_bedrock_knowledge_base() -> None:
+    knowledge_base_id = os.getenv("KNOWLEDGE_BASE_ID", "").strip()
+    data_source_id = os.getenv("DATA_SOURCE_ID", "").strip()
+    
+    if not knowledge_base_id or not data_source_id:
+        print("[WARN] Skipping Bedrock Knowledge Base sync: KNOWLEDGE_BASE_ID or DATA_SOURCE_ID is missing in .env")
+        return
+
+    import boto3
+    profile = get_aws_profile()
+    session_kwargs = {}
+    if profile:
+        session_kwargs["profile_name"] = profile
+        
+    session = boto3.Session(**session_kwargs)
+    try:
+        bedrock_agent = session.client("bedrock-agent")
+        response = bedrock_agent.start_ingestion_job(
+            knowledgeBaseId=knowledge_base_id,
+            dataSourceId=data_source_id,
+            description="Automated sync after AI RAG crawl upload"
+        )
+        ingestion_job_id = response.get('ingestionJob', {}).get('ingestionJobId', 'UNKNOWN')
+        print(f"[INFO] Started Bedrock Knowledge Base sync (Job ID: {ingestion_job_id})")
+    except Exception as exc:
+        print(f"[ERROR] Failed to start Bedrock Knowledge Base sync: {exc}")
+
+
 def upload_files_to_s3(saved_paths: list[Path], bucket: str, prefix: str) -> None:
     import boto3
     from concurrent.futures import ThreadPoolExecutor
@@ -140,6 +168,7 @@ def upload_files_to_s3(saved_paths: list[Path], bucket: str, prefix: str) -> Non
         list(executor.map(upload_single_file, saved_paths))
 
     print(f"[INFO] Uploaded {len(saved_paths)} individual txt files to S3 via boto3")
+    sync_bedrock_knowledge_base()
 
 
 def run_easylaw(mode: str, only_new: bool = False) -> int:
