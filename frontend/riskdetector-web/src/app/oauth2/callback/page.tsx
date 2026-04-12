@@ -9,24 +9,20 @@ export default function OAuth2CallbackPage() {
     useEffect(() => {
         async function fetchUserAndRedirect() {
             try {
-                // 백엔드가 auth_token HttpOnly 쿠키를 심어준 상태에서 유저 정보 조회
-                const res = await fetch('http://localhost:8082/api/auth/me', {
-                    credentials: 'include', // 쿠키 자동 포함
+                // 1. 백엔드에서 유저 정보 조회 (HttpOnly 쿠키 기반 인증)
+                const res = await fetch('http://localhost:8080/api/auth/me', {
+                    credentials: 'include',
                 });
 
                 if (res.ok) {
                     const data = await res.json();
-                    // 로그인 마커 + 사용자 정보 저장
-                    localStorage.setItem('accessToken', 'cookie-auth');
+                    localStorage.setItem('isLoggedIn', 'true'); // 토큰 대신 단순 마커 저장
                     if (data.email) localStorage.setItem('userEmail', data.email);
                     if (data.name)  localStorage.setItem('userName', data.name);
                     if (data.picture) localStorage.setItem('userPicture', data.picture);
-                } else {
-                    // 실패해도 일단 로그인 마커만 남김
-                    localStorage.setItem('accessToken', 'cookie-auth');
                 }
-            } catch {
-                localStorage.setItem('accessToken', 'cookie-auth');
+            } catch (err) {
+                console.error('로그인 처리 중 오류:', err);
             }
 
             router.replace('/upload');

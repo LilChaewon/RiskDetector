@@ -8,7 +8,7 @@ import lombok.NoArgsConstructor;
 import java.time.LocalDateTime;
 
 @Entity
-@Table(schema = "prod", name = "toxic_clauses")
+@Table(name = "toxic_clauses")
 @Getter
 @NoArgsConstructor
 public class ToxicClause {

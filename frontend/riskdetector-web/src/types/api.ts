@@ -28,22 +28,23 @@ export interface ContractAnalysisDTO {
     }>;
 }
 
-export type ContractAnalysisResponse = ResponseDTO<ContractAnalysisDTO>;
+export type ContractAnalysisResponse = ContractAnalysisDTO;
 
 export interface HtmlBlock {
     category: string;
-    element: string;
+    content: string;
     id: string;
     tagIdx: number;
 }
 
 export interface ContractOcrHtml {
-    pageIdx: number;
+    contractId: string;
+    title: string;
     htmlEntire: string;
     htmlArray: HtmlBlock[];
 }
 
-export type ContractOcrResponse = ResponseDTO<ContractOcrHtml>;
+export type ContractOcrResponse = ContractOcrHtml;
 
 export interface CreateAnalysisRequest {
     contractId: string;

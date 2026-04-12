@@ -13,6 +13,8 @@ import com.riskdetector.riskdetector.util.LambdaUtil;
 import com.riskdetector.riskdetector.util.S3Util;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.jsoup.Jsoup;
+import org.jsoup.safety.Safelist;
 import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.stereotype.Service;
 import org.springframework.web.multipart.MultipartFile;
@@ -94,11 +96,12 @@ public class OcrProcessService {
             List<String> elements = result.getElements();
             for (int elIdx = 0; elIdx < elements.size(); elIdx++) {
                 String html = elements.get(elIdx);
+                String sanitizedHtml = Jsoup.clean(html, Safelist.relaxed());
                 OcrContent ocrContent = ocrContentRepository.save(
                         OcrContent.builder()
                                 .id(UUID.randomUUID().toString())
                                 .contract(contract)
-                                .content(html)
+                                .content(sanitizedHtml)
                                 .category(extractCategory(html))
                                 .tagIdx(result.getPageIdx() * 100 + elIdx)
                                 .build()
@@ -116,9 +119,13 @@ public class OcrProcessService {
                         .build())
                 .collect(Collectors.toList());
 
+        String ocrStatus = results.isEmpty() ? "fail" : 
+                          (results.size() < files.size() ? "partial_success" : "success");
+
         return OcrUploadResponse.builder()
                 .contractId(contractId)
                 .title(title)
+                .ocrStatus(ocrStatus)
                 .contents(contentDtos)
                 .build();
     }
@@ -152,6 +159,29 @@ public class OcrProcessService {
                 .htmlEntire(htmlEntire)
                 .htmlArray(htmlArray)
                 .build();
+    }
+    public OcrResultResponse updateOcrContent(String email, String contractId, OcrUpdateRequest request) {
+        Contract contract = contractRepository.findById(contractId)
+                .orElseThrow(() -> new ResourceNotFoundException("Contract not found: " + contractId));
+
+        if (!contract.getUser().getEmail().equals(email)) {
+            throw new ResourceNotFoundException("Unauthorized access to contract");
+        }
+
+        OcrContent content = ocrContentRepository.findById(request.getId())
+                .orElseThrow(() -> new ResourceNotFoundException("OCR Block not found: " + request.getId()));
+
+        // 보안 검증: 수정하려는 블록이 해당 계약서에 속해 있는지 확인
+        if (!content.getContract().getId().equals(contractId)) {
+            throw new ResourceNotFoundException("Inconsistent block-contract relationship");
+        }
+
+        // HTML Sanitization
+        String sanitizedContent = Jsoup.clean(request.getContent(), Safelist.relaxed());
+        content.setContent(sanitizedContent);
+        ocrContentRepository.save(content);
+
+        return getOcrResult(email, contractId);
     }
 
     private String extractCategory(String html) {

@@ -11,6 +11,7 @@ public class OcrUploadResponse {
 
     private String contractId;
     private String title;
+    private String ocrStatus;
     private List<OcrContentDto> contents;
 
     @Getter

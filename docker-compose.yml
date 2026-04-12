@@ -1,0 +1,51 @@
+services:
+  # Database
+  db:
+    image: postgres:15-alpine
+    container_name: riskdetector-db
+    restart: always
+    environment:
+      POSTGRES_DB: ${POSTGRES_DB:-riskdetector}
+      POSTGRES_USER: ${DB_USERNAME}
+      POSTGRES_PASSWORD: ${DB_PASSWORD}
+    ports:
+      - "5432:5432"
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    env_file:
+      - ./backend_core/.env
+
+  # Backend (Spring Boot)
+  backend:
+    build: 
+      context: ./backend_core
+    container_name: riskdetector-backend
+    ports:
+      - "8080:8080"
+    volumes:
+      - ./backend_core:/app
+    command: ./gradlew bootRun
+    depends_on:
+      - db
+    environment:
+      - SPRING_DATASOURCE_URL=jdbc:postgresql://db:5432/riskdetector
+    env_file:
+      - ./backend_core/.env
+
+  # Frontend (Next.js)
+  frontend:
+    build:
+      context: ./frontend/riskdetector-web
+    container_name: riskdetector-frontend
+    ports:
+      - "3000:3000"
+    volumes:
+      - ./frontend/riskdetector-web:/app
+      - /app/node_modules
+    depends_on:
+      - backend
+    environment:
+      - NEXT_PUBLIC_API_BASE_URL=http://localhost:8080/api
+
+volumes:
+  postgres_data:
