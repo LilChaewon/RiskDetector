@@ -1,4 +1,5 @@
-"""Entry point for AI RAG data collection tests."""
+"""Entry point for AI RAG data collection tests.
+AI RAG 데이터 수집 및 업로드를 위한 메인 엔트리 포인트입니다."""
 
 from __future__ import annotations
 
@@ -121,6 +122,8 @@ def get_next_qa_index(output_dir: Path) -> int:
 
 
 def sync_bedrock_knowledge_base() -> None:
+    """Start the ingestion job for the AWS Bedrock Knowledge Base after S3 upload.
+    S3 업로드 완료 후 AWS Bedrock Knowledge Base의 동기화(Sync) 작업을 시작합니다."""
     knowledge_base_id = os.getenv("KNOWLEDGE_BASE_ID", "").strip()
     data_source_id = os.getenv("DATA_SOURCE_ID", "").strip()
     
@@ -149,6 +152,8 @@ def sync_bedrock_knowledge_base() -> None:
 
 
 def upload_files_to_s3(saved_paths: list[Path], bucket: str, prefix: str) -> None:
+    """Upload collected text files to the S3 bucket in parallel.
+    수집된 텍스트 파일들을 S3 버킷에 병렬로 업로드합니다."""
     import boto3
     from concurrent.futures import ThreadPoolExecutor
 
@@ -172,6 +177,8 @@ def upload_files_to_s3(saved_paths: list[Path], bucket: str, prefix: str) -> Non
 
 
 def run_easylaw(mode: str, only_new: bool = False) -> int:
+    """Run the Easylaw crawling and upload process.
+    생활법령정보(Easylaw) 크롤링 및 업로드 프로세스를 실행합니다."""
     load_env_file()
     load_backend_ai_fallback_env()
     output_dir = Path("data/easylaw/qa_data")
@@ -223,6 +230,8 @@ def run_easylaw(mode: str, only_new: bool = False) -> int:
 
 
 def run_law_open_api(mode: str) -> int:
+    """Run the legal data collection process via Law Open API.
+    국가법령정보 API를 통한 법령 데이터 수집을 실행합니다."""
     load_env_file()
     load_backend_ai_fallback_env()
     query = os.getenv("LAW_OPEN_API_QUERY", "").strip() or "근로계약"
@@ -247,6 +256,8 @@ def run_law_open_api(mode: str) -> int:
 
 
 def run_law_open_api_precedent(mode: str) -> int:
+    """Run the precedent data collection process via Law Open API.
+    국가법령정보 API를 통한 판례 데이터 수집을 실행합니다."""
     load_env_file()
     load_backend_ai_fallback_env()
     raw_keywords = os.getenv("LAW_OPEN_API_PRECEDENT_KEYWORDS", "").strip()

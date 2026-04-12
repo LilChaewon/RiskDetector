@@ -53,7 +53,8 @@ def get_required_env(name: str) -> str:
 
 
 class LawOpenApiCrawler:
-    """참조 구조를 따르되 현재 프로젝트에서 바로 쓰기 위한 경량 크롤러."""
+    """Crawler class for collecting law and precedent data using the National Law Information Public API.
+    국가법령정보 공동활용 API를 사용하여 법령 및 판례 데이터를 수집하는 크롤러 클래스입니다."""
 
     def __init__(self) -> None:
         self.config = self._sync_config_with_env()
@@ -85,7 +86,8 @@ class LawOpenApiCrawler:
         return json.loads(text)
 
     def crawl_law(self, query: str) -> tuple[dict[str, Any], list[LawSearchItem]]:
-        params = dict(self.config["law_search_params"])
+        """Search for laws using a specific keyword and return normalized results.
+        특정 키워드로 법령을 검색하고 결과를 정규화하여 반환합니다."""
         params["query"] = query
         payload = self._request_json(self.config["law_search_url"], params)
         items = self._normalize_law_items(payload)
@@ -137,6 +139,8 @@ class LawOpenApiCrawler:
         display: int | None = None,
         verbose: bool = False,
     ) -> tuple[dict[str, dict[str, Any]], list[dict[str, Any]]]:
+        """Search for a list of precedents for specified keywords and collect detailed information.
+        지정된 키워드들에 대해 판례 목록을 검색하고 상세 내용을 수집합니다."""
         if keywords is None:
             keywords = get_precedent_keywords_from_env()
         max_pages = max_pages or self.config["max_pages"]
@@ -373,6 +377,8 @@ class LawOpenApiCrawler:
 
 
 def save_law_search_results(payload: dict[str, Any], items: list[LawSearchItem], output_dir: Path) -> list[Path]:
+    """Save collected law search results to local text files and HTML files.
+    수집된 법령 검색 결과를 로컬 텍스트 파일과 HTML로 저장합니다."""
     crawler = LawOpenApiCrawler()
     output_dir.mkdir(parents=True, exist_ok=True)
     for pattern in ("law_*.txt", "law_original_*.html", "search_results.json"):
@@ -412,6 +418,8 @@ def save_precedent_results(
     precedents: list[dict[str, Any]],
     output_dir: Path,
 ) -> list[Path]:
+    """Save collected precedent data as keyword-specific JSON files and individual text files.
+    수집된 판례 데이터를 키워드별 JSON 및 개별 텍스트 파일로 저장합니다."""
     output_dir.mkdir(parents=True, exist_ok=True)
     curated_output_dir = output_dir / "curated"
     curated_output_dir.mkdir(parents=True, exist_ok=True)

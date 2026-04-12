@@ -1,4 +1,5 @@
-"""Persist analysis results into the backend_core-compatible PostgreSQL schema."""
+"""Persist analysis results into the backend_core-compatible PostgreSQL schema.
+분석 결과를 backend_core 스키마와 호환되는 PostgreSQL 데이터베이스에 저장합니다."""
 
 from __future__ import annotations
 
@@ -45,6 +46,8 @@ def build_ssl_context() -> ssl.SSLContext | None:
 
 
 def connect_db() -> Any:
+    """Connect to the PostgreSQL database using settings from environment variables.
+    환경 변수에 설정된 정보를 바탕으로 PostgreSQL 데이터 데이터베이스에 연결합니다."""
     return pg8000.connect(
         user=get_required_env("DB_USERNAME"),
         password=get_required_env("DB_PASSWORD"),
@@ -57,6 +60,8 @@ def connect_db() -> Any:
 
 
 def ensure_backend_core_tables(conn: Any) -> None:
+    """Ensure that the necessary database schema and tables exist, creating them if they do not.
+    필요한 데이터베이스 스키마와 테이블이 없으면 생성합니다."""
     with conn.cursor() as cur:
         cur.execute(f"CREATE SCHEMA IF NOT EXISTS {SCHEMA_NAME}")
         cur.execute(
@@ -121,6 +126,8 @@ def extract_events(event: dict[str, Any]) -> list[dict[str, Any]]:
 
 
 def normalize_event(event: dict[str, Any]) -> dict[str, Any]:
+    """Normalize the lambda event into a standard format suitable for database persistence.
+    람다 이벤트를 DB 저장에 적합한 표준 형식으로 변환합니다."""
     data = event.get("data", event) or {}
     analysis_result = data.get("analysisResult", {}) or {}
     toxics = analysis_result.get("toxics", []) or []
@@ -179,6 +186,8 @@ def build_advice(toxics: list[dict[str, Any]]) -> str:
 
 
 def upsert_contract_analysis(conn: Any, payload: dict[str, Any]) -> dict[str, Any]:
+    """Insert or update (Upsert) the overall contract analysis summary in the database.
+    계약서 전체 분석 요약 정보를 DB에 추가하거나 업데이트(Upsert)합니다."""
     status, process_status = map_process_status(payload["success"])
     with conn.cursor() as cur:
         cur.execute(
@@ -228,6 +237,8 @@ def upsert_contract_analysis(conn: Any, payload: dict[str, Any]) -> dict[str, An
 
 
 def replace_toxic_clauses(conn: Any, payload: dict[str, Any]) -> dict[str, Any]:
+    """Delete existing toxic clauses and replace them with new ones for the given analysis.
+    기존의 독소 조항들을 삭제하고 새 조항들로 교체하여 저장합니다."""
     analysis_id = payload["analysis_id"]
     toxics = payload["toxics"]
     inserted = 0
@@ -268,6 +279,8 @@ def replace_toxic_clauses(conn: Any, payload: dict[str, Any]) -> dict[str, Any]:
 
 
 def lambda_handler(event: dict[str, Any], context: Any) -> dict[str, Any]:
+    """Main entry point for the Lambda, which extracts events and persists them to the DB sequentially.
+    람다의 메인 엔트리 포인트입니다. 이벤트를 추출하여 DB에 순차적으로 저장합니다."""
     del context
     load_env_file()
 
