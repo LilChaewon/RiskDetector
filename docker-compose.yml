@@ -14,23 +14,36 @@ services:
       - postgres_data:/var/lib/postgresql/data
     env_file:
       - ./backend_core/.env
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${DB_USERNAME} -d ${POSTGRES_DB:-riskdetector}"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
 
   # Backend (Spring Boot)
   backend:
-    build: 
+    build:
       context: ./backend_core
     container_name: riskdetector-backend
     ports:
       - "8080:8080"
     volumes:
       - ./backend_core:/app
-    command: ./gradlew bootRun
+      - gradle_cache:/root/.gradle   # Gradle 캐시 유지 → 재시작마다 재다운로드 방지
+    command: ["./gradlew", "bootRun", "--no-daemon"]
     depends_on:
-      - db
+      db:
+        condition: service_healthy
     environment:
-      - SPRING_DATASOURCE_URL=jdbc:postgresql://db:5432/riskdetector
+      - SPRING_DATASOURCE_URL=jdbc:postgresql://db:5432/${POSTGRES_DB:-riskdetector}
     env_file:
       - ./backend_core/.env
+    healthcheck:
+      test: ["CMD-SHELL", "curl -sf http://localhost:8080/actuator/health || exit 1"]
+      interval: 15s
+      timeout: 10s
+      retries: 10
+      start_period: 120s   # Spring Boot 기동 시간 여유
 
   # Frontend (Next.js)
   frontend:
@@ -43,9 +56,11 @@ services:
       - ./frontend/riskdetector-web:/app
       - /app/node_modules
     depends_on:
-      - backend
+      - backend    # 백엔드 컨테이너가 시작되면 프론트도 시작 (healthcheck 없이도 OK)
     environment:
       - NEXT_PUBLIC_API_BASE_URL=http://localhost:8080/api
+      - NEXT_PUBLIC_MOCK_MODE=false
 
 volumes:
   postgres_data:
+  gradle_cache:

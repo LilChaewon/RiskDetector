@@ -2,7 +2,7 @@ import { apiFetch } from './client';
 import type {
     ContractOcrResponse,
     ContractAnalysisResponse,
-    CreateAnalysisRequest
+    OcrUploadResponseBody
 } from '@/types/api';
 
 type ContractType = 'RENTAL' | 'EMPLOYMENT';
@@ -33,15 +33,14 @@ export async function uploadOCR(files: File[], contractType: string) {
     formData.append('contractType', contractType);
     formData.append('title', '업로드된 계약서'); // 백엔드에서 요구하는 title 파라미터
 
-    const res = await fetch(`${process.env.NEXT_PUBLIC_API_BASE_URL}/ocr/upload`, {
-        method: 'POST',
-        credentials: 'include', // 백엔드 통신 시 JWT 쿠키를 자동 포함
-        body: formData,
-    });
-
-    if (!res.ok) throw new Error('업로드 실패');
-    const json = await res.json();
-    return json; // { contractId, ocrStatus, contents, ... }
+    // apiFetch를 사용해 JWT 토큰(Authorization 헤더)이 자동으로 포함되도록 수정
+    return apiFetch<OcrUploadResponseBody>(
+        '/ocr/upload',
+        {
+            method: 'POST',
+            body: formData,
+        }
+    );
 }
 
 // 2) OCR 결과 조회

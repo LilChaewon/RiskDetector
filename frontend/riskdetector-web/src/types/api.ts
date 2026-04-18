@@ -50,3 +50,17 @@ export interface CreateAnalysisRequest {
     contractId: string;
     ocrSucceeded: string;
 }
+
+export interface OcrContentDto {
+    id: string;
+    category: string;
+    content: string;
+    tagIdx: number;
+}
+
+export interface OcrUploadResponseBody {
+    contractId: string;
+    title: string;
+    ocrStatus: string;
+    contents: OcrContentDto[];
+}
