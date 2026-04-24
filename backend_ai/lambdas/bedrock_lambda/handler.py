@@ -15,7 +15,7 @@ import boto3
 
 
 ENV_PATH = Path(__file__).with_name(".env")
-DEFAULT_MODEL_ID = "amazon.nova-lite-v1:0"
+DEFAULT_MODEL_ID = "anthropic.claude-3-5-sonnet-20241022-v2:0"
 DEFAULT_RETRIEVAL_RESULTS = 5
 DEFAULT_GEMINI_MODEL_ID = "gemini-1.5-pro"
 DEFAULT_GEMINI_RETRIES = 3
@@ -82,7 +82,7 @@ def get_required_env(name: str) -> str:
 def get_llm_provider() -> str:
     """Get the LLM provider (bedrock or gemini) to use.
     사용할 LLM 제공자(bedrock 또는 gemini)를 가져옵니다."""
-    return os.getenv("LLM_PROVIDER", "").strip().lower() or "gemini"
+    return os.getenv("LLM_PROVIDER", "").strip().lower() or "bedrock"
 
 
 def get_model_id() -> str:
@@ -119,14 +119,44 @@ def get_result_loader_mode() -> str:
 
 
 def build_retrieval_query(contract_texts: list[str], event_query: str | None = None) -> str:
-    """Generate a query string for knowledge base retrieval.
-    지식 기반 검색을 위한 쿼리 문장을 생성합니다."""
+    """Generate a query string for knowledge base retrieval using heuristic chunking.
+    지식 기반 검색을 위한 쿼리 문장을 생성합니다. (고위험 단어 기반 청킹 적용)"""
     explicit_query = (event_query or "").strip()
     if explicit_query:
         return explicit_query
 
     joined_text = " ".join(text.strip() for text in contract_texts if text.strip())
-    return joined_text[:1500]
+    
+    # 1. 고위험 키워드 목록 정의
+    risk_keywords = [
+        "보증금", "특약", "해지", "위약금", "손해배상", "권리금", 
+        "퇴직금", "수당", "해고", "원상복구", "공제", "비용 부담", "명도", "임대인", "임차인"
+    ]
+    
+    # 2. 문장 기반 분리 (마침표, 큰 단위의 띄어쓰기, 개행)
+    sentences = re.split(r'(?<=[.!?])\s+|\n+', joined_text)
+    
+    important_sentences = []
+    seen = set()
+    
+    # 3. 키워드가 포함된 위험 문장들만 우선적으로 쏙쏙 뽑아냄
+    for sentence in sentences:
+        sentence_clean = sentence.strip()
+        if not sentence_clean or sentence_clean in seen:
+            continue
+        if any(keyword in sentence_clean for keyword in risk_keywords):
+            important_sentences.append(sentence_clean)
+            seen.add(sentence_clean)
+            
+    # 4. 추출된 문장이 너무 적으면 원본 데이터의 앞부분을 Fallback으로 보충
+    if len(important_sentences) < 3:
+        query_candidates = joined_text[:1000]
+    else:
+        # 중요한 위험 문장들을 빽빽하게 이어붙여 밀도 높은 RAG 쿼리 생성
+        query_candidates = " ".join(important_sentences)
+        
+    # Bedrock Embedding 모델의 한도(약 1500자)에 맞춰 최적화된 쿼리 반환
+    return query_candidates[:1500]
 
 
 def format_retrieval_location(location: dict[str, Any]) -> str:
