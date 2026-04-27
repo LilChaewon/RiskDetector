@@ -64,6 +64,13 @@ def build_boto3_session(env: dict[str, str]) -> boto3.session.Session:
     )
 
 
+def wait_until_function_ready(function_name: str, env: dict[str, str]) -> None:
+    session = build_boto3_session(env)
+    client = session.client("lambda")
+    waiter = client.get_waiter("function_updated_v2")
+    waiter.wait(FunctionName=function_name)
+
+
 def ensure_function_exists(
     function_name: str,
     zip_path: Path,
@@ -118,7 +125,9 @@ def deploy() -> None:
             "BEDROCK_RETRIEVAL_RESULT_COUNT": values.get("BEDROCK_RETRIEVAL_RESULT_COUNT", ""),
             "GEMINI_API_KEY": values.get("GEMINI_API_KEY", ""),
             "GEMINI_MODEL_ID": values.get("GEMINI_MODEL_ID", ""),
+            "GEMINI_FALLBACK_MODEL_ID": values.get("GEMINI_FALLBACK_MODEL_ID", ""),
             "KNOWLEDGE_BASE_ID": values.get("KNOWLEDGE_BASE_ID", ""),
+            "ANALYSIS_RESULT_LOADER_MODE": values.get("ANALYSIS_RESULT_LOADER_MODE", ""),
             "ANALYSIS_RESULT_LOADER_FUNCTION_NAME": values.get("ANALYSIS_RESULT_LOADER_FUNCTION_NAME", ""),
         }
     }
@@ -139,6 +148,7 @@ def deploy() -> None:
         ],
         env=env,
     )
+    wait_until_function_ready(function_name=function_name, env=env)
 
     run(
         [
@@ -156,6 +166,7 @@ def deploy() -> None:
         ],
         env=env,
     )
+    wait_until_function_ready(function_name=function_name, env=env)
 
     print(f"Deployment finished for {function_name} in {REGION}")
 

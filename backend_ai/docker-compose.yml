@@ -1,0 +1,26 @@
+version: '3.8'
+
+services:
+  # AI 백엔드 람다 로직들을 테스트하기 위한 전용 컨테이너입니다.
+  ai-backend:
+    build: .
+    container_name: riskdetector-ai
+    
+    # [네트워크 핵심 기능]
+    # 백엔드 코어 프로젝트에서 띄운 DB 파드 등과 손쉽게 통신하기 위해
+    # Mac/Windows에서 컨테이너 시스템을 넘어 호스트 머신(localhost)으로 우회 접근할 수 있는 설정을 넣습니다.
+    extra_hosts:
+      - "host.docker.internal:host-gateway"
+      
+    environment:
+      # 로컬 DB 컨테이너 (포트 5432 바인딩) 로 연결하기 위해 localhost 대신 도커 내부용 주소를 사용합니다.
+      - DB_HOST=host.docker.internal
+      - DB_PORT=5432
+      - DB_NAME=riskdetector
+      - DB_USERNAME=risk_user
+      - DB_PASSWORD=password
+      
+    volumes:
+      # 코드를 수정할 때마다 Docker 이미지를 매번 새로 빌드할 필요 없이 
+      # 로컬 디렉토리의 변경 사항이 컨테이너 내부에 즉시 반영되도록 볼륨 마운트를 연결합니다.
+      - .:/var/task
