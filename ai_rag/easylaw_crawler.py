@@ -1,4 +1,5 @@
-"""Easylaw Q&A crawler for local and S3 RAG dataset testing."""
+"""Easylaw Q&A crawler for local and S3 RAG dataset testing.
+로컬 및 S3 RAG 데이터셋 구성을 위한 생활법령정보 Q&A 크롤러."""
 
 from __future__ import annotations
 
@@ -57,6 +58,8 @@ class QaSeed:
 
 
 class EasylawPageFetcher:
+    """Class for fetching list and detail page HTML from the Easylaw website.
+    생활법령 웹사이트에서 목록 및 상세 페이지 HTML을 가져오는 클래스입니다."""
     def __init__(self) -> None:
         self.session = requests.Session()
         self.session.headers.update(EASYLAW_CONFIG.base_headers)
@@ -106,6 +109,8 @@ def clean_html_text(raw_html: str) -> str:
 
 
 def extract_detail_from_page_text(page_html: str, seed: QaSeed) -> tuple[str, str]:
+    """Extract question and answer text from the detail page using BeautifulSoup.
+    BeautifulSoup을 사용하여 상세 페이지에서 질문과 답변 텍스트를 추출합니다."""
     soup = BeautifulSoup(page_html, "html.parser")
     lines = [clean_text(line) for line in soup.get_text("\n").splitlines()]
     lines = [line for line in lines if line]
@@ -130,6 +135,8 @@ def extract_detail_from_page_text(page_html: str, seed: QaSeed) -> tuple[str, st
 
 
 def extract_qa_seeds(page_html: str) -> list[QaSeed]:
+    """Extract seed data from the list page pointing to individual Q&A detail pages.
+    목록 페이지에서 각 Q&A 항목의 상세 페이지로 연결되는 씨앗(Seed) 데이터를 추출합니다."""
     soup = BeautifulSoup(page_html, "html.parser")
     question_ul = soup.find("ul", class_="question")
     if not question_ul:
@@ -242,6 +249,8 @@ def fetch_and_parse_detail(seed: QaSeed) -> QaDocument | None:
 
 
 def crawl_easylaw(limit: int = EASYLAW_CONFIG.default_limit, verbose: bool = False) -> list[QaDocument]:
+    """Main crawling function to collect Easylaw information up to a specified limit. Supports parallel processing.
+    지정된 개수만큼 생활법령 정보를 수집하는 메인 크롤링 함수입니다. 병렬 처리를 지원합니다."""
     documents: list[QaDocument] = []
     fetcher = EasylawPageFetcher()
     seen_question_ids: set[str] = set()
