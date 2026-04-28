@@ -27,6 +27,7 @@ public class OcrController {
             @RequestParam String title,
             @RequestParam String contractType,
             @RequestPart List<MultipartFile> files) {
+        log.info("OCR Upload request received. Email: {}, Title: {}, Files count: {}", email, title, files.size());
         OcrUploadResponse response = ocrProcessService.processUpload(email, title, contractType, files);
         return ResponseEntity.ok(response);
     }

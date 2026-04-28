@@ -28,18 +28,24 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
     @Override
     protected void doFilterInternal(HttpServletRequest request, HttpServletResponse response,
                                     FilterChain filterChain) throws ServletException, IOException {
-        String token = resolveToken(request);
+        try {
+            String token = resolveToken(request);
+            logger.debug("Resolved token for URI {}: {}", request.getRequestURI(), (token != null ? "exists" : "null"));
 
-        if (StringUtils.hasText(token)) {
-            if (jwtUtil.validateToken(token)) {
-                String email = jwtUtil.getEmailFromToken(token);
-                UsernamePasswordAuthenticationToken authentication =
-                        new UsernamePasswordAuthenticationToken(email, null, List.of());
-                SecurityContextHolder.getContext().setAuthentication(authentication);
-                logger.debug("Authenticated user: {}", email);
-            } else {
-                logger.warn("Invalid JWT token received from IP: {}", request.getRemoteAddr());
+            if (StringUtils.hasText(token)) {
+                if (jwtUtil.validateToken(token)) {
+                    String email = jwtUtil.getEmailFromToken(token);
+                    UsernamePasswordAuthenticationToken authentication =
+                            new UsernamePasswordAuthenticationToken(email, null, List.of());
+                    SecurityContextHolder.getContext().setAuthentication(authentication);
+                    logger.debug("Authenticated user: {}", email);
+                } else {
+                    logger.warn("Invalid JWT token received from IP: {}", request.getRemoteAddr());
+                }
             }
+        } catch (Exception e) {
+            logger.error("Could not set user authentication in security context", e);
+            // 인증 설정에 실패하더라도 filterChain은 계속 타야 permitAll 경로가 작동함
         }
 
         filterChain.doFilter(request, response);
