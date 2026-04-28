@@ -1,9 +1,10 @@
 'use client';
 
-import { useEffect } from 'react';
+import { Suspense, useEffect } from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
 
-export default function OAuth2CallbackPage() {
+// useSearchParams()를 사용하는 컴포넌트는 반드시 Suspense로 감싸야 함
+function CallbackHandler() {
     const router = useRouter();
     const searchParams = useSearchParams();
 
@@ -43,10 +44,21 @@ export default function OAuth2CallbackPage() {
         fetchUserAndRedirect();
     }, [router, searchParams]);
 
+    return null;
+}
+
+const Spinner = () => (
+    <div className="min-h-screen flex flex-col items-center justify-center bg-[#F0FDF4] gap-4">
+        <div className="w-10 h-10 border-4 border-[#059669] border-t-transparent rounded-full animate-spin" />
+        <p className="text-[#059669] font-medium text-sm">로그인 처리 중...</p>
+    </div>
+);
+
+export default function OAuth2CallbackPage() {
     return (
-        <div className="min-h-screen flex flex-col items-center justify-center bg-[#F0FDF4] gap-4">
-            <div className="w-10 h-10 border-4 border-[#059669] border-t-transparent rounded-full animate-spin" />
-            <p className="text-[#059669] font-medium text-sm">로그인 처리 중...</p>
-        </div>
+        <Suspense fallback={<Spinner />}>
+            <CallbackHandler />
+            <Spinner />
+        </Suspense>
     );
 }
