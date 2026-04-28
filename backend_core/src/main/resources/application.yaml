@@ -45,6 +45,9 @@ app:
 
 aws:
   region: ${AWS_REGION:ap-northeast-2}
+  credentials:
+    access-key: ${AWS_ACCESS_KEY_ID:}
+    secret-key: ${AWS_SECRET_ACCESS_KEY:}
   s3:
     service-bucket: ${AWS_S3_BUCKET:risk-detector-myongji}
   lambda:
