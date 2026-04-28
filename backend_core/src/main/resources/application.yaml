@@ -9,7 +9,7 @@ spring:
       mode: always
   jpa:
     hibernate:
-      ddl-auto: none # 운영 환경에서는 none 또는 validate 권장
+      ddl-auto: update # 테이블이 없을 경우 자동으로 생성하도록 변경
     show-sql: false
     open-in-view: false
   servlet:
@@ -47,8 +47,8 @@ app:
 aws:
   region: ${AWS_REGION:ap-northeast-2}
   credentials:
-    accessKey: ${AWS_ACCESS_KEY_ID}
-    secretKey: ${AWS_SECRET_ACCESS_KEY}
+    access-key: ${AWS_ACCESS_KEY_ID:}
+    secret-key: ${AWS_SECRET_ACCESS_KEY:}
   s3:
     service-bucket: ${AWS_S3_BUCKET:risk-detector-myongji}
   lambda:
