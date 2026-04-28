@@ -49,7 +49,7 @@ public class AnalysisProcessService {
         Contract contract = contractRepository.findById(request.getContractId())
                 .orElseThrow(() -> new ResourceNotFoundException("Contract not found: " + request.getContractId()));
 
-        if (!contract.getUser().getEmail().equals(email)) {
+        if (!hasAccess(contract, email)) {
             throw new ResourceNotFoundException("Contract not found: " + request.getContractId());
         }
 
@@ -113,7 +113,7 @@ public class AnalysisProcessService {
         ContractAnalysis analysis = contractAnalysisRepository.findById(analysisId)
                 .orElseThrow(() -> new ResourceNotFoundException("Analysis not found: " + analysisId));
 
-        if (!analysis.getContract().getUser().getEmail().equals(email)) {
+        if (!hasAccess(analysis.getContract(), email)) {
             throw new ResourceNotFoundException("Analysis not found: " + analysisId);
         }
 
@@ -122,5 +122,14 @@ public class AnalysisProcessService {
                 .findByContractIdOrderByTagIdx(analysis.getContract().getId());
 
         return AnalysisResultResponse.of(analysis, toxics, ocrContents);
+    }
+
+    private boolean isGuest(String email) {
+        return email == null || email.isBlank() || "anonymousUser".equals(email);
+    }
+
+    private boolean hasAccess(Contract contract, String email) {
+        if (contract.getUser() == null) return true;
+        return !isGuest(email) && contract.getUser().getEmail().equals(email);
     }
 }
