@@ -60,8 +60,7 @@ public class SecurityConfig {
                         .requestMatchers(new AntPathRequestMatcher("/login/oauth2/**")).permitAll()
                         .requestMatchers(new AntPathRequestMatcher("/actuator/health")).permitAll()
                         .requestMatchers(new AntPathRequestMatcher("/error")).permitAll()
-                        .requestMatchers(new AntPathRequestMatcher("/api/ocr/**")).permitAll()
-                        .requestMatchers(new AntPathRequestMatcher("/api/analysis/**")).permitAll()
+                        .requestMatchers(new AntPathRequestMatcher("/api/**")).permitAll() // 임시: 전체 개방
                         .anyRequest().authenticated()
                 )
                 .oauth2Login(oauth2 -> oauth2
