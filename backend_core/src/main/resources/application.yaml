@@ -54,3 +54,11 @@ aws:
   lambda:
     ocr-function-name: ${AWS_LAMBDA_OCR_FUNCTION:detector_ocr_lambda}
     analysis-function-name: ${AWS_LAMBDA_ANALYSIS_FUNCTION:detector_bedrock_lambda}
+
+# 임시 디버그 로그 (401 원인 파악 후 제거)
+logging:
+  level:
+    org.springframework.security: DEBUG
+    org.springframework.security.web.access: DEBUG
+    org.springframework.web.cors: DEBUG
+    com.riskdetector: DEBUG
