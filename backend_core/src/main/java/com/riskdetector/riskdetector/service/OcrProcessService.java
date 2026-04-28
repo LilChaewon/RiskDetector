@@ -77,9 +77,12 @@ public class OcrProcessService {
                         .build()
         );
 
+        log.info("Starting OCR process for contractId: {}", contractId);
+        
         // 각 페이지를 병렬로 OCR 처리
         List<CompletableFuture<OcrPageResult>> futures = new ArrayList<>();
         for (int i = 0; i < files.size(); i++) {
+            log.info("Submitting OCR task for page {}", i);
             futures.add(processOcrPageAsync(files.get(i), contractId, s3KeyPrefix, i));
         }
 
