@@ -57,6 +57,7 @@ public class SecurityConfig {
                 .authorizeHttpRequests(auth -> auth
                         .requestMatchers("/oauth2/**", "/login/oauth2/**").permitAll()
                         .requestMatchers("/actuator/health").permitAll()
+                        .requestMatchers("/error").permitAll()  // 내부 예외 → /error 포워드 시 401 방지
                         .requestMatchers("/api/ocr/**", "/api/analysis/**").permitAll()
                         .anyRequest().authenticated()
                 )
