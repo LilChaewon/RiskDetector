@@ -1,5 +1,8 @@
 package com.riskdetector.riskdetector.service;
 
+import com.riskdetector.riskdetector.config.AwsConfig;
+import com.riskdetector.riskdetector.dto.analysis.AnalysisLambdaPayload;
+import com.riskdetector.riskdetector.dto.analysis.AnalysisLambdaResponse;
 import com.riskdetector.riskdetector.dto.analysis.AnalysisRequest;
 import com.riskdetector.riskdetector.dto.analysis.AnalysisResultResponse;
 import com.riskdetector.riskdetector.dto.analysis.AnalysisStartResponse;
@@ -12,15 +15,21 @@ import com.riskdetector.riskdetector.repository.ContractAnalysisRepository;
 import com.riskdetector.riskdetector.repository.ContractRepository;
 import com.riskdetector.riskdetector.repository.OcrContentRepository;
 import com.riskdetector.riskdetector.repository.ToxicClauseRepository;
+import com.riskdetector.riskdetector.util.LambdaUtil;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
+import software.amazon.awssdk.services.lambda.model.InvokeResponse;
 
+import java.util.Collections;
 import java.util.List;
 import java.util.Optional;
+import java.util.TreeMap;
 import java.util.UUID;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.Executor;
+import java.util.stream.Collectors;
 
 @Slf4j
 @Service
@@ -30,6 +39,8 @@ public class AnalysisProcessService {
     private final ContractAnalysisRepository contractAnalysisRepository;
     private final ToxicClauseRepository toxicClauseRepository;
     private final OcrContentRepository ocrContentRepository;
+    private final LambdaUtil lambdaUtil;
+    private final AwsConfig awsConfig;
     private final Executor analysisExecutor;
 
     public AnalysisProcessService(
@@ -37,14 +48,19 @@ public class AnalysisProcessService {
             ContractAnalysisRepository contractAnalysisRepository,
             ToxicClauseRepository toxicClauseRepository,
             OcrContentRepository ocrContentRepository,
+            LambdaUtil lambdaUtil,
+            AwsConfig awsConfig,
             @Qualifier("analysisExecutor") Executor analysisExecutor) {
         this.contractRepository = contractRepository;
         this.contractAnalysisRepository = contractAnalysisRepository;
         this.toxicClauseRepository = toxicClauseRepository;
         this.ocrContentRepository = ocrContentRepository;
+        this.lambdaUtil = lambdaUtil;
+        this.awsConfig = awsConfig;
         this.analysisExecutor = analysisExecutor;
     }
 
+    @Transactional
     public AnalysisStartResponse requestAnalysis(String email, AnalysisRequest request) {
         Contract contract = contractRepository.findById(request.getContractId())
                 .orElseThrow(() -> new ResourceNotFoundException("Contract not found: " + request.getContractId()));
@@ -53,15 +69,13 @@ public class AnalysisProcessService {
             throw new ResourceNotFoundException("Contract not found: " + request.getContractId());
         }
 
-        // 이미 IN_PROGRESS인 분석이 있으면 그대로 반환
         Optional<ContractAnalysis> existing = contractAnalysisRepository.findByContractId(request.getContractId());
         if (existing.isPresent() && "IN_PROGRESS".equals(existing.get().getProcessStatus())) {
             return new AnalysisStartResponse(existing.get().getId());
         }
 
-        // 분석 레코드 생성
         String analysisId = UUID.randomUUID().toString();
-        ContractAnalysis analysis = contractAnalysisRepository.save(
+        contractAnalysisRepository.save(
                 ContractAnalysis.builder()
                         .id(analysisId)
                         .contract(contract)
@@ -70,45 +84,16 @@ public class AnalysisProcessService {
                         .build()
         );
 
-        // ======= 더미 처리 (bedrock_lambda AI팀 배포 전) =======
-        CompletableFuture.runAsync(() -> {
-            try {
-                Thread.sleep(3000);
+        List<OcrContent> ocrContents = ocrContentRepository.findByContractIdOrderByTagIdx(request.getContractId());
+        List<String> contractTexts = groupByPage(ocrContents);
 
-                ContractAnalysis saved = contractAnalysisRepository.findById(analysisId)
-                        .orElseThrow();
-                saved.complete(
-                        "이 계약서는 임차인에게 다소 불리한 조항이 포함되어 있습니다.",
-                        "전반적으로 주의가 필요합니다.",
-                        "원상복구 조항을 확인하세요.",
-                        "법률 전문가 상담을 권장합니다."
-                );
-                ContractAnalysis completed = contractAnalysisRepository.save(saved);
-
-                ToxicClause toxic = ToxicClause.builder()
-                        .id(UUID.randomUUID().toString())
-                        .analysis(completed)
-                        .title("과도한 원상복구 조항")
-                        .clause("임차인은 퇴거 시 모든 비용을 부담한다.")
-                        .reason("자연 마모까지 임차인 책임으로 규정한 위법 소지 조항")
-                        .reasonReference("민법 제654조에 의하면...")
-                        .sourceContractTagIdx(1)
-                        .warnLevel(3)
-                        .build();
-                toxicClauseRepository.save(toxic);
-
-                log.info("더미 분석 완료: analysisId={}", analysisId);
-            } catch (InterruptedException e) {
-                Thread.currentThread().interrupt();
-            } catch (Exception e) {
-                log.error("더미 분석 처리 실패: {}", e.getMessage());
-            }
-        }, analysisExecutor);
-        // ======= 더미 처리 끝 =======
+        CompletableFuture.runAsync(() -> invokeAnalysisLambda(analysisId, request.getContractId(), contractTexts),
+                analysisExecutor);
 
         return new AnalysisStartResponse(analysisId);
     }
 
+    @Transactional(readOnly = true)
     public AnalysisResultResponse getAnalysisResult(String email, String analysisId) {
         ContractAnalysis analysis = contractAnalysisRepository.findById(analysisId)
                 .orElseThrow(() -> new ResourceNotFoundException("Analysis not found: " + analysisId));
@@ -122,6 +107,115 @@ public class AnalysisProcessService {
                 .findByContractIdOrderByTagIdx(analysis.getContract().getId());
 
         return AnalysisResultResponse.of(analysis, toxics, ocrContents);
+    }
+
+    private void invokeAnalysisLambda(String analysisId, String contractId, List<String> contractTexts) {
+        ContractAnalysis analysis = contractAnalysisRepository.findById(analysisId).orElseThrow();
+        try {
+            AnalysisLambdaPayload payload = AnalysisLambdaPayload.builder()
+                    .contractId(contractId)
+                    .analysisId(analysisId)
+                    .contractTexts(contractTexts)
+                    .build();
+
+            InvokeResponse response = lambdaUtil.invokeAndWait(
+                    awsConfig.getLambda().getAnalysisFunctionName(), payload);
+
+            String rawPayload = response.payload().asUtf8String();
+            log.info("Analysis Lambda 응답 (analysisId={}): {}", analysisId, rawPayload);
+
+            if (lambdaUtil.hasError(response)) {
+                log.error("Analysis Lambda functionError (analysisId={}): {}", analysisId, rawPayload);
+                analysis.fail();
+                contractAnalysisRepository.save(analysis);
+                return;
+            }
+
+            AnalysisLambdaResponse lambdaResponse = lambdaUtil.parseResponse(response, AnalysisLambdaResponse.class);
+
+            if (!lambdaResponse.isSuccess() || lambdaResponse.getData() == null
+                    || lambdaResponse.getData().getAnalysisResult() == null) {
+                log.error("Analysis Lambda success=false (analysisId={}): {}", analysisId, rawPayload);
+                analysis.fail();
+                contractAnalysisRepository.save(analysis);
+                return;
+            }
+
+            AnalysisLambdaResponse.AnalysisResult result = lambdaResponse.getData().getAnalysisResult();
+            List<AnalysisLambdaResponse.Toxic> toxics = result.getToxics() != null
+                    ? result.getToxics() : Collections.emptyList();
+
+            String overallComment = buildOverallComment(result);
+            String warningComment = buildWarningComment(toxics);
+            String advice = buildAdvice(toxics);
+
+            analysis.complete(result.getSummary(), overallComment, warningComment, advice);
+            ContractAnalysis completed = contractAnalysisRepository.save(analysis);
+
+            for (AnalysisLambdaResponse.Toxic toxic : toxics) {
+                toxicClauseRepository.save(
+                        ToxicClause.builder()
+                                .id(UUID.randomUUID().toString())
+                                .analysis(completed)
+                                .title(toxic.getRiskType())
+                                .clause(toxic.getClauseText())
+                                .reason(toxic.getReason())
+                                .reasonReference(formatSourceIds(toxic.getSourceIds()))
+                                .warnLevel(toWarnLevel(toxic.getRiskLevel()))
+                                .build()
+                );
+            }
+
+            log.info("Analysis 완료: analysisId={}, toxicCount={}", analysisId, toxics.size());
+        } catch (Exception e) {
+            log.error("Analysis Lambda 호출 실패 (analysisId={}): {}", analysisId, e.getMessage());
+            analysis.fail();
+            contractAnalysisRepository.save(analysis);
+        }
+    }
+
+    private List<String> groupByPage(List<OcrContent> ocrContents) {
+        return ocrContents.stream()
+                .collect(Collectors.groupingBy(
+                        c -> c.getTagIdx() / 100,
+                        TreeMap::new,
+                        Collectors.mapping(OcrContent::getContent, Collectors.joining("\n"))
+                ))
+                .values().stream()
+                .collect(Collectors.toList());
+    }
+
+    private String buildOverallComment(AnalysisLambdaResponse.AnalysisResult result) {
+        String level = result.getRiskLevel() != null ? result.getRiskLevel().toUpperCase() : "UNKNOWN";
+        return String.format("위험도: %s | %s", level, result.getSummary() != null ? result.getSummary() : "");
+    }
+
+    private String buildWarningComment(List<AnalysisLambdaResponse.Toxic> toxics) {
+        if (toxics.isEmpty()) return "특이 사항 없음";
+        return toxics.stream()
+                .map(AnalysisLambdaResponse.Toxic::getRiskType)
+                .filter(t -> t != null && !t.isBlank())
+                .distinct()
+                .collect(Collectors.joining(", "));
+    }
+
+    private String buildAdvice(List<AnalysisLambdaResponse.Toxic> toxics) {
+        return toxics.stream()
+                .map(AnalysisLambdaResponse.Toxic::getSuggestion)
+                .filter(s -> s != null && !s.isBlank())
+                .findFirst()
+                .orElse("법률 전문가 상담을 권장합니다.");
+    }
+
+    private String formatSourceIds(List<String> sourceIds) {
+        if (sourceIds == null || sourceIds.isEmpty()) return null;
+        return String.join(", ", sourceIds);
+    }
+
+    private int toWarnLevel(String riskLevel) {
+        if ("high".equalsIgnoreCase(riskLevel)) return 3;
+        if ("medium".equalsIgnoreCase(riskLevel)) return 2;
+        return 1;
     }
 
     private boolean isGuest(String email) {

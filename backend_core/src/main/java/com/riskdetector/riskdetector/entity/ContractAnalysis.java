@@ -68,4 +68,10 @@ public class ContractAnalysis {
         this.riskdetectorAdvice = riskdetectorAdvice;
         this.updatedAt = LocalDateTime.now();
     }
+
+    public void fail() {
+        this.processStatus = "FAILED";
+        this.status = "error";
+        this.updatedAt = LocalDateTime.now();
+    }
 }
