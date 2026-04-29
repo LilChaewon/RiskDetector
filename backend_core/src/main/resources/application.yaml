@@ -8,6 +8,9 @@ spring:
     init:
       mode: always
   jpa:
+    properties:
+      hibernate:
+        default_schema: prod
     hibernate:
       ddl-auto: update # 테이블이 없을 경우 자동으로 생성하도록 변경
     show-sql: false
@@ -45,6 +48,9 @@ app:
     secure: ${COOKIE_SECURE:false}
 
 aws:
+  credentials:
+    access-key: ${AWS_ACCESS_KEY_ID}
+    secret-key: ${AWS_SECRET_ACCESS_KEY}
   region: ${AWS_REGION:ap-northeast-2}
   credentials:
     access-key: ${AWS_ACCESS_KEY_ID:}
