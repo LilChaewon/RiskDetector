@@ -19,6 +19,7 @@ import com.riskdetector.riskdetector.util.LambdaUtil;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
 import software.amazon.awssdk.services.lambda.model.InvokeResponse;
 
 import java.util.Collections;
@@ -59,6 +60,7 @@ public class AnalysisProcessService {
         this.analysisExecutor = analysisExecutor;
     }
 
+    @Transactional
     public AnalysisStartResponse requestAnalysis(String email, AnalysisRequest request) {
         Contract contract = contractRepository.findById(request.getContractId())
                 .orElseThrow(() -> new ResourceNotFoundException("Contract not found: " + request.getContractId()));
@@ -91,6 +93,7 @@ public class AnalysisProcessService {
         return new AnalysisStartResponse(analysisId);
     }
 
+    @Transactional(readOnly = true)
     public AnalysisResultResponse getAnalysisResult(String email, String analysisId) {
         ContractAnalysis analysis = contractAnalysisRepository.findById(analysisId)
                 .orElseThrow(() -> new ResourceNotFoundException("Analysis not found: " + analysisId));
