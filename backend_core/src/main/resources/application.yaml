@@ -8,6 +8,9 @@ spring:
     init:
       mode: always
   jpa:
+    properties:
+      hibernate:
+        default_schema: prod
     hibernate:
       ddl-auto: none # 운영 환경에서는 none 또는 validate 권장
     show-sql: false
@@ -44,6 +47,9 @@ app:
     secure: ${COOKIE_SECURE:false}
 
 aws:
+  credentials:
+    access-key: ${AWS_ACCESS_KEY_ID}
+    secret-key: ${AWS_SECRET_ACCESS_KEY}
   region: ${AWS_REGION:ap-northeast-2}
   s3:
     service-bucket: ${AWS_S3_BUCKET:risk-detector-myongji}
