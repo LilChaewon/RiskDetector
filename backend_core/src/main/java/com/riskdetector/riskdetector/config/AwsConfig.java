@@ -22,12 +22,22 @@ public class AwsConfig {
     private S3Properties s3 = new S3Properties();
     private LambdaProperties lambda = new LambdaProperties();
 
+    private software.amazon.awssdk.auth.credentials.AwsCredentialsProvider buildCredentialsProvider() {
+        String accessKey = credentials.getAccessKey();
+        String secretKey = credentials.getSecretKey();
+        if (accessKey != null && !accessKey.isBlank() && secretKey != null && !secretKey.isBlank()) {
+            return StaticCredentialsProvider.create(
+                    AwsBasicCredentials.create(accessKey, secretKey));
+        }
+        // 키 없으면 환경 기본 체인(IAM Role, EC2 메타데이터 등) 사용
+        return software.amazon.awssdk.auth.credentials.DefaultCredentialsProvider.create();
+    }
+
     @Bean
     public S3Client s3Client() {
         return S3Client.builder()
                 .region(Region.of(region))
-                .credentialsProvider(StaticCredentialsProvider.create(
-                        AwsBasicCredentials.create(credentials.getAccessKey(), credentials.getSecretKey())))
+                .credentialsProvider(buildCredentialsProvider())
                 .build();
     }
 
@@ -35,8 +45,7 @@ public class AwsConfig {
     public LambdaClient lambdaClient() {
         return LambdaClient.builder()
                 .region(Region.of(region))
-                .credentialsProvider(StaticCredentialsProvider.create(
-                        AwsBasicCredentials.create(credentials.getAccessKey(), credentials.getSecretKey())))
+                .credentialsProvider(buildCredentialsProvider())
                 .build();
     }
 

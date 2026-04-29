@@ -19,4 +19,16 @@ public class GlobalExceptionHandler {
                 "timestamp", Instant.now().toString()
         ));
     }
+
+    @ExceptionHandler(Exception.class)
+    public ResponseEntity<Map<String, Object>> handleAllException(Exception e) {
+        // Render 로그에서 확인할 수 있도록 스택 트레이스 출력
+        e.printStackTrace(); 
+        return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body(Map.of(
+                "status", HttpStatus.INTERNAL_SERVER_ERROR.value(),
+                "message", "서버 내부 오류: " + e.getMessage(),
+                "error", e.getClass().getSimpleName(),
+                "timestamp", Instant.now().toString()
+        ));
+    }
 }

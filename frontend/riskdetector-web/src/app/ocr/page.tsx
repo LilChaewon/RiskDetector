@@ -1,12 +1,13 @@
 'use client';
 
+import { Suspense } from 'react';
 import { useSearchParams, useRouter } from 'next/navigation';
 import { useEffect, useState } from 'react';
 import { getOcrResult, updateOcrBlock, startAnalysis } from '@/api/contract';
 import type { ContractOcrHtml } from '@/types/api';
 import DOMPurify from 'dompurify';
 
-export default function OcrPage() {
+function OcrContent() {
   const searchParams = useSearchParams();
   const contractId = searchParams.get('contractId')!;
   const router = useRouter();
@@ -104,5 +105,13 @@ export default function OcrPage() {
         AI 독소조항 분석 시작
       </button>
     </div>
+  );
+}
+
+export default function OcrPage() {
+  return (
+    <Suspense fallback={<div className="p-6 text-center">로딩 중...</div>}>
+      <OcrContent />
+    </Suspense>
   );
 }

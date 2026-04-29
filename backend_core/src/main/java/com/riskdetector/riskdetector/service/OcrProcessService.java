@@ -61,7 +61,7 @@ public class OcrProcessService {
 
     public OcrUploadResponse processUpload(String email, String title, String contractType,
                                            List<MultipartFile> files) {
-        User user = userRepository.findByEmail(email)
+        User user = isGuest(email) ? null : userRepository.findByEmail(email)
                 .orElseThrow(() -> new ResourceNotFoundException("User not found"));
 
         String contractId = UUID.randomUUID().toString();
@@ -77,9 +77,12 @@ public class OcrProcessService {
                         .build()
         );
 
+        log.info("Starting OCR process for contractId: {}", contractId);
+        
         // 각 페이지를 병렬로 OCR 처리
         List<CompletableFuture<OcrPageResult>> futures = new ArrayList<>();
         for (int i = 0; i < files.size(); i++) {
+            log.info("Submitting OCR task for page {}", i);
             futures.add(processOcrPageAsync(files.get(i), contractId, s3KeyPrefix, i));
         }
 
@@ -134,7 +137,7 @@ public class OcrProcessService {
         Contract contract = contractRepository.findById(contractId)
                 .orElseThrow(() -> new ResourceNotFoundException("Contract not found: " + contractId));
 
-        if (!contract.getUser().getEmail().equals(email)) {
+        if (!hasAccess(contract, email)) {
             throw new ResourceNotFoundException("Contract not found: " + contractId);
         }
 
@@ -164,7 +167,7 @@ public class OcrProcessService {
         Contract contract = contractRepository.findById(contractId)
                 .orElseThrow(() -> new ResourceNotFoundException("Contract not found: " + contractId));
 
-        if (!contract.getUser().getEmail().equals(email)) {
+        if (!hasAccess(contract, email)) {
             throw new ResourceNotFoundException("Unauthorized access to contract");
         }
 
@@ -182,6 +185,17 @@ public class OcrProcessService {
         ocrContentRepository.save(content);
 
         return getOcrResult(email, contractId);
+    }
+
+    private boolean isGuest(String email) {
+        return email == null || email.isBlank() || "anonymousUser".equals(email);
+    }
+
+    private boolean hasAccess(Contract contract, String email) {
+        // 게스트 계약(소유자 없음)은 contractId만 알면 누구나 접근 가능
+        if (contract.getUser() == null) return true;
+        // 소유자가 있으면 이메일 일치 필요
+        return !isGuest(email) && contract.getUser().getEmail().equals(email);
     }
 
     private String extractCategory(String html) {

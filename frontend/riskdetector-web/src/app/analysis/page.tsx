@@ -1,10 +1,11 @@
 'use client';
 
+import { Suspense } from 'react';
 import { useSearchParams } from 'next/navigation';
 import AnalysisLoadingPage from './loading-page';
 import AppHeader from '@/components/AppHeader';
 
-export default function AnalysisPage() {
+function AnalysisContent() {
   const searchParams = useSearchParams();
   const contractId = searchParams.get('contractId') || '';
   const analysisId = searchParams.get('analysisId') || '';
@@ -22,5 +23,13 @@ export default function AnalysisPage() {
       <AppHeader title="AI 독소조항 분석" />
       <AnalysisLoadingPage contractId={contractId} analysisId={analysisId} />
     </main>
+  );
+}
+
+export default function AnalysisPage() {
+  return (
+    <Suspense fallback={<div className="min-h-screen flex items-center justify-center">로딩 중...</div>}>
+      <AnalysisContent />
+    </Suspense>
   );
 }

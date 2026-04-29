@@ -15,6 +15,7 @@ import org.springframework.security.config.http.SessionCreationPolicy;
 import org.springframework.security.web.SecurityFilterChain;
 import org.springframework.security.web.authentication.UsernamePasswordAuthenticationFilter;
 import org.springframework.security.web.header.writers.ReferrerPolicyHeaderWriter;
+import org.springframework.security.web.util.matcher.AntPathRequestMatcher;
 import org.springframework.web.cors.CorsConfiguration;
 import org.springframework.web.cors.CorsConfigurationSource;
 import org.springframework.web.cors.UrlBasedCorsConfigurationSource;
@@ -55,8 +56,11 @@ public class SecurityConfig {
                                 csp.policyDirectives("default-src 'self'"))
                 )
                 .authorizeHttpRequests(auth -> auth
-                        .requestMatchers("/oauth2/**", "/login/oauth2/**").permitAll()
-                        .requestMatchers("/actuator/health").permitAll()
+                        .requestMatchers(new AntPathRequestMatcher("/oauth2/**")).permitAll()
+                        .requestMatchers(new AntPathRequestMatcher("/login/oauth2/**")).permitAll()
+                        .requestMatchers(new AntPathRequestMatcher("/actuator/health")).permitAll()
+                        .requestMatchers(new AntPathRequestMatcher("/error")).permitAll()
+                        .requestMatchers(new AntPathRequestMatcher("/api/**")).permitAll() // 임시: 전체 개방
                         .anyRequest().authenticated()
                 )
                 .oauth2Login(oauth2 -> oauth2
