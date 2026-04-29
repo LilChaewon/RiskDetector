@@ -12,9 +12,8 @@ export interface ContractAnalysisDTO {
     originContent: string;
     summary: string;
     analysisStatus: string;
-    analysisDate: string;
     toxicCount: number;
-    aiCommentary: {
+    riskdetectorCommentary: {
         overallComment: string;
         warningComment: string;
         advice: string;
