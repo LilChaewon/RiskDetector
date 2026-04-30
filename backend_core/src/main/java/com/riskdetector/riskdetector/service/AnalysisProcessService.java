@@ -69,7 +69,7 @@ public class AnalysisProcessService {
             throw new ResourceNotFoundException("Contract not found: " + request.getContractId());
         }
 
-        Optional<ContractAnalysis> existing = contractAnalysisRepository.findFirstByContractIdOrderByCreatedAtDesc(request.getContractId());
+        Optional<ContractAnalysis> existing = contractAnalysisRepository.findByContractId(request.getContractId());
         if (existing.isPresent() && "IN_PROGRESS".equals(existing.get().getProcessStatus())) {
             return new AnalysisStartResponse(existing.get().getId());
         }
