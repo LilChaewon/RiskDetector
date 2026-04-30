@@ -72,9 +72,9 @@ def ensure_backend_core_tables(conn: Any) -> None:
                 summary TEXT,
                 status VARCHAR(50),
                 process_status VARCHAR(50),
-                ddobak_overall_comment TEXT,
-                ddobak_warning_comment TEXT,
-                ddobak_advice TEXT,
+                riskdetector_overall_comment TEXT,
+                riskdetector_warning_comment TEXT,
+                riskdetector_advice TEXT,
                 created_at TIMESTAMP DEFAULT NOW(),
                 updated_at TIMESTAMP DEFAULT NOW()
             )
@@ -198,18 +198,18 @@ def upsert_contract_analysis(conn: Any, payload: dict[str, Any]) -> dict[str, An
                 summary,
                 status,
                 process_status,
-                ddobak_overall_comment,
-                ddobak_warning_comment,
-                ddobak_advice
+                riskdetector_overall_comment,
+                riskdetector_warning_comment,
+                riskdetector_advice
             ) VALUES (%s, %s, %s, %s, %s, %s, %s, %s)
             ON CONFLICT (id) DO UPDATE SET
                 contract_id = EXCLUDED.contract_id,
                 summary = EXCLUDED.summary,
                 status = EXCLUDED.status,
                 process_status = EXCLUDED.process_status,
-                ddobak_overall_comment = EXCLUDED.ddobak_overall_comment,
-                ddobak_warning_comment = EXCLUDED.ddobak_warning_comment,
-                ddobak_advice = EXCLUDED.ddobak_advice,
+                riskdetector_overall_comment = EXCLUDED.riskdetector_overall_comment,
+                riskdetector_warning_comment = EXCLUDED.riskdetector_warning_comment,
+                riskdetector_advice = EXCLUDED.riskdetector_advice,
                 updated_at = NOW()
             RETURNING id, contract_id, status, process_status, updated_at
             """,
