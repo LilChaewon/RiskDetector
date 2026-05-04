@@ -123,7 +123,9 @@ public class AnalysisProcessService {
             log.info("Analysis Lambda 비동기 호출 완료 (analysisId={}, contractId={})", analysisId, contractId);
 
         } catch (Exception e) {
-            log.error("Analysis Lambda 비동기 호출 실패 (analysisId={}): {}", analysisId, e.getMessage());
+            // 스택트레이스까지 남겨야 PayloadTooLarge / Timeout / Credentials 만료 등 실제 원인을 식별 가능
+            log.error("Analysis Lambda 호출 실패 (analysisId={}, contractId={}, pageCount={}): {}",
+                    analysisId, contractId, contractTexts.size(), e.toString(), e);
             ContractAnalysis analysis = contractAnalysisRepository.findById(analysisId).orElseThrow();
             analysis.fail();
             contractAnalysisRepository.save(analysis);
