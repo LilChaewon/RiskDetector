@@ -251,12 +251,12 @@ def build_source_label(text: str, location: str, metadata: dict[str, Any]) -> st
     file_name = Path(location).name if location else ""
     stem = Path(file_name).stem if file_name else ""
     if stem.startswith("qa_"):
-        return f"생활법령 {stem}"
+        return "생활법령 가이드라인"
     if stem.startswith("precedent_"):
-        return f"판례 {stem}"
+        return "관련 대법원 판례"
     if stem:
         return stem
-    return "법률 근거"
+    return "관련 법률 자료"
 
 
 def extract_basis_phrase(text: str, label: str) -> str:
