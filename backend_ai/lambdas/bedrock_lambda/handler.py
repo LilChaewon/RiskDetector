@@ -963,7 +963,7 @@ def analyze_contract_with_bedrock(
         ],
         inferenceConfig={
             "temperature": 0.2,
-            "maxTokens": 1500,
+            "maxTokens": 800,  # 응답 생성 속도 최적화 (1500 → 800)
         },
     )
     raw_text = extract_text_from_converse_response(response)

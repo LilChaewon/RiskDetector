@@ -110,7 +110,6 @@ public class AnalysisProcessService {
     }
 
     private void invokeAnalysisLambda(String analysisId, String contractId, List<String> contractTexts) {
-        ContractAnalysis analysis = contractAnalysisRepository.findById(analysisId).orElseThrow();
         try {
             AnalysisLambdaPayload payload = AnalysisLambdaPayload.builder()
                     .contractId(contractId)
@@ -118,59 +117,16 @@ public class AnalysisProcessService {
                     .contractTexts(contractTexts)
                     .build();
 
-            InvokeResponse response = lambdaUtil.invokeAndWait(
-                    awsConfig.getLambda().getAnalysisFunctionName(), payload);
+            // 비동기(Event) 방식으로 Lambda 호출 - 즉시 반환 (202 Accepted)
+            // Lambda 실행 완료 후 Destination → SQS → analysis_result_loader → DB 저장
+            lambdaUtil.invokeAsync(awsConfig.getLambda().getAnalysisFunctionName(), payload);
+            log.info("Analysis Lambda 비동기 호출 완료 (analysisId={}, contractId={})", analysisId, contractId);
 
-            String rawPayload = response.payload().asUtf8String();
-            log.info("Analysis Lambda 응답 (analysisId={}): {}", analysisId, rawPayload);
-
-            if (lambdaUtil.hasError(response)) {
-                log.error("Analysis Lambda functionError (analysisId={}): {}", analysisId, rawPayload);
-                analysis.fail();
-                contractAnalysisRepository.save(analysis);
-                return;
-            }
-
-            AnalysisLambdaResponse lambdaResponse = lambdaUtil.parseResponse(response, AnalysisLambdaResponse.class);
-
-            if (!lambdaResponse.isSuccess() || lambdaResponse.getData() == null
-                    || lambdaResponse.getData().getAnalysisResult() == null) {
-                log.error("Analysis Lambda success=false (analysisId={}): {}", analysisId, rawPayload);
-                analysis.fail();
-                contractAnalysisRepository.save(analysis);
-                return;
-            }
-
-            AnalysisLambdaResponse.AnalysisResult result = lambdaResponse.getData().getAnalysisResult();
-            List<AnalysisLambdaResponse.Toxic> toxics = result.getToxics() != null
-                    ? result.getToxics() : Collections.emptyList();
-
-            String overallComment = buildOverallComment(result);
-            String warningComment = buildWarningComment(toxics);
-            String advice = buildAdvice(toxics);
-
-            analysis.complete(result.getSummary(), overallComment, warningComment, advice);
-            ContractAnalysis completed = contractAnalysisRepository.save(analysis);
-
-            for (AnalysisLambdaResponse.Toxic toxic : toxics) {
-                toxicClauseRepository.save(
-                        ToxicClause.builder()
-                                .id(UUID.randomUUID().toString())
-                                .analysis(completed)
-                                .title(toxic.getRiskType())
-                                .clause(toxic.getClauseText())
-                                .reason(toxic.getReason())
-                                .reasonReference(formatSourceIds(toxic.getSourceIds()))
-                                .warnLevel(toWarnLevel(toxic.getRiskLevel()))
-                                .build()
-                );
-            }
-
-            log.info("Analysis 완료: analysisId={}, toxicCount={}", analysisId, toxics.size());
         } catch (Exception e) {
             // 스택트레이스까지 남겨야 PayloadTooLarge / Timeout / Credentials 만료 등 실제 원인을 식별 가능
             log.error("Analysis Lambda 호출 실패 (analysisId={}, contractId={}, pageCount={}): {}",
                     analysisId, contractId, contractTexts.size(), e.toString(), e);
+            ContractAnalysis analysis = contractAnalysisRepository.findById(analysisId).orElseThrow();
             analysis.fail();
             contractAnalysisRepository.save(analysis);
         }
