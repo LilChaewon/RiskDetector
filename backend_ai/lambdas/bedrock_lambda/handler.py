@@ -211,6 +211,13 @@ def extract_case_name(text: str) -> str:
     return ""
 
 
+def extract_serial_number(text: str) -> str:
+    match = re.search(r"판례일련번호[:\s]+([0-9]+)", text)
+    if match:
+        return match.group(1).strip()
+    return ""
+
+
 def extract_law_name(text: str) -> str:
     patterns = (
         "주택임대차보호법",
@@ -235,10 +242,18 @@ def build_source_label(text: str, location: str, metadata: dict[str, Any]) -> st
     del metadata
     case_number = extract_case_number(text)
     case_name = extract_case_name(text)
-    if case_name and case_number:
-        return f"{case_name} ({case_number})"
-    if case_number:
-        return f"판례 {case_number}"
+    serial_number = extract_serial_number(text)
+    
+    number_part = case_number
+    if case_number and serial_number:
+        number_part = f"{case_number}, 일련번호: {serial_number}"
+    elif serial_number:
+        number_part = f"일련번호: {serial_number}"
+
+    if case_name and number_part:
+        return f"{case_name} ({number_part})"
+    if number_part:
+        return f"판례 {number_part}"
 
     law_name = extract_law_name(text)
     if law_name:
@@ -262,10 +277,18 @@ def build_source_label(text: str, location: str, metadata: dict[str, Any]) -> st
 def extract_basis_phrase(text: str, label: str) -> str:
     case_number = extract_case_number(text)
     case_name = extract_case_name(text)
-    if case_name and case_number:
-        return f"{case_name}({case_number}) 판례"
-    if case_number:
-        return f"{case_number} 판례"
+    serial_number = extract_serial_number(text)
+    
+    number_part = case_number
+    if case_number and serial_number:
+        number_part = f"{case_number}, 일련번호: {serial_number}"
+    elif serial_number:
+        number_part = f"일련번호: {serial_number}"
+
+    if case_name and number_part:
+        return f"{case_name}({number_part}) 판례"
+    if number_part:
+        return f"{number_part} 판례"
 
     law_name = extract_law_name(text)
     if law_name:
