@@ -7,9 +7,12 @@ import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import software.amazon.awssdk.auth.credentials.AwsBasicCredentials;
 import software.amazon.awssdk.auth.credentials.StaticCredentialsProvider;
+import software.amazon.awssdk.core.client.config.ClientOverrideConfiguration;
 import software.amazon.awssdk.regions.Region;
 import software.amazon.awssdk.services.lambda.LambdaClient;
 import software.amazon.awssdk.services.s3.S3Client;
+
+import java.time.Duration;
 
 @Configuration
 @ConfigurationProperties(prefix = "aws")
@@ -43,9 +46,16 @@ public class AwsConfig {
 
     @Bean
     public LambdaClient lambdaClient() {
+        // Bedrock 호출이 30초를 넘길 수 있으므로 SDK 기본 타임아웃을 그대로 두면
+        // 백엔드가 ApiCallTimeoutException으로 실패해 버린다. 5분으로 확장.
+        Duration callTimeout = Duration.ofMinutes(5);
         return LambdaClient.builder()
                 .region(Region.of(region))
                 .credentialsProvider(buildCredentialsProvider())
+                .overrideConfiguration(ClientOverrideConfiguration.builder()
+                        .apiCallTimeout(callTimeout)
+                        .apiCallAttemptTimeout(callTimeout)
+                        .build())
                 .build();
     }
 

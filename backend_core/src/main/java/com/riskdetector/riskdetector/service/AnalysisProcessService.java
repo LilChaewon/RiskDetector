@@ -168,7 +168,9 @@ public class AnalysisProcessService {
 
             log.info("Analysis 완료: analysisId={}, toxicCount={}", analysisId, toxics.size());
         } catch (Exception e) {
-            log.error("Analysis Lambda 호출 실패 (analysisId={}): {}", analysisId, e.getMessage());
+            // 스택트레이스까지 남겨야 PayloadTooLarge / Timeout / Credentials 만료 등 실제 원인을 식별 가능
+            log.error("Analysis Lambda 호출 실패 (analysisId={}, contractId={}, pageCount={}): {}",
+                    analysisId, contractId, contractTexts.size(), e.toString(), e);
             analysis.fail();
             contractAnalysisRepository.save(analysis);
         }
