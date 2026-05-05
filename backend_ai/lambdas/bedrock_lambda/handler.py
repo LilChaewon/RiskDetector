@@ -211,6 +211,13 @@ def extract_case_name(text: str) -> str:
     return ""
 
 
+def extract_serial_number(text: str) -> str:
+    match = re.search(r"판례일련번호[:\s]+([0-9]+)", text)
+    if match:
+        return match.group(1).strip()
+    return ""
+
+
 def extract_law_name(text: str) -> str:
     patterns = (
         "주택임대차보호법",
@@ -235,10 +242,18 @@ def build_source_label(text: str, location: str, metadata: dict[str, Any]) -> st
     del metadata
     case_number = extract_case_number(text)
     case_name = extract_case_name(text)
-    if case_name and case_number:
-        return f"{case_name} ({case_number})"
-    if case_number:
-        return f"판례 {case_number}"
+    serial_number = extract_serial_number(text)
+    
+    number_part = case_number
+    if case_number and serial_number:
+        number_part = f"{case_number}, 일련번호: {serial_number}"
+    elif serial_number:
+        number_part = f"일련번호: {serial_number}"
+
+    if case_name and number_part:
+        return f"{case_name} ({number_part})"
+    if number_part:
+        return f"판례 {number_part}"
 
     law_name = extract_law_name(text)
     if law_name:
@@ -251,21 +266,29 @@ def build_source_label(text: str, location: str, metadata: dict[str, Any]) -> st
     file_name = Path(location).name if location else ""
     stem = Path(file_name).stem if file_name else ""
     if stem.startswith("qa_"):
-        return f"생활법령 {stem}"
+        return "생활법령 가이드라인"
     if stem.startswith("precedent_"):
-        return f"판례 {stem}"
+        return "관련 대법원 판례"
     if stem:
         return stem
-    return "법률 근거"
+    return "관련 법률 자료"
 
 
 def extract_basis_phrase(text: str, label: str) -> str:
     case_number = extract_case_number(text)
     case_name = extract_case_name(text)
-    if case_name and case_number:
-        return f"{case_name}({case_number}) 판례"
-    if case_number:
-        return f"{case_number} 판례"
+    serial_number = extract_serial_number(text)
+    
+    number_part = case_number
+    if case_number and serial_number:
+        number_part = f"{case_number}, 일련번호: {serial_number}"
+    elif serial_number:
+        number_part = f"일련번호: {serial_number}"
+
+    if case_name and number_part:
+        return f"{case_name}({number_part}) 판례"
+    if number_part:
+        return f"{number_part} 판례"
 
     law_name = extract_law_name(text)
     if law_name:
@@ -445,6 +468,7 @@ def build_analysis_prompt(
         "분석 원칙:\n"
         "- 검색된 법률/판례/생활법령 컨텍스트가 있으면 이를 우선 근거로 사용하세요.\n"
         "- reason에는 왜 문제가 되는지 구체적으로 설명하고, 최소 1개의 법률 근거나 판례 키워드를 포함하세요.\n"
+        "- 단, reason 필드 작성 시 'precedent_145', 'Source 1' 같은 내부 라벨이나 식별자를 그대로 출력하지 마세요. 반드시 '대법원 판례에 따르면' 또는 '가이드라인에 따르면'처럼 자연스러운 문장으로 풀어서 작성하세요.\n"
         "- suggestion에는 계약서 수정 방향을 실무적으로 제안하세요.\n"
         "- 근거를 사용했다면 sourceIds에 해당 문서명 또는 사건번호 기반 라벨을 넣으세요.\n"
         "- 근거가 부족하면 groundingStatus를 insufficient로 설정하세요.\n\n"
