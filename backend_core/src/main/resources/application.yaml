@@ -48,9 +48,6 @@ app:
     secure: ${COOKIE_SECURE:false}
 
 aws:
-  credentials:
-    access-key: ${AWS_ACCESS_KEY_ID}
-    secret-key: ${AWS_SECRET_ACCESS_KEY}
   region: ${AWS_REGION:ap-northeast-2}
   credentials:
     access-key: ${AWS_ACCESS_KEY_ID:}
