@@ -118,6 +118,19 @@ def get_result_loader_mode() -> str:
     return os.getenv("ANALYSIS_RESULT_LOADER_MODE", "lambda").strip().lower()
 
 
+def infer_contract_type(contract_texts: list[str]) -> str:
+    """Infer the contract type based on keywords in the text.
+    텍스트 내 키워드를 기반으로 계약 종류를 추론합니다."""
+    joined_text = " ".join(contract_texts)[:2000].replace(" ", "")
+    if "전속계약" in joined_text or "매니지먼트" in joined_text or "엔터테인먼트" in joined_text or "대중문화예술인" in joined_text:
+        return "entertainment"
+    if "근로계약" in joined_text or "연봉계약" in joined_text or "취업규칙" in joined_text:
+        return "labor"
+    if "임대차" in joined_text or "전세" in joined_text or "월세" in joined_text or "부동산" in joined_text:
+        return "lease"
+    return "unknown"
+
+
 def build_retrieval_query(contract_texts: list[str], event_query: str | None = None) -> str:
     """Generate a query string for knowledge base retrieval using heuristic chunking.
     지식 기반 검색을 위한 쿼리 문장을 생성합니다. (고위험 단어 기반 청킹 적용)"""
@@ -336,6 +349,20 @@ def retrieve_knowledge_context(
     session = build_boto3_session()
     client = session.client("bedrock-agent-runtime")
     query_text = build_retrieval_query(contract_texts=contract_texts, event_query=event_query)
+    contract_type = infer_contract_type(contract_texts) if contract_texts else "unknown"
+
+    vector_search_config = {
+        "numberOfResults": get_retrieval_result_count(),
+    }
+    
+    # 추론된 계약 종류가 있으면 메타데이터 필터를 적용
+    if contract_type != "unknown":
+        vector_search_config["filter"] = {
+            "equals": {
+                "key": "contract_type",
+                "value": contract_type
+            }
+        }
 
     response = client.retrieve(
         knowledgeBaseId=knowledge_base_id,
@@ -343,9 +370,7 @@ def retrieve_knowledge_context(
             "text": query_text,
         },
         retrievalConfiguration={
-            "vectorSearchConfiguration": {
-                "numberOfResults": get_retrieval_result_count(),
-            }
+            "vectorSearchConfiguration": vector_search_config
         },
     )
 
@@ -466,6 +491,7 @@ def build_analysis_prompt(
         "- 법률상 보호를 우회하거나 약화하는 문구\n"
         "- 모호해서 분쟁 가능성이 큰 문구\n\n"
         "분석 원칙:\n"
+        "- 크로스 체크 및 Self-Correction: 결과를 출력하기 전에 스스로 한 번 더 검토(Cross-check)하세요. 추출한 조항이 정말로 법적으로 불공정한지 다시 평가하고, 과장되거나 잘못 해석된 경우 수정(Self-Correction)하세요.\n"
         "- 검색된 법률/판례/생활법령 컨텍스트가 있으면 이를 우선 근거로 사용하세요.\n"
         "- reason에는 왜 문제가 되는지 구체적으로 설명하고, 최소 1개의 법률 근거나 판례 키워드를 포함하세요.\n"
         "- 단, reason 필드 작성 시 'precedent_145', 'Source 1' 같은 내부 라벨이나 식별자를 그대로 출력하지 마세요. 반드시 '대법원 판례에 따르면' 또는 '가이드라인에 따르면'처럼 자연스러운 문장으로 풀어서 작성하세요.\n"
