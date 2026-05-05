@@ -6,7 +6,10 @@ export default function LoginPage() {
     const router = useRouter();
 
     function handleGoogleLogin() {
-        window.location.href = 'http://localhost:8080/oauth2/authorization/google';
+        // OAuth 엔드포인트는 /api 하위가 아니라 백엔드 루트(/oauth2/...)에 있다.
+        // 로컬 개발 fallback으로만 localhost:8080 사용.
+        const backendUrl = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8080';
+        window.location.href = `${backendUrl}/oauth2/authorization/google`;
     }
 
     function handleGuestLogin() {

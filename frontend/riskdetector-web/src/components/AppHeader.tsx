@@ -40,7 +40,8 @@ export default function AppHeader({ onBack, title }: AppHeaderProps) {
         localStorage.removeItem('userName');
         localStorage.removeItem('userPicture');
         // 백엔드 쿠키도 삭제 (HttpOnly라 직접 못 지우므로 백엔드에 로그아웃 요청)
-        fetch('http://localhost:8080/api/auth/logout', {
+        const apiBase = process.env.NEXT_PUBLIC_API_BASE_URL || '/api';
+        fetch(`${apiBase}/auth/logout`, {
             method: 'POST',
             credentials: 'include',
         }).catch(() => {}).finally(() => {

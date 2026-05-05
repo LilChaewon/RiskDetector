@@ -963,7 +963,7 @@ def analyze_contract_with_bedrock(
         ],
         inferenceConfig={
             "temperature": 0.2,
-            "maxTokens": 1500,
+            "maxTokens": 2000,  # 긴 계약서를 위해 토큰 증가
         },
     )
     raw_text = extract_text_from_converse_response(response)
