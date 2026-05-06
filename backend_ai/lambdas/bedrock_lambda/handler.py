@@ -118,6 +118,19 @@ def get_result_loader_mode() -> str:
     return os.getenv("ANALYSIS_RESULT_LOADER_MODE", "lambda").strip().lower()
 
 
+def infer_contract_type(contract_texts: list[str]) -> str:
+    """Infer the contract type based on keywords in the text.
+    텍스트 내 키워드를 기반으로 계약 종류를 추론합니다."""
+    joined_text = " ".join(contract_texts)[:2000].replace(" ", "")
+    if "전속계약" in joined_text or "매니지먼트" in joined_text or "엔터테인먼트" in joined_text or "대중문화예술인" in joined_text:
+        return "entertainment"
+    if "근로계약" in joined_text or "연봉계약" in joined_text or "취업규칙" in joined_text:
+        return "labor"
+    if "임대차" in joined_text or "전세" in joined_text or "월세" in joined_text or "부동산" in joined_text:
+        return "lease"
+    return "unknown"
+
+
 def build_retrieval_query(contract_texts: list[str], event_query: str | None = None) -> str:
     """Generate a query string for knowledge base retrieval using heuristic chunking.
     지식 기반 검색을 위한 쿼리 문장을 생성합니다. (고위험 단어 기반 청킹 적용)"""
@@ -148,12 +161,12 @@ def build_retrieval_query(contract_texts: list[str], event_query: str | None = N
             important_sentences.append(sentence_clean)
             seen.add(sentence_clean)
             
-    # 4. 추출된 문장이 너무 적으면 원본 데이터의 앞부분을 Fallback으로 보충
-    if len(important_sentences) < 3:
+    # 4. 상위 3~4개의 중요 위험 문장만 추출하고 명시적 지시어 추가 (검색 쿼리 최적화)
+    if not important_sentences:
         query_candidates = joined_text[:1000]
     else:
-        # 중요한 위험 문장들을 빽빽하게 이어붙여 밀도 높은 RAG 쿼리 생성
-        query_candidates = " ".join(important_sentences)
+        top_sentences = important_sentences[:4]
+        query_candidates = " ".join(top_sentences) + " 관련 판례 및 법률 조항"
         
     # Bedrock Embedding 모델의 한도(약 1500자)에 맞춰 최적화된 쿼리 반환
     return query_candidates[:1500]
@@ -308,7 +321,10 @@ def normalize_retrieval_results(response: dict[str, Any]) -> list[dict[str, Any]
         metadata = item.get("metadata", {}) or {}
         location = item.get("location", {}) or {}
         text = (content.get("text") or "").strip()
-        if not text:
+        score = float(item.get("score") or 0.0)
+        
+        # 유사도 점수(Score)가 0.2 미만인 무관한 검색 결과 배제 (Score Thresholding)
+        if not text or (score > 0.0 and score < 0.2):
             continue
 
         formatted_location = format_retrieval_location(location)
@@ -336,6 +352,20 @@ def retrieve_knowledge_context(
     session = build_boto3_session()
     client = session.client("bedrock-agent-runtime")
     query_text = build_retrieval_query(contract_texts=contract_texts, event_query=event_query)
+    contract_type = infer_contract_type(contract_texts) if contract_texts else "unknown"
+
+    vector_search_config = {
+        "numberOfResults": get_retrieval_result_count(),
+    }
+    
+    # 추론된 계약 종류가 있으면 메타데이터 필터를 적용
+    if contract_type != "unknown":
+        vector_search_config["filter"] = {
+            "equals": {
+                "key": "contract_type",
+                "value": contract_type
+            }
+        }
 
     response = client.retrieve(
         knowledgeBaseId=knowledge_base_id,
@@ -343,9 +373,7 @@ def retrieve_knowledge_context(
             "text": query_text,
         },
         retrievalConfiguration={
-            "vectorSearchConfiguration": {
-                "numberOfResults": get_retrieval_result_count(),
-            }
+            "vectorSearchConfiguration": vector_search_config
         },
     )
 
@@ -466,6 +494,8 @@ def build_analysis_prompt(
         "- 법률상 보호를 우회하거나 약화하는 문구\n"
         "- 모호해서 분쟁 가능성이 큰 문구\n\n"
         "분석 원칙:\n"
+        "- 판례/법률 적합성 검증(Relevance Check): 검색된 판례나 법 조항을 sourceIds에 포함하기 전에, 해당 판례가 분석 중인 계약 조항의 상황과 정확히 일치하는지 한 번 더 검증(Cross-check)하세요. 단순히 단어만 비슷하고 맥락이 다른 엉뚱한 판례라면 과감히 배제하세요.\n"
+        "- 크로스 체크 및 Self-Correction: 결과를 출력하기 전에 스스로 한 번 더 검토(Cross-check)하세요. 추출한 조항이 정말로 법적으로 불공정한지 다시 평가하고, 과장되거나 잘못 해석된 경우 수정(Self-Correction)하세요.\n"
         "- 검색된 법률/판례/생활법령 컨텍스트가 있으면 이를 우선 근거로 사용하세요.\n"
         "- reason에는 왜 문제가 되는지 구체적으로 설명하고, 최소 1개의 법률 근거나 판례 키워드를 포함하세요.\n"
         "- 단, reason 필드 작성 시 'precedent_145', 'Source 1' 같은 내부 라벨이나 식별자를 그대로 출력하지 마세요. 반드시 '대법원 판례에 따르면' 또는 '가이드라인에 따르면'처럼 자연스러운 문장으로 풀어서 작성하세요.\n"
@@ -633,49 +663,6 @@ def ensure_reason_with_basis(reason: str, source_ids: list[str], source_lookup: 
     return f"근거: {basis_text}. {normalized_reason}"
 
 
-def clause_matches_deduction_risk(text: str) -> bool:
-    return any(keyword in text for keyword in DEDUCTION_KEYWORDS)
-
-
-def has_existing_deduction_toxic(toxics: list[dict[str, Any]]) -> bool:
-    for toxic in toxics:
-        clause_text = str(toxic.get("clauseText") or "")
-        risk_type = str(toxic.get("riskType") or "")
-        if clause_matches_deduction_risk(clause_text) or "공제" in risk_type or "차감" in risk_type or "상계" in risk_type:
-            return True
-    return False
-
-
-def build_deduction_clause_fallback(
-    contract_texts: list[str],
-    source_lookup: dict[str, dict[str, Any]],
-) -> dict[str, Any] | None:
-    if not any(clause_matches_deduction_risk(text) for text in contract_texts):
-        return None
-
-    clause_text = next((text for text in contract_texts if clause_matches_deduction_risk(text)), "")
-    source_ids: list[str] = []
-    for item in source_lookup.values():
-        source_label = str(item.get("sourceLabel") or "")
-        text = str(item.get("text") or "")
-        if ("보증금" in text or "공제" in text) and source_label and source_label not in source_ids:
-            source_ids.append(source_label)
-    source_ids = source_ids[:2]
-    reason = ensure_reason_with_basis(
-        "보증금에서 임대인이 비용을 자유롭게 공제하도록 하면 반환 범위와 공제 사유가 불명확해 임차인에게 과도하게 불리할 수 있습니다.",
-        source_ids,
-        source_lookup,
-    )
-    return {
-        "clauseText": clause_text,
-        "riskType": "보증금 공제권 과다",
-        "riskLevel": "high",
-        "reason": reason,
-        "suggestion": "공제 가능한 항목과 범위를 구체적으로 한정하고, 임차인과의 정산 절차를 명시하는 방향으로 수정하는 것이 좋습니다.",
-        "sourceIds": source_ids,
-    }
-
-
 def build_analysis_result(
     contract_texts: list[str],
     parsed: dict[str, Any],
@@ -720,10 +707,9 @@ def build_analysis_result(
             }
         )
 
-    if not has_existing_deduction_toxic(toxics):
-        deduction_fallback = build_deduction_clause_fallback(contract_texts, source_lookup)
-        if deduction_fallback:
-            toxics.append(deduction_fallback)
+    # 모든 조항이 분석되었고 riskLevel이 low라면 overall_risk를 low로 조정
+    if not toxics and overall_risk != "low":
+        overall_risk = "low"
 
     return {
         "title": infer_contract_title(contract_texts),
