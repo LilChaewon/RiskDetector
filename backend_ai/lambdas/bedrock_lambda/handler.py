@@ -152,11 +152,20 @@ def build_retrieval_query(contract_texts: list[str], event_query: str | None = N
     important_sentences = []
     seen = set()
     
-    # 3. 키워드가 포함된 위험 문장들만 우선적으로 쏙쏙 뽑아냄
+    # 3. 정의 조항 필터링 키워드
+    def_keywords = ["말한다", "뜻한다", "의미한다", "라 한다", "정의한다"]
+    
+    # 4. 키워드가 포함된 위험 문장들만 우선적으로 쏙쏙 뽑아냄
     for sentence in sentences:
         sentence_clean = sentence.strip()
         if not sentence_clean or sentence_clean in seen:
             continue
+            
+        # 순전히 정의를 다루는 조항 배제 (문장 끝부분 서술어 또는 특수 패턴 확인)
+        is_definition = any(dk in sentence_clean[-15:] for dk in def_keywords)
+        if is_definition or "라 함은" in sentence_clean or "용어의 정의" in sentence_clean:
+            continue
+
         if any(keyword in sentence_clean for keyword in risk_keywords):
             important_sentences.append(sentence_clean)
             seen.add(sentence_clean)
