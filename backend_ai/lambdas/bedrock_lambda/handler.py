@@ -161,12 +161,12 @@ def build_retrieval_query(contract_texts: list[str], event_query: str | None = N
             important_sentences.append(sentence_clean)
             seen.add(sentence_clean)
             
-    # 4. 추출된 문장이 너무 적으면 원본 데이터의 앞부분을 Fallback으로 보충
-    if len(important_sentences) < 3:
+    # 4. 상위 3~4개의 중요 위험 문장만 추출하고 명시적 지시어 추가 (검색 쿼리 최적화)
+    if not important_sentences:
         query_candidates = joined_text[:1000]
     else:
-        # 중요한 위험 문장들을 빽빽하게 이어붙여 밀도 높은 RAG 쿼리 생성
-        query_candidates = " ".join(important_sentences)
+        top_sentences = important_sentences[:4]
+        query_candidates = " ".join(top_sentences) + " 관련 판례 및 법률 조항"
         
     # Bedrock Embedding 모델의 한도(약 1500자)에 맞춰 최적화된 쿼리 반환
     return query_candidates[:1500]
@@ -321,7 +321,10 @@ def normalize_retrieval_results(response: dict[str, Any]) -> list[dict[str, Any]
         metadata = item.get("metadata", {}) or {}
         location = item.get("location", {}) or {}
         text = (content.get("text") or "").strip()
-        if not text:
+        score = float(item.get("score") or 0.0)
+        
+        # 유사도 점수(Score)가 0.2 미만인 무관한 검색 결과 배제 (Score Thresholding)
+        if not text or (score > 0.0 and score < 0.2):
             continue
 
         formatted_location = format_retrieval_location(location)
@@ -660,49 +663,6 @@ def ensure_reason_with_basis(reason: str, source_ids: list[str], source_lookup: 
     return f"근거: {basis_text}. {normalized_reason}"
 
 
-def clause_matches_deduction_risk(text: str) -> bool:
-    return any(keyword in text for keyword in DEDUCTION_KEYWORDS)
-
-
-def has_existing_deduction_toxic(toxics: list[dict[str, Any]]) -> bool:
-    for toxic in toxics:
-        clause_text = str(toxic.get("clauseText") or "")
-        risk_type = str(toxic.get("riskType") or "")
-        if clause_matches_deduction_risk(clause_text) or "공제" in risk_type or "차감" in risk_type or "상계" in risk_type:
-            return True
-    return False
-
-
-def build_deduction_clause_fallback(
-    contract_texts: list[str],
-    source_lookup: dict[str, dict[str, Any]],
-) -> dict[str, Any] | None:
-    if not any(clause_matches_deduction_risk(text) for text in contract_texts):
-        return None
-
-    clause_text = next((text for text in contract_texts if clause_matches_deduction_risk(text)), "")
-    source_ids: list[str] = []
-    for item in source_lookup.values():
-        source_label = str(item.get("sourceLabel") or "")
-        text = str(item.get("text") or "")
-        if ("보증금" in text or "공제" in text) and source_label and source_label not in source_ids:
-            source_ids.append(source_label)
-    source_ids = source_ids[:2]
-    reason = ensure_reason_with_basis(
-        "보증금에서 임대인이 비용을 자유롭게 공제하도록 하면 반환 범위와 공제 사유가 불명확해 임차인에게 과도하게 불리할 수 있습니다.",
-        source_ids,
-        source_lookup,
-    )
-    return {
-        "clauseText": clause_text,
-        "riskType": "보증금 공제권 과다",
-        "riskLevel": "high",
-        "reason": reason,
-        "suggestion": "공제 가능한 항목과 범위를 구체적으로 한정하고, 임차인과의 정산 절차를 명시하는 방향으로 수정하는 것이 좋습니다.",
-        "sourceIds": source_ids,
-    }
-
-
 def build_analysis_result(
     contract_texts: list[str],
     parsed: dict[str, Any],
@@ -747,10 +707,9 @@ def build_analysis_result(
             }
         )
 
-    if not has_existing_deduction_toxic(toxics):
-        deduction_fallback = build_deduction_clause_fallback(contract_texts, source_lookup)
-        if deduction_fallback:
-            toxics.append(deduction_fallback)
+    # 모든 조항이 분석되었고 riskLevel이 low라면 overall_risk를 low로 조정
+    if not toxics and overall_risk != "low":
+        overall_risk = "low"
 
     return {
         "title": infer_contract_title(contract_texts),
