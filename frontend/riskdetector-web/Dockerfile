@@ -3,10 +3,10 @@ FROM node:20-slim AS builder
 WORKDIR /app
 
 # NEXT_PUBLIC_* 변수는 빌드 타임에 번들에 박혀야 하므로 ARG로 받음
-ARG NEXT_PUBLIC_API_BASE_URL
-ARG NEXT_PUBLIC_API_URL
-ENV NEXT_PUBLIC_API_BASE_URL=$NEXT_PUBLIC_API_BASE_URL
+ARG NEXT_PUBLIC_API_URL=https://riskdetectorbaegendeu.onrender.com
+ARG NEXT_PUBLIC_API_BASE_URL=https://riskdetectorbaegendeu.onrender.com/api
 ENV NEXT_PUBLIC_API_URL=$NEXT_PUBLIC_API_URL
+ENV NEXT_PUBLIC_API_BASE_URL=$NEXT_PUBLIC_API_BASE_URL
 
 COPY package*.json ./
 RUN npm ci
