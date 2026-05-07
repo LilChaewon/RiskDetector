@@ -44,7 +44,7 @@ cors:
 
 app:
   oauth2:
-    redirect-uri: ${GOOGLE_OAUTH_REDIRECT_URI:https://riskdetectorbaegendeu.onrender.com/login/oauth2/code/google}
+    redirect-uri: ${FRONTEND_OAUTH_REDIRECT_URI:https://riskdetectorpeuronteuendeu.onrender.com/oauth2/callback}
   cookie:
     secure: ${COOKIE_SECURE:true}
 
