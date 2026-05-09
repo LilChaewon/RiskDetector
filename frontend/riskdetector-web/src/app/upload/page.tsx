@@ -229,7 +229,7 @@ export default function UploadPage() {
               <button
                 type="button"
                 onClick={() => cameraInputRef.current?.click()}
-                className="rd-card rd-card-hover flex items-center gap-3 p-4 text-left"
+                className="rd-card rd-card-hover flex items-center gap-3 p-4 text-left sm:hidden"
               >
                 <div className="flex h-11 w-11 items-center justify-center rounded-xl bg-[var(--rd-blue-soft)] text-[var(--rd-blue)]">
                   <Camera size={20} />
