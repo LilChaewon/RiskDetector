@@ -1,5 +1,6 @@
 'use client';
 
+import { useEffect, useState } from 'react';
 import Link from 'next/link';
 import { usePathname, useRouter } from 'next/navigation';
 import {
@@ -28,6 +29,19 @@ function isActive(pathname: string, href: string) {
 export default function AppShell({ children }: { children: React.ReactNode }) {
   const pathname = usePathname();
   const router = useRouter();
+  const [isLoggedIn, setIsLoggedIn] = useState(false);
+
+  useEffect(() => {
+    const syncLoginState = () => {
+      const token = localStorage.getItem('accessToken');
+      const loginFlag = localStorage.getItem('isLoggedIn') === 'true';
+      setIsLoggedIn(loginFlag || Boolean(token && token !== 'guest'));
+    };
+
+    syncLoginState();
+    window.addEventListener('storage', syncLoginState);
+    return () => window.removeEventListener('storage', syncLoginState);
+  }, [pathname]);
 
   function logout() {
     localStorage.removeItem('accessToken');
@@ -36,6 +50,7 @@ export default function AppShell({ children }: { children: React.ReactNode }) {
     localStorage.removeItem('userName');
     localStorage.removeItem('userPicture');
     localStorage.removeItem('isLoggedIn');
+    setIsLoggedIn(false);
     router.push('/login');
   }
 
@@ -76,14 +91,17 @@ export default function AppShell({ children }: { children: React.ReactNode }) {
         </div>
 
         <div className="absolute bottom-5 left-4 right-4 flex flex-col gap-2">
-          <Link href="/login" className="rd-nav-item">
-            <LogIn size={16} />
-            로그인
-          </Link>
-          <button type="button" onClick={logout} className="rd-nav-item text-left">
-            <LogOut size={16} />
-            로그아웃
-          </button>
+          {isLoggedIn ? (
+            <button type="button" onClick={logout} className="rd-nav-item text-left">
+              <LogOut size={16} />
+              로그아웃
+            </button>
+          ) : (
+            <Link href="/login" className="rd-nav-item">
+              <LogIn size={16} />
+              로그인
+            </Link>
+          )}
         </div>
       </aside>
 

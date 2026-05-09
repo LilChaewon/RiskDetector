@@ -63,7 +63,6 @@ export default function Home() {
           </div>
           <div className="rounded-xl border border-white/10 bg-white/5 p-4 text-right font-mono text-[12px] text-[#aab7c7]">
             <div>분석 {dashboard.stats.completedAnalyses}건 완료</div>
-            <div className="mt-1">북마크 {dashboard.stats.bookmarkCount}개 저장</div>
           </div>
         </section>
 
