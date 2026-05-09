@@ -25,6 +25,9 @@ public class Contract {
     @Column(name = "contract_type")
     private String contractType; // RENTAL, EMPLOYMENT
 
+    @Column(name = "guest_session_id")
+    private String guestSessionId;
+
     @Column(name = "s3_key_prefix")
     private String s3KeyPrefix;
 
@@ -35,11 +38,12 @@ public class Contract {
     private LocalDateTime updatedAt;
 
     @Builder
-    public Contract(String id, User user, String title, String contractType, String s3KeyPrefix) {
+    public Contract(String id, User user, String title, String contractType, String guestSessionId, String s3KeyPrefix) {
         this.id = id;
         this.user = user;
         this.title = title;
         this.contractType = contractType;
+        this.guestSessionId = guestSessionId;
         this.s3KeyPrefix = s3KeyPrefix;
         this.createdAt = LocalDateTime.now();
         this.updatedAt = LocalDateTime.now();

@@ -14,16 +14,13 @@ export default function AnalysisLoadingPage({ contractId, analysisId }: Props) {
   const [dots, setDots] = useState('.');
 
   useEffect(() => {
-    // 점점점 애니메이션
     const dotInterval = setInterval(() => {
-      setDots(d => d.length >= 3 ? '.' : d + '.');
+      setDots((d) => (d.length >= 3 ? '.' : d + '.'));
     }, 500);
 
-    // 3초마다 분석 완료 확인
     const pollInterval = setInterval(async () => {
       try {
         const result = await fetchAnalysis(contractId, analysisId);
-        // 백엔드가 ResponseDTO 없이 DTO를 바로 반환하므로 .data 없이 접근
         if (result.analysisStatus === 'completed') {
           clearInterval(pollInterval);
           clearInterval(dotInterval);
@@ -46,18 +43,26 @@ export default function AnalysisLoadingPage({ contractId, analysisId }: Props) {
   }, [contractId, analysisId, router]);
 
   return (
-    <div className="min-h-screen flex flex-col items-center justify-center gap-6 bg-[#F2F4F6]">
-      {/* 로딩 스피너: 토스 스타일의 부드러운 애니메이션 */}
-      <div className="w-16 h-16 border-4 border-[#E5E8EB] border-t-[#3182F6] rounded-full animate-spin" />
-      <div className="text-center">
-        <h2 className="text-[22px] font-bold text-[#191F28] mb-2 tracking-tight">
-          AI가 분석 중입니다{dots}
-        </h2>
-        <p className="text-[#8B95A1] font-medium text-[15px]">
-          계약서의 독소조항을 꼼꼼히 찾고 있어요.<br />
-          잠시만 기다려주세요.
-        </p>
+    <main className="flex min-h-screen items-center justify-center bg-[#0d1524] px-6 py-16 text-white">
+      <div className="w-full max-w-[540px]">
+        <div className="mx-auto h-20 w-20 rounded-full border-[3px] border-white/10 border-t-[#3b7bf0] animate-spin" />
+        <div className="mt-8 text-center">
+          <h1 className="text-[24px] font-extrabold tracking-tight">조항을 읽고 있어요{dots}</h1>
+          <p className="mt-2 text-[14px] font-medium leading-6 text-white/55">
+            계약서의 독소조항과 법률 근거를 꼼꼼히 찾고 있어요.
+          </p>
+        </div>
+        <div className="rd-hero mt-10 bg-white/5 p-6">
+          <div className="text-[11px] font-bold uppercase tracking-[0.1em] text-[#7ca4ec]">기다리는 동안</div>
+          <div className="mt-2 text-[18px] font-extrabold leading-7">
+            “수리비는 전부 세입자 부담”이라고 썼다면?
+          </div>
+          <p className="mt-3 text-[13px] font-medium leading-7 text-[#c6d1df]">
+            민법 제623조상 임대인은 목적물을 사용·수익에 필요한 상태로 유지할 의무가 있어요.
+            구조적 하자나 노후에 의한 수리비 전가는 무효로 볼 여지가 있습니다.
+          </p>
+        </div>
       </div>
-    </div>
+    </main>
   );
 }

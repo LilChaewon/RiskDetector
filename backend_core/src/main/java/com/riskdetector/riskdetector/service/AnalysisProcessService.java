@@ -20,6 +20,7 @@ import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
+import org.springframework.util.StringUtils;
 import software.amazon.awssdk.services.lambda.model.InvokeResponse;
 
 import java.util.Collections;
@@ -61,11 +62,11 @@ public class AnalysisProcessService {
     }
 
     @Transactional
-    public AnalysisStartResponse requestAnalysis(String email, AnalysisRequest request) {
+    public AnalysisStartResponse requestAnalysis(String email, String guestSessionId, AnalysisRequest request) {
         Contract contract = contractRepository.findById(request.getContractId())
                 .orElseThrow(() -> new ResourceNotFoundException("Contract not found: " + request.getContractId()));
 
-        if (!hasAccess(contract, email)) {
+        if (!hasAccess(contract, email, guestSessionId)) {
             throw new ResourceNotFoundException("Contract not found: " + request.getContractId());
         }
 
@@ -94,11 +95,11 @@ public class AnalysisProcessService {
     }
 
     @Transactional(readOnly = true)
-    public AnalysisResultResponse getAnalysisResult(String email, String analysisId) {
+    public AnalysisResultResponse getAnalysisResult(String email, String guestSessionId, String analysisId) {
         ContractAnalysis analysis = contractAnalysisRepository.findById(analysisId)
                 .orElseThrow(() -> new ResourceNotFoundException("Analysis not found: " + analysisId));
 
-        if (!hasAccess(analysis.getContract(), email)) {
+        if (!hasAccess(analysis.getContract(), email, guestSessionId)) {
             throw new ResourceNotFoundException("Analysis not found: " + analysisId);
         }
 
@@ -180,8 +181,11 @@ public class AnalysisProcessService {
         return email == null || email.isBlank() || "anonymousUser".equals(email);
     }
 
-    private boolean hasAccess(Contract contract, String email) {
-        if (contract.getUser() == null) return true;
-        return !isGuest(email) && contract.getUser().getEmail().equals(email);
+    private boolean hasAccess(Contract contract, String email, String guestSessionId) {
+        if (contract.getUser() != null) {
+            return !isGuest(email) && contract.getUser().getEmail().equals(email);
+        }
+        if (!StringUtils.hasText(contract.getGuestSessionId())) return true;
+        return StringUtils.hasText(guestSessionId) && contract.getGuestSessionId().equals(guestSessionId.trim());
     }
 }

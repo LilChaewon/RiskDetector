@@ -3,7 +3,6 @@
 import { Suspense } from 'react';
 import { useSearchParams } from 'next/navigation';
 import AnalysisLoadingPage from './loading-page';
-import AppHeader from '@/components/AppHeader';
 
 function AnalysisContent() {
   const searchParams = useSearchParams();
@@ -12,18 +11,13 @@ function AnalysisContent() {
 
   if (!contractId || !analysisId) {
     return (
-      <div className="min-h-screen flex items-center justify-center">
+      <div className="min-h-screen flex items-center justify-center bg-[var(--rd-bg)]">
         잘못된 접근입니다.
       </div>
     );
   }
 
-  return (
-    <main className="min-h-screen bg-[#F2F4F6]">
-      <AppHeader title="AI 독소조항 분석" />
-      <AnalysisLoadingPage contractId={contractId} analysisId={analysisId} />
-    </main>
-  );
+  return <AnalysisLoadingPage contractId={contractId} analysisId={analysisId} />;
 }
 
 export default function AnalysisPage() {

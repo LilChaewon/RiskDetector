@@ -7,4 +7,6 @@ import java.util.Optional;
 
 public interface ContractAnalysisRepository extends JpaRepository<ContractAnalysis, String> {
     Optional<ContractAnalysis> findByContractId(String contractId);
+
+    Optional<ContractAnalysis> findTopByContractIdOrderByCreatedAtDesc(String contractId);
 }

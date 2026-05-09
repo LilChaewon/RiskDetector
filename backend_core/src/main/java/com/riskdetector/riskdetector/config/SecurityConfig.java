@@ -84,7 +84,7 @@ public class SecurityConfig {
         // 환경변수에 와일드카드 패턴(예: https://*.vercel.app)을 사용할 수 있도록 patterns로 설정
         config.setAllowedOriginPatterns(allowedOrigins);
         config.setAllowedMethods(List.of("GET", "POST", "PUT", "DELETE", "PATCH", "OPTIONS"));
-        config.setAllowedHeaders(List.of("Authorization", "Content-Type", "X-Requested-With"));
+        config.setAllowedHeaders(List.of("Authorization", "Content-Type", "X-Requested-With", "X-Guest-Id"));
         // 프론트엔드에서 새로 발급된 토큰을 읽을 수 있도록 노출
         config.setExposedHeaders(List.of("Authorization"));
         config.setAllowCredentials(true);

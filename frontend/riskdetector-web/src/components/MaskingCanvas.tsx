@@ -1,6 +1,6 @@
 'use client';
 
-import { useRef, useState, useEffect } from 'react';
+import { useRef, useState, useEffect, useCallback } from 'react';
 
 interface Props {
     imageFile: File;
@@ -15,6 +15,24 @@ export default function MaskingCanvas({ imageFile, onMaskingComplete }: Props) {
     const [isDrawing, setIsDrawing] = useState(false);
     const [startPos, setStartPos] = useState({ x: 0, y: 0 });
     const [masks, setMasks] = useState<Rect[]>([]);
+
+    // 화면 그리기 함수 (이미지 + 마스크들 + 드래그 미리보기)
+    const drawAll = useCallback((img: HTMLImageElement, maskList: Rect[], previewRect?: Rect) => {
+        const canvas = canvasRef.current;
+        if (!canvas) return;
+        const ctx = canvas.getContext('2d')!;
+
+        ctx.clearRect(0, 0, canvas.width, canvas.height);
+        ctx.drawImage(img, 0, 0);
+
+        ctx.fillStyle = 'black';
+        maskList.forEach(r => ctx.fillRect(r.x, r.y, r.w, r.h));
+
+        if (previewRect) {
+            ctx.fillStyle = 'rgba(0, 0, 0, 0.5)';
+            ctx.fillRect(previewRect.x, previewRect.y, previewRect.w, previewRect.h);
+        }
+    }, []);
 
     // 1. 이미지 로드 및 캔버스 초기화 (이미지가 화면에 보임)
     useEffect(() => {
@@ -33,7 +51,7 @@ export default function MaskingCanvas({ imageFile, onMaskingComplete }: Props) {
             drawAll(img, []);
         };
         return () => URL.revokeObjectURL(url);
-    }, [imageFile]);
+    }, [imageFile, drawAll]);
 
     // 좌표 계산 (캔버스 크기가 줄어들어도 정확한 위치 계산)
     function getPos(e: React.MouseEvent) {
@@ -45,24 +63,6 @@ export default function MaskingCanvas({ imageFile, onMaskingComplete }: Props) {
             x: (e.clientX - rect.left) * scaleX,
             y: (e.clientY - rect.top) * scaleY,
         };
-    }
-
-    // 화면 그리기 함수 (이미지 + 마스크들 + 드래그 미리보기)
-    function drawAll(img: HTMLImageElement, maskList: Rect[], previewRect?: Rect) {
-        const canvas = canvasRef.current;
-        if (!canvas) return;
-        const ctx = canvas.getContext('2d')!;
-
-        ctx.clearRect(0, 0, canvas.width, canvas.height);
-        ctx.drawImage(img, 0, 0); // 배경 이미지
-
-        ctx.fillStyle = 'black'; // 확정된 마스크 (검은 박스)
-        maskList.forEach(r => ctx.fillRect(r.x, r.y, r.w, r.h));
-
-        if (previewRect) { // 드래그 중인 미리보기 (반투명)
-            ctx.fillStyle = 'rgba(0, 0, 0, 0.5)';
-            ctx.fillRect(previewRect.x, previewRect.y, previewRect.w, previewRect.h);
-        }
     }
 
     const onMouseDown = (e: React.MouseEvent) => {
@@ -124,7 +124,7 @@ export default function MaskingCanvas({ imageFile, onMaskingComplete }: Props) {
 
     return (
         <div className="flex flex-col gap-4">
-            <p className="text-sm text-gray-500 font-medium">🛡️ 개인정보(이름, 전화번호 등)를 드래그해서 가려주세요.</p>
+            <p className="text-sm text-gray-300 font-medium">개인정보(이름, 전화번호 등)를 드래그해서 가려주세요.</p>
 
             <div className="border-2 border-gray-200 rounded-xl overflow-hidden bg-gray-50 shadow-inner">
                 <canvas
@@ -139,13 +139,13 @@ export default function MaskingCanvas({ imageFile, onMaskingComplete }: Props) {
             <div className="flex gap-3">
                 <button
                     onClick={clearMasks}
-                    className="flex-1 bg-white border border-gray-300 py-3 rounded-xl text-gray-600 font-medium hover:bg-gray-50"
+                    className="flex-1 bg-white border border-gray-300 py-3 rounded-xl text-gray-700 font-bold hover:bg-gray-50"
                 >
                     다시 그리기
                 </button>
                 <button
                     onClick={exportMasked}
-                    className="flex-1 bg-[#059669] text-white py-3 rounded-xl font-bold hover:bg-[#047857] shadow-md"
+                    className="flex-1 bg-[#1b64da] text-white py-3 rounded-xl font-bold hover:bg-[#0b3d91] shadow-md"
                 >
                     마스킹 완료
                 </button>

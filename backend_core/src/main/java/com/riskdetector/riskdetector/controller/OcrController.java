@@ -24,20 +24,22 @@ public class OcrController {
     @PostMapping("/upload")
     public ResponseEntity<OcrUploadResponse> upload(
             @AuthenticationPrincipal String email,
+            @RequestHeader(value = "X-Guest-Id", required = false) String guestSessionId,
             @RequestParam String title,
             @RequestParam String contractType,
             @RequestPart List<MultipartFile> files) {
         log.info("OCR Upload request received. Email: {}, Title: {}, Files count: {}", email, title, files.size());
-        OcrUploadResponse response = ocrProcessService.processUpload(email, title, contractType, files);
+        OcrUploadResponse response = ocrProcessService.processUpload(email, guestSessionId, title, contractType, files);
         return ResponseEntity.ok(response);
     }
 
     @GetMapping("/{contractId}")
     public ResponseEntity<OcrResultResponse> getOcrResult(
             @AuthenticationPrincipal String email,
+            @RequestHeader(value = "X-Guest-Id", required = false) String guestSessionId,
             @PathVariable String contractId) {
         log.info("GET /api/ocr/{} requested by {}", contractId, email);
-        OcrResultResponse response = ocrProcessService.getOcrResult(email, contractId);
+        OcrResultResponse response = ocrProcessService.getOcrResult(email, guestSessionId, contractId);
         log.info("Returning {} items", (response.getHtmlArray() != null ? response.getHtmlArray().size() : 0));
         return ResponseEntity.ok(response);
     }
@@ -45,9 +47,10 @@ public class OcrController {
     @PatchMapping("/{contractId}")
     public ResponseEntity<OcrResultResponse> updateOcrContent(
             @AuthenticationPrincipal String email,
+            @RequestHeader(value = "X-Guest-Id", required = false) String guestSessionId,
             @PathVariable String contractId,
             @RequestBody OcrUpdateRequest request) {
-        OcrResultResponse response = ocrProcessService.updateOcrContent(email, contractId, request);
+        OcrResultResponse response = ocrProcessService.updateOcrContent(email, guestSessionId, contractId, request);
         return ResponseEntity.ok(response);
     }
 }

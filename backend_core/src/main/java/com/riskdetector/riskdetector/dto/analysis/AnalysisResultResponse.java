@@ -8,12 +8,18 @@ import lombok.Getter;
 
 import java.util.List;
 import java.util.stream.Collectors;
+import java.time.LocalDateTime;
 
 @Getter
 @Builder
 public class AnalysisResultResponse {
 
     private String originContent;
+    private String contractId;
+    private String analysisId;
+    private String title;
+    private String contractType;
+    private LocalDateTime createdAt;
     private String summary;
     private String analysisStatus; // "in_progress", "completed", "failed"
     private int toxicCount;
@@ -27,6 +33,7 @@ public class AnalysisResultResponse {
         private String clause;
         private String reason;
         private String reasonReference;
+        private Integer sourceContractTagIdx;
         private Integer warnLevel;
     }
 
@@ -51,6 +58,11 @@ public class AnalysisResultResponse {
 
         return AnalysisResultResponse.builder()
                 .originContent(originContent)
+                .contractId(analysis.getContract().getId())
+                .analysisId(analysis.getId())
+                .title(analysis.getContract().getTitle())
+                .contractType(analysis.getContract().getContractType())
+                .createdAt(analysis.getContract().getCreatedAt())
                 .summary(analysis.getSummary())
                 .analysisStatus(analysisStatus)
                 .toxicCount(toxics.size())
@@ -60,6 +72,7 @@ public class AnalysisResultResponse {
                                 .clause(t.getClause())
                                 .reason(t.getReason())
                                 .reasonReference(t.getReasonReference())
+                                .sourceContractTagIdx(t.getSourceContractTagIdx())
                                 .warnLevel(t.getWarnLevel())
                                 .build())
                         .collect(Collectors.toList()))

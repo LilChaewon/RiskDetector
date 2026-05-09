@@ -19,16 +19,18 @@ public class AnalysisController {
     @PostMapping
     public ResponseEntity<AnalysisStartResponse> requestAnalysis(
             @AuthenticationPrincipal String email,
+            @RequestHeader(value = "X-Guest-Id", required = false) String guestSessionId,
             @RequestBody AnalysisRequest request) {
-        AnalysisStartResponse response = analysisProcessService.requestAnalysis(email, request);
+        AnalysisStartResponse response = analysisProcessService.requestAnalysis(email, guestSessionId, request);
         return ResponseEntity.ok(response);
     }
 
     @GetMapping("/{analysisId}")
     public ResponseEntity<AnalysisResultResponse> getAnalysisResult(
             @AuthenticationPrincipal String email,
+            @RequestHeader(value = "X-Guest-Id", required = false) String guestSessionId,
             @PathVariable String analysisId) {
-        AnalysisResultResponse response = analysisProcessService.getAnalysisResult(email, analysisId);
+        AnalysisResultResponse response = analysisProcessService.getAnalysisResult(email, guestSessionId, analysisId);
         return ResponseEntity.ok(response);
     }
 }
