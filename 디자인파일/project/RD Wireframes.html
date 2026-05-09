@@ -1,0 +1,261 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>RD · 계약서 독소조항 분석 앱 와이어프레임</title>
+<link rel="preconnect" href="https://fonts.googleapis.com" />
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+<link href="https://fonts.googleapis.com/css2?family=Gowun+Dodum&family=Gaegu:wght@400;700&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet" />
+<link rel="stylesheet" href="styles/wire.css" />
+<style>
+  @keyframes spin { from { transform: rotate(0); } to { transform: rotate(360deg); } }
+
+  .top-bar {
+    position: sticky; top: 0; z-index: 50;
+    background: rgba(244, 242, 236, 0.92); backdrop-filter: blur(10px);
+    border-bottom: 1px solid var(--line);
+    display: flex; align-items: center; gap: 16px;
+    padding: 14px 32px;
+  }
+  .top-bar h1 { margin: 0; font-size: 16px; font-weight: 700; }
+  .top-bar .crumb { font-family: 'JetBrains Mono', monospace; font-size: 11px; color: var(--ink-3); }
+  .top-bar .spacer { flex: 1; }
+  .tab-nav { display: flex; gap: 6px; }
+  .tab-nav a {
+    padding: 6px 12px; border-radius: 999px; text-decoration: none;
+    font-size: 12px; color: var(--ink-2); border: 1px solid var(--line); background: #fff;
+    font-family: 'JetBrains Mono', monospace;
+  }
+  .tab-nav a:hover { border-color: var(--ink); color: var(--ink); }
+
+  .intro {
+    max-width: 760px; margin: 32px 0 16px;
+  }
+  .intro .kicker {
+    font-family: 'JetBrains Mono', monospace; font-size: 11px;
+    color: var(--ink-3); text-transform: uppercase; letter-spacing: 0.1em;
+  }
+  .intro h1 {
+    font-size: 32px; margin: 6px 0 10px; letter-spacing: -0.01em;
+  }
+  .intro p { color: var(--ink-2); line-height: 1.7; font-size: 14px; margin: 4px 0; }
+  .intro .assumptions {
+    display: grid; grid-template-columns: 1fr 1fr; gap: 10px 24px;
+    margin-top: 14px; padding: 14px 18px;
+    border: 1.5px solid var(--ink); border-radius: 14px; background: #fff;
+  }
+  .intro .assumptions div { font-size: 12px; }
+  .intro .assumptions b { display: block; font-family: 'JetBrains Mono', monospace; font-size: 10px; color: var(--ink-3); text-transform: uppercase; letter-spacing: 0.08em; margin-bottom: 2px; }
+
+  /* tweaks panel */
+  .tweaks-panel {
+    position: fixed; right: 20px; bottom: 20px; z-index: 100;
+    width: 260px; background: #fff; border: 1.5px solid var(--ink);
+    border-radius: 14px; padding: 14px; box-shadow: 0 8px 24px rgba(0,0,0,0.08);
+    font-size: 12px; display: none;
+  }
+  .tweaks-panel.open { display: block; }
+  .tweaks-panel h3 { margin: 0 0 10px; font-size: 13px; }
+  .tweaks-panel label { display: block; margin: 8px 0 4px; font-size: 11px; color: var(--ink-2); font-family: 'JetBrains Mono', monospace; text-transform: uppercase; letter-spacing: 0.06em; }
+  .tweaks-panel .seg { display: flex; gap: 4px; }
+  .tweaks-panel .seg button {
+    flex: 1; padding: 6px; border: 1px solid var(--line); background: #fff; font-size: 11px;
+    border-radius: 8px; cursor: pointer; font-family: inherit;
+  }
+  .tweaks-panel .seg button.on { background: var(--ink); color: #fff; border-color: var(--ink); }
+
+  /* hand mode (sketchy feel) — applied when sketch=hand */
+  body.sketchy {
+    font-family: 'Gowun Dodum', 'Gaegu', cursive;
+  }
+  body.sketchy .box, body.sketchy .box-soft, body.sketchy .phone, body.sketchy .browser {
+    border-radius: 20px;
+  }
+  body.sketchy .box {
+    border-style: solid;
+    border-width: 1.5px;
+    box-shadow: 2px 2px 0 rgba(0,0,0,0.08);
+  }
+  body.sketchy .btn, body.sketchy .pill, body.sketchy .chip {
+    border-radius: 999px;
+  }
+</style>
+</head>
+<body>
+
+<div class="top-bar">
+  <h1>RD · Wireframes</h1>
+  <span class="crumb">계약서 독소조항 분석 앱 · lo-fi 탐색</span>
+  <div class="spacer"></div>
+  <nav class="tab-nav">
+    <a href="#s01">01 홈</a>
+    <a href="#s02">02 업로드</a>
+    <a href="#s03">03 로딩</a>
+    <a href="#s04">04 리포트</a>
+    <a href="#s05">05 조항</a>
+    <a href="#s06">06 피드</a>
+    <a href="#s07">07 마이</a>
+    <a href="#s08">08 웹</a>
+  </nav>
+</div>
+
+<div class="canvas">
+
+  <div class="intro">
+    <div class="kicker">Design exploration · v1</div>
+    <h1>계약서 앞에서 당당해지는 경험, 설계하기</h1>
+    <p>타겟은 첫 자취·첫 알바를 시작한 <b>20대 사회 초년생</b>. 그들에게 '독소조항'이라는 단어조차 낯섭니다. 법률적 정확성만큼이나 <b>"그래서 내가 뭘 해야 하지?"</b>에 답하는 게 핵심 UX라고 봤어요.</p>
+    <p>이 문서는 8개 주요 화면 × 각 3개씩, 총 22+ 변주를 담은 lo-fi 탐색입니다. 토스·당근마켓의 깔끔한 박스 스타일을 기조로 잡고, 위험도 표기에만 색을 썼습니다.</p>
+
+    <div class="assumptions">
+      <div><b>Platform</b>모바일 우선 + 웹 확장 (8번 섹션)</div>
+      <div><b>Target</b>20대 사회 초년생, 첫 임대차·근로계약</div>
+      <div><b>Input</b>PDF / 이미지 업로드 + 사진 촬영 (OCR)</div>
+      <div><b>Analysis</b>원문 하이라이트 + 주석 + 조항별 대안 문구</div>
+      <div><b>Risk</b>3단계 — 높음(빨강) · 중간(노랑) · 낮음(초록)</div>
+      <div><b>Tone</b>친근하고 쉬운 반말체 가까운 존댓말</div>
+      <div><b>Content</b>카드뉴스 피드 + Q&A 아카이브</div>
+      <div><b>Monetize</b>프리미엄 구독 (분석 횟수 제한)</div>
+    </div>
+  </div>
+
+  <div id="root"></div>
+
+</div>
+
+<!-- Tweaks panel -->
+<div id="tweaks" class="tweaks-panel">
+  <h3>Tweaks</h3>
+
+  <label>스케치 감도</label>
+  <div class="seg" data-tweak="sketch">
+    <button data-v="clean">Clean</button>
+    <button data-v="hand">Sketchy</button>
+  </div>
+
+  <label>하이라이트 색</label>
+  <div class="seg" data-tweak="highlight">
+    <button data-v="default">기본</button>
+    <button data-v="warm">웜</button>
+    <button data-v="mono">모노</button>
+  </div>
+
+  <label>AI 톤</label>
+  <div class="seg" data-tweak="ai_tone">
+    <button data-v="friendly">친근</button>
+    <button data-v="neutral">중립</button>
+    <button data-v="pro">전문가</button>
+  </div>
+</div>
+
+<script>
+  // Tweaks protocol
+  const TWEAK_DEFAULTS = /*EDITMODE-BEGIN*/{
+    "sketch": "clean",
+    "highlight": "default",
+    "ai_tone": "friendly"
+  }/*EDITMODE-END*/;
+  let tweaks = { ...TWEAK_DEFAULTS };
+
+  function applyTweaks() {
+    document.body.classList.toggle('sketchy', tweaks.sketch === 'hand');
+    const root = document.documentElement;
+    if (tweaks.highlight === 'warm') {
+      root.style.setProperty('--risk-hi', '#c0462b');
+      root.style.setProperty('--risk-hi-bg', '#f6e2d7');
+      root.style.setProperty('--risk-md', '#b8862a');
+      root.style.setProperty('--risk-md-bg', '#f5ead0');
+      root.style.setProperty('--risk-lo', '#658c54');
+      root.style.setProperty('--risk-lo-bg', '#e6eed9');
+    } else if (tweaks.highlight === 'mono') {
+      root.style.setProperty('--risk-hi', '#1a1a1a');
+      root.style.setProperty('--risk-hi-bg', '#e8e8e8');
+      root.style.setProperty('--risk-md', '#6a6a6a');
+      root.style.setProperty('--risk-md-bg', '#efefef');
+      root.style.setProperty('--risk-lo', '#8a8a8a');
+      root.style.setProperty('--risk-lo-bg', '#f5f5f5');
+    } else {
+      root.style.setProperty('--risk-hi', '#d9534f');
+      root.style.setProperty('--risk-hi-bg', '#fbe8e7');
+      root.style.setProperty('--risk-md', '#d6a23b');
+      root.style.setProperty('--risk-md-bg', '#fbf2dd');
+      root.style.setProperty('--risk-lo', '#4f9d6a');
+      root.style.setProperty('--risk-lo-bg', '#e6f2ea');
+    }
+    document.querySelectorAll('.tweaks-panel .seg').forEach(seg => {
+      const k = seg.getAttribute('data-tweak');
+      seg.querySelectorAll('button').forEach(b => {
+        b.classList.toggle('on', b.getAttribute('data-v') === tweaks[k]);
+      });
+    });
+  }
+
+  document.querySelectorAll('.tweaks-panel .seg button').forEach(btn => {
+    btn.addEventListener('click', () => {
+      const k = btn.parentElement.getAttribute('data-tweak');
+      const v = btn.getAttribute('data-v');
+      tweaks[k] = v;
+      applyTweaks();
+      window.parent.postMessage({ type: '__edit_mode_set_keys', edits: { [k]: v } }, '*');
+    });
+  });
+
+  window.addEventListener('message', (e) => {
+    if (!e.data || !e.data.type) return;
+    if (e.data.type === '__activate_edit_mode') document.getElementById('tweaks').classList.add('open');
+    if (e.data.type === '__deactivate_edit_mode') document.getElementById('tweaks').classList.remove('open');
+  });
+  window.parent.postMessage({ type: '__edit_mode_available' }, '*');
+
+  applyTweaks();
+</script>
+
+<!-- React + Babel -->
+<script src="https://unpkg.com/react@18.3.1/umd/react.development.js" integrity="sha384-hD6/rw4ppMLGNu3tX5cjIb+uRZ7UkRJ6BPkLpg4hAu/6onKUg4lLsHAs9EBPT82L" crossorigin="anonymous"></script>
+<script src="https://unpkg.com/react-dom@18.3.1/umd/react-dom.development.js" integrity="sha384-u6aeetuaXnQ38mYT8rp6sbXaQe3NL9t+IBXmnYxwkUI2Hw4bsp2Wvmx4yRQF1uAm" crossorigin="anonymous"></script>
+<script src="https://unpkg.com/@babel/standalone@7.29.0/babel.min.js" integrity="sha384-m08KidiNqLdpJqLq95G/LEi8Qvjl/xUYll3QILypMoQ65QorJ9Lvtp2RXYGBFj1y" crossorigin="anonymous"></script>
+
+<script type="text/babel" src="components/Phone.jsx"></script>
+<script type="text/babel" src="sections/01-home.jsx"></script>
+<script type="text/babel" src="sections/02-upload.jsx"></script>
+<script type="text/babel" src="sections/03-loading.jsx"></script>
+<script type="text/babel" src="sections/04-report.jsx"></script>
+<script type="text/babel" src="sections/05-clause-detail.jsx"></script>
+<script type="text/babel" src="sections/06-feed.jsx"></script>
+<script type="text/babel" src="sections/07-mypage.jsx"></script>
+<script type="text/babel" src="sections/08-web.jsx"></script>
+
+<script type="text/babel">
+  function App() {
+    return (
+      <div data-screen-label="Wireframe Canvas">
+        <div id="s01"><SectionHome /></div>
+        <div id="s02"><SectionUpload /></div>
+        <div id="s03"><SectionLoading /></div>
+        <div id="s04"><SectionReport /></div>
+        <div id="s05"><SectionClauseDetail /></div>
+        <div id="s06"><SectionFeed /></div>
+        <div id="s07"><SectionMyPage /></div>
+        <div id="s08"><SectionWeb /></div>
+
+        <div style={{ margin: '60px 0 20px', padding: '24px 28px', border: '1.5px dashed var(--ink-3)', borderRadius: 14, background: '#fff', maxWidth: 760 }}>
+          <div style={{ fontFamily: "'JetBrains Mono', monospace", fontSize: 11, color: 'var(--ink-3)', textTransform: 'uppercase', letterSpacing: '0.1em' }}>Next steps</div>
+          <h2 style={{ fontSize: 20, margin: '8px 0 10px' }}>다음 단계 제안</h2>
+          <ul style={{ margin: 0, paddingLeft: 18, lineHeight: 1.8, fontSize: 13, color: 'var(--ink-2)' }}>
+            <li>각 섹션에서 <b>한 방향을 골라주세요</b> (예: 홈 A, 리포트 B+C 하이브리드).</li>
+            <li>고른 방향을 <b>hi-fi 클릭 프로토타입</b>으로 발전 — 실제 인터랙션, 애니메이션, 톤 확정.</li>
+            <li>사회 초년생 5명 대상 <b>리포트 화면 사용성 테스트</b> — 독소조항 이해도를 지표로.</li>
+            <li><b>AI 응답 톤</b> 샘플 작성 → 친근 vs 전문가 중 선호 조사.</li>
+            <li>법률 자문: 실제 "대안 문구"의 <b>법무 감수</b> 필요 (서비스 리스크 관리).</li>
+          </ul>
+        </div>
+      </div>
+    );
+  }
+
+  ReactDOM.createRoot(document.getElementById('root')).render(<App />);
+</script>
+
+</body>
+</html>
