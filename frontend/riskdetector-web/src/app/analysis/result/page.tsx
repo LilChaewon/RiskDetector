@@ -21,6 +21,34 @@ function statusText(status: string) {
   return '분석 실패';
 }
 
+function buildRevisionText(data: ContractAnalysisDTO) {
+  const lines = [
+    `계약서: ${data.title || '업로드된 계약서'}`,
+    `분석일: ${new Date(data.createdAt).toLocaleString('ko-KR')}`,
+    `독소조항: ${data.toxicCount}건`,
+    '',
+    '[AI 종합 의견]',
+    data.riskdetectorCommentary?.overallComment || '종합 의견 없음',
+    data.riskdetectorCommentary?.warningComment ? `주의: ${data.riskdetectorCommentary.warningComment}` : '',
+    data.riskdetectorCommentary?.advice ? `제안: ${data.riskdetectorCommentary.advice}` : '',
+    '',
+    '[조항별 수정 참고]',
+  ].filter(Boolean);
+
+  data.toxics.forEach((toxic, index) => {
+    lines.push(
+      '',
+      `${index + 1}. ${toxic.title || '독소조항'}`,
+      `위험도: ${riskMeta(toxic.warnLevel).label}`,
+      toxic.clause ? `원문: ${toxic.clause}` : '',
+      toxic.reason ? `위험 이유: ${toxic.reason}` : '',
+      toxic.reasonReference ? `근거: ${toxic.reasonReference}` : ''
+    );
+  });
+
+  return lines.filter(Boolean).join('\n');
+}
+
 function AnalysisResultContent() {
   const searchParams = useSearchParams();
   const router = useRouter();
@@ -52,6 +80,35 @@ function AnalysisResultContent() {
 
   const selected = data?.toxics[selectedIndex];
   const level = useMemo(() => overallLevel(data?.toxics || []), [data]);
+
+  async function handleShare() {
+    if (!data) return;
+    const shareUrl = window.location.href;
+    const shareText = `${data.title || '계약서'} 분석 결과: 독소조항 ${data.toxicCount}건`;
+
+    if (navigator.share) {
+      await navigator.share({
+        title: 'RiskDetector 분석 결과',
+        text: shareText,
+        url: shareUrl,
+      });
+      return;
+    }
+
+    await navigator.clipboard?.writeText(`${shareText}\n${shareUrl}`);
+  }
+
+  function exportRevisionText() {
+    if (!data) return;
+    const content = buildRevisionText(data);
+    const blob = new Blob([content], { type: 'text/plain;charset=utf-8' });
+    const url = URL.createObjectURL(blob);
+    const link = document.createElement('a');
+    link.href = url;
+    link.download = `${data.title || 'riskdetector-analysis'}-revision.txt`;
+    link.click();
+    URL.revokeObjectURL(url);
+  }
 
   if (invalidAccess) {
     return (
@@ -103,11 +160,11 @@ function AnalysisResultContent() {
                 분석 결과
               </h1>
               <div className="flex gap-2">
-                <button type="button" className="rd-btn rd-btn-ghost">
+                <button type="button" onClick={handleShare} className="rd-btn rd-btn-ghost">
                   <Share2 size={15} />
                   공유
                 </button>
-                <button type="button" className="rd-btn">
+                <button type="button" onClick={exportRevisionText} className="rd-btn">
                   <Sparkles size={15} />
                   수정안 내보내기
                 </button>

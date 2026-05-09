@@ -54,7 +54,7 @@ export default function MaskingCanvas({ imageFile, onMaskingComplete }: Props) {
     }, [imageFile, drawAll]);
 
     // 좌표 계산 (캔버스 크기가 줄어들어도 정확한 위치 계산)
-    function getPos(e: React.MouseEvent) {
+    function getPos(e: React.PointerEvent<HTMLCanvasElement>) {
         const canvas = canvasRef.current!;
         const rect = canvas.getBoundingClientRect();
         const scaleX = canvas.width / rect.width;
@@ -65,12 +65,13 @@ export default function MaskingCanvas({ imageFile, onMaskingComplete }: Props) {
         };
     }
 
-    const onMouseDown = (e: React.MouseEvent) => {
+    const onPointerDown = (e: React.PointerEvent<HTMLCanvasElement>) => {
+        e.currentTarget.setPointerCapture(e.pointerId);
         setIsDrawing(true);
         setStartPos(getPos(e));
     }
 
-    const onMouseMove = (e: React.MouseEvent) => {
+    const onPointerMove = (e: React.PointerEvent<HTMLCanvasElement>) => {
         if (!isDrawing || !image) return;
         const pos = getPos(e);
         const rect = {
@@ -82,8 +83,9 @@ export default function MaskingCanvas({ imageFile, onMaskingComplete }: Props) {
         drawAll(image, masks, rect); // 실시간 드래그 박스 표시
     }
 
-    const onMouseUp = (e: React.MouseEvent) => {
+    const onPointerUp = (e: React.PointerEvent<HTMLCanvasElement>) => {
         if (!isDrawing || !image) return;
+        e.currentTarget.releasePointerCapture(e.pointerId);
         setIsDrawing(false);
         const pos = getPos(e);
         const rect = {
@@ -129,10 +131,11 @@ export default function MaskingCanvas({ imageFile, onMaskingComplete }: Props) {
             <div className="border-2 border-gray-200 rounded-xl overflow-hidden bg-gray-50 shadow-inner">
                 <canvas
                     ref={canvasRef}
-                    className="max-w-full h-auto cursor-crosshair block mx-auto"
-                    onMouseDown={onMouseDown}
-                    onMouseMove={onMouseMove}
-                    onMouseUp={onMouseUp}
+                    className="max-w-full h-auto cursor-crosshair touch-none block mx-auto"
+                    onPointerDown={onPointerDown}
+                    onPointerMove={onPointerMove}
+                    onPointerUp={onPointerUp}
+                    onPointerCancel={() => setIsDrawing(false)}
                 />
             </div>
 

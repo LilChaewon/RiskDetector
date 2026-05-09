@@ -1,6 +1,6 @@
 'use client';
 
-import { useState } from 'react';
+import { useRef, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { Camera, ChevronRight, FileText, Shield, UploadCloud } from 'lucide-react';
 import AppShell from '@/components/AppShell';
@@ -9,6 +9,7 @@ import { uploadOCR } from '@/api/contract';
 
 type ContractType = 'RENTAL' | 'EMPLOYMENT';
 type Step = 'select-type' | 'upload' | 'masking' | 'uploading';
+type PreparedFile = File | null;
 
 const contractTypes: Array<{
   type: ContractType;
@@ -22,10 +23,11 @@ const contractTypes: Array<{
 
 export default function UploadPage() {
   const router = useRouter();
+  const cameraInputRef = useRef<HTMLInputElement>(null);
   const [step, setStep] = useState<Step>('select-type');
   const [contractType, setContractType] = useState<ContractType>('RENTAL');
   const [files, setFiles] = useState<File[]>([]);
-  const [maskedFiles, setMaskedFiles] = useState<File[]>([]);
+  const [preparedFiles, setPreparedFiles] = useState<PreparedFile[]>([]);
   const [currentMaskingIdx, setCurrentMaskingIdx] = useState(0);
   const [isDragging, setIsDragging] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -37,23 +39,59 @@ export default function UploadPage() {
   }
 
   function acceptFiles(selected: File[]) {
-    const images = selected.filter((f) => f.type.startsWith('image/'));
-    if (images.length === 0) {
-      setError('현재 개인정보 마스킹은 이미지 파일에서 지원돼요. JPG, PNG, HEIC 사진을 올려주세요.');
+    const supported = selected.filter(isSupportedFile);
+    if (supported.length === 0) {
+      setError('JPG, PNG, HEIC 이미지 또는 PDF 파일을 올려주세요.');
       return;
     }
-    setFiles(images);
-    setCurrentMaskingIdx(0);
-    setMaskedFiles([]);
+
+    const firstImageIndex = supported.findIndex(isImageFile);
+    setFiles(supported);
+    setPreparedFiles(supported.map((file) => (isImageFile(file) ? null : file)));
+    setCurrentMaskingIdx(firstImageIndex);
     setError(null);
+
+    if (firstImageIndex === -1) {
+      handleUpload(supported);
+      return;
+    }
+
     setStep('masking');
   }
 
-  async function handleUpload(masked: File[]) {
+  function nextImageIndex(fromIndex: number, list = files) {
+    for (let i = fromIndex + 1; i < list.length; i += 1) {
+      if (isImageFile(list[i])) return i;
+    }
+    return -1;
+  }
+
+  function handleMaskingComplete(maskedFile: File) {
+    const updated = [...preparedFiles];
+    updated[currentMaskingIdx] = maskedFile;
+    setPreparedFiles(updated);
+
+    const nextIndex = nextImageIndex(currentMaskingIdx);
+    if (nextIndex >= 0) {
+      setCurrentMaskingIdx(nextIndex);
+      return;
+    }
+
+    const uploadTargets = updated.filter((file): file is File => Boolean(file));
+    handleUpload(uploadTargets);
+  }
+
+  async function handleUpload(uploadTargets: File[]) {
+    if (uploadTargets.length === 0) {
+      setError('업로드할 파일을 찾지 못했습니다. 다시 선택해주세요.');
+      setStep('upload');
+      return;
+    }
+
     setStep('uploading');
     setError(null);
     try {
-      const result = await uploadOCR(masked, contractType);
+      const result = await uploadOCR(uploadTargets, contractType);
       if (result.ocrStatus === 'success' || result.ocrStatus === 'partial_success') {
         router.push(`/ocr?contractId=${result.contractId}`);
         return;
@@ -76,7 +114,8 @@ export default function UploadPage() {
               이전으로
             </button>
             <div className="rounded-full bg-white/10 px-4 py-1.5 text-[13px] font-extrabold">
-              {currentMaskingIdx + 1} <span className="text-white/45">/ {files.length}</span>
+              {files.slice(0, currentMaskingIdx + 1).filter(isImageFile).length}
+              <span className="text-white/45"> / {files.filter(isImageFile).length}</span>
             </div>
           </div>
           <div className="mt-8">
@@ -88,15 +127,7 @@ export default function UploadPage() {
           <div className="mt-8 flex min-h-[420px] flex-1 items-center justify-center overflow-hidden rounded-[28px] border border-white/10 bg-black/40 shadow-2xl">
             <MaskingCanvas
               imageFile={files[currentMaskingIdx]}
-              onMaskingComplete={(maskedFile) => {
-                const updated = [...maskedFiles, maskedFile];
-                setMaskedFiles(updated);
-                if (currentMaskingIdx + 1 < files.length) {
-                  setCurrentMaskingIdx((i) => i + 1);
-                } else {
-                  handleUpload(updated);
-                }
-              }}
+              onMaskingComplete={handleMaskingComplete}
             />
           </div>
         </div>
@@ -156,7 +187,7 @@ export default function UploadPage() {
             <div className="rd-section-label">계약서 업로드</div>
             <h1 className="mt-1 text-[29px] font-extrabold tracking-tight">계약서를 올려주세요</h1>
             <p className="mt-2 text-[14px] font-medium text-[var(--rd-ink-2)]">
-              전체 페이지가 잘 보이게 찍은 이미지를 여러 장 올릴 수 있어요.
+              PDF 파일 또는 전체 페이지가 잘 보이게 찍은 이미지를 여러 장 올릴 수 있어요.
             </p>
 
             <label
@@ -181,13 +212,13 @@ export default function UploadPage() {
             >
               <UploadCloud size={38} className="text-[var(--rd-ink-3)]" strokeWidth={1.6} />
               <div className="mt-4 text-[18px] font-extrabold">
-                {isDragging ? '여기에 놓아주세요' : '사진 선택 또는 드래그'}
+                {isDragging ? '여기에 놓아주세요' : 'PDF · 사진 선택 또는 드래그'}
               </div>
-              <div className="mt-1 text-[13px] font-semibold text-[var(--rd-ink-2)]">JPG · PNG · HEIC</div>
+              <div className="mt-1 text-[13px] font-semibold text-[var(--rd-ink-2)]">PDF · JPG · PNG · HEIC · 여러 파일 가능</div>
               <span className="rd-btn mt-5">파일 선택</span>
               <input
                 type="file"
-                accept="image/*"
+                accept="application/pdf,image/*,.pdf,.jpg,.jpeg,.png,.heic,.heif"
                 multiple
                 className="hidden"
                 onChange={(e) => acceptFiles(Array.from(e.target.files || []))}
@@ -195,7 +226,11 @@ export default function UploadPage() {
             </label>
 
             <div className="mt-3 grid gap-3 sm:grid-cols-2">
-              <div className="rd-card flex items-center gap-3 p-4">
+              <button
+                type="button"
+                onClick={() => cameraInputRef.current?.click()}
+                className="rd-card rd-card-hover flex items-center gap-3 p-4 text-left"
+              >
                 <div className="flex h-11 w-11 items-center justify-center rounded-xl bg-[var(--rd-blue-soft)] text-[var(--rd-blue)]">
                   <Camera size={20} />
                 </div>
@@ -203,14 +238,22 @@ export default function UploadPage() {
                   <div className="text-[14px] font-extrabold">모바일 촬영</div>
                   <div className="text-[12px] font-semibold text-[var(--rd-ink-2)]">휴대폰에서 바로 찍기</div>
                 </div>
-              </div>
+              </button>
+              <input
+                ref={cameraInputRef}
+                type="file"
+                accept="image/*"
+                capture="environment"
+                className="hidden"
+                onChange={(e) => acceptFiles(Array.from(e.target.files || []))}
+              />
               <div className="rd-card flex items-center gap-3 p-4">
                 <div className="flex h-11 w-11 items-center justify-center rounded-xl bg-[var(--rd-line-2)] text-[var(--rd-ink-2)]">
                   <Shield size={20} />
                 </div>
                 <div>
                   <div className="text-[14px] font-extrabold">마스킹 지원</div>
-                  <div className="text-[12px] font-semibold text-[var(--rd-ink-2)]">업로드 전 개인정보 가리기</div>
+                  <div className="text-[12px] font-semibold text-[var(--rd-ink-2)]">이미지는 업로드 전 개인정보 가리기</div>
                 </div>
               </div>
             </div>
@@ -225,4 +268,16 @@ export default function UploadPage() {
       </div>
     </AppShell>
   );
+}
+
+function isImageFile(file: File) {
+  return file.type.startsWith('image/');
+}
+
+function isPdfFile(file: File) {
+  return file.type === 'application/pdf' || file.name.toLowerCase().endsWith('.pdf');
+}
+
+function isSupportedFile(file: File) {
+  return isImageFile(file) || isPdfFile(file);
 }

@@ -77,11 +77,20 @@ function FeedContent() {
             </h2>
             <p className="mt-2 text-[13px] font-medium text-[#aab7c7]">EasyLaw Q&A를 기반으로 상황별 핵심만 정리했어요.</p>
           </div>
-          <span className="rd-btn rd-btn-white">읽기</span>
+          <button
+            type="button"
+            onClick={() => {
+              if (selected) setPreview(selected);
+              document.getElementById('tip-list')?.scrollIntoView({ behavior: 'smooth', block: 'start' });
+            }}
+            className="rd-btn rd-btn-white"
+          >
+            읽기
+          </button>
         </section>
 
         <div className="mt-7 grid gap-4 lg:grid-cols-[minmax(0,1fr)_360px]">
-          <section>
+          <section id="tip-list">
             <div className="mb-3 flex items-center justify-between">
               <h2 className="text-[17px] font-extrabold">많이 본 질문</h2>
               <span className="text-[13px] font-bold text-[var(--rd-ink-3)]">{tips.length}개</span>
