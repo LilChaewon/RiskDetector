@@ -17,6 +17,7 @@ import org.jsoup.Jsoup;
 import org.jsoup.safety.Safelist;
 import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
 import org.springframework.util.StringUtils;
 import org.springframework.web.multipart.MultipartFile;
 
@@ -138,6 +139,7 @@ public class OcrProcessService {
                 .build();
     }
 
+    @Transactional(readOnly = true)
     public OcrResultResponse getOcrResult(String email, String guestSessionId, String contractId) {
         Contract contract = contractRepository.findById(contractId)
                 .orElseThrow(() -> new ResourceNotFoundException("Contract not found: " + contractId));
@@ -168,6 +170,7 @@ public class OcrProcessService {
                 .htmlArray(htmlArray)
                 .build();
     }
+    @Transactional
     public OcrResultResponse updateOcrContent(String email, String guestSessionId, String contractId, OcrUpdateRequest request) {
         Contract contract = contractRepository.findById(contractId)
                 .orElseThrow(() -> new ResourceNotFoundException("Contract not found: " + contractId));
