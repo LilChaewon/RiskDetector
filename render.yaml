@@ -4,3 +4,48 @@ services:
     runtime: docker
     dockerfilePath: ./backend_core/Dockerfile
     dockerContext: ./backend_core
+    envVars:
+      - key: SPRING_DATASOURCE_URL
+        sync: false
+      - key: DB_USERNAME
+        sync: false
+      - key: DB_PASSWORD
+        sync: false
+      - key: GOOGLE_CLIENT_ID
+        sync: false
+      - key: GOOGLE_CLIENT_SECRET
+        sync: false
+      - key: GOOGLE_OAUTH_REDIRECT_URI
+        sync: false
+      - key: FRONTEND_OAUTH_REDIRECT_URI
+        sync: false
+      - key: JWT_SECRET
+        sync: false
+      - key: CORS_ALLOWED_ORIGINS
+        sync: false
+      - key: COOKIE_SECURE
+        value: "true"
+      - key: AWS_REGION
+        value: ap-northeast-2
+      - key: AWS_ACCESS_KEY_ID
+        sync: false
+      - key: AWS_SECRET_ACCESS_KEY
+        sync: false
+      - key: AWS_S3_BUCKET
+        sync: false
+      - key: AWS_LAMBDA_OCR_FUNCTION
+        sync: false
+      - key: AWS_LAMBDA_ANALYSIS_FUNCTION
+        sync: false
+  - type: web
+    name: riskdetector-frontend
+    runtime: docker
+    dockerfilePath: ./frontend/riskdetector-web/Dockerfile
+    dockerContext: ./frontend/riskdetector-web
+    envVars:
+      - key: NEXT_PUBLIC_API_URL
+        sync: false
+      - key: NEXT_PUBLIC_API_BASE_URL
+        sync: false
+      - key: NEXT_PUBLIC_MOCK_MODE
+        value: "false"

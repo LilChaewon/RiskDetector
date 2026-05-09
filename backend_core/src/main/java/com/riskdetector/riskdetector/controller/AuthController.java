@@ -29,13 +29,23 @@ public class AuthController {
 
     @GetMapping("/me")
     public ResponseEntity<?> getMe(@AuthenticationPrincipal String email) {
+        if (email == null || email.isBlank() || "anonymousUser".equals(email)) {
+            return ResponseEntity.ok(Map.of(
+                    "email", "",
+                    "name", "게스트",
+                    "picture", "",
+                    "guest", true
+            ));
+        }
+
         User user = userRepository.findByEmail(email)
                 .orElseThrow(() -> new ResourceNotFoundException("User not found"));
 
         return ResponseEntity.ok(Map.of(
                 "email", user.getEmail(),
                 "name", user.getName(),
-                "picture", user.getPicture()
+                "picture", user.getPicture() == null ? "" : user.getPicture(),
+                "guest", false
         ));
     }
 

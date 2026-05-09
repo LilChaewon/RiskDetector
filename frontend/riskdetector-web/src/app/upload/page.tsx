@@ -2,12 +2,23 @@
 
 import { useState } from 'react';
 import { useRouter } from 'next/navigation';
+import { Camera, ChevronRight, FileText, Shield, UploadCloud } from 'lucide-react';
+import AppShell from '@/components/AppShell';
 import MaskingCanvas from '@/components/MaskingCanvas';
-import AppHeader from '@/components/AppHeader';
 import { uploadOCR } from '@/api/contract';
 
 type ContractType = 'RENTAL' | 'EMPLOYMENT';
 type Step = 'select-type' | 'upload' | 'masking' | 'uploading';
+
+const contractTypes: Array<{
+  type: ContractType;
+  title: string;
+  desc: string;
+  accent: string;
+}> = [
+  { type: 'RENTAL', title: '임대차 계약서', desc: '전세, 월세, 상가 임대차', accent: '#1b64da' },
+  { type: 'EMPLOYMENT', title: '근로 계약서', desc: '정규직, 계약직, 아르바이트', accent: '#e0930f' },
+];
 
 export default function UploadPage() {
   const router = useRouter();
@@ -17,201 +28,201 @@ export default function UploadPage() {
   const [maskedFiles, setMaskedFiles] = useState<File[]>([]);
   const [currentMaskingIdx, setCurrentMaskingIdx] = useState(0);
   const [isDragging, setIsDragging] = useState(false);
+  const [error, setError] = useState<string | null>(null);
 
-  // Step 1: 종류 선택
-  if (step === 'select-type') return (
-    <main className="min-h-screen bg-[#F2F4F6] flex justify-center p-4 sm:p-6">
-      <AppHeader />
-      <div className="w-full max-w-[500px] mt-16 sm:mt-24 mb-10">
-        <h1 className="text-[26px] sm:text-[28px] font-bold text-[#191F28] mb-2 tracking-tight leading-snug">
-          어떤 계약서인가요?
-        </h1>
-        <h2 className="text-[15px] font-medium text-[#8B95A1] mb-10">
-          분석할 계약서의 종류를 선택해주세요
-        </h2>
-        
-        <div className="flex flex-col gap-4">
-          <button
-            onClick={() => { setContractType('RENTAL'); setStep('upload'); }}
-            className="group bg-white rounded-[24px] p-6 text-left shadow-[0_2px_10px_rgba(0,0,0,0.04)] hover:shadow-[0_8px_20px_rgba(0,0,0,0.08)] transition-all duration-300 active:scale-[0.98] flex items-center justify-between border border-transparent hover:border-gray-100"
-          >
-            <div className="flex items-center gap-5">
-              <div className="w-14 h-14 bg-[#F2F4F6] rounded-full flex items-center justify-center text-2xl group-hover:bg-[#E8F3FF] transition-colors">
-                🏠
-              </div>
-              <div>
-                <p className="font-bold text-[#191F28] text-[18px]">임대차 계약서</p>
-                <p className="text-[#8B95A1] text-[14px] mt-1 font-medium">전세, 월세 등 주거/상가 임대차</p>
-              </div>
-            </div>
-            <div className="text-[#B0B8C1] group-hover:text-[#3182F6] transition-colors">
-              <svg width="24" height="24" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
-                <path d="M10 6L16 12L10 18" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
-              </svg>
-            </div>
-          </button>
-          
-          <button
-            onClick={() => { setContractType('EMPLOYMENT'); setStep('upload'); }}
-            className="group bg-white rounded-[24px] p-6 text-left shadow-[0_2px_10px_rgba(0,0,0,0.04)] hover:shadow-[0_8px_20px_rgba(0,0,0,0.08)] transition-all duration-300 active:scale-[0.98] flex items-center justify-between border border-transparent hover:border-gray-100"
-          >
-            <div className="flex items-center gap-5">
-              <div className="w-14 h-14 bg-[#F2F4F6] rounded-full flex items-center justify-center text-2xl group-hover:bg-[#FFF3E1] transition-colors">
-                💼
-              </div>
-              <div>
-                <p className="font-bold text-[#191F28] text-[18px]">근로 계약서</p>
-                <p className="text-[#8B95A1] text-[14px] mt-1 font-medium">정규직, 계약직, 아르바이트</p>
-              </div>
-            </div>
-            <div className="text-[#B0B8C1] group-hover:text-[#FF8A3D] transition-colors">
-              <svg width="24" height="24" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
-                <path d="M10 6L16 12L10 18" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
-              </svg>
-            </div>
-          </button>
-        </div>
-      </div>
-    </main>
-  );
+  function beginUpload(type: ContractType) {
+    setContractType(type);
+    setStep('upload');
+    setError(null);
+  }
 
-  // Step 2: 파일 업로드
-  if (step === 'upload') return (
-    <main className="min-h-screen bg-[#F2F4F6] flex justify-center p-4 sm:p-6">
-      <AppHeader onBack={() => setStep('select-type')} />
-      <div className="w-full max-w-[500px] mt-16 sm:mt-24 mb-10">
-        <h2 className="text-[26px] sm:text-[28px] font-bold text-[#191F28] mb-2 tracking-tight">
-          계약서를 올려주세요
-        </h2>
-        <p className="text-[15px] font-medium text-[#8B95A1] mb-10">
-          <span className={contractType === 'RENTAL' ? "text-[#3182F6] font-bold" : "text-[#FF8A3D] font-bold"}>
-            {contractType === 'RENTAL' ? '🏠 임대차' : '💼 근로'}
-          </span> 계약서의 전체 페이지가 잘 보이게 찍어주세요
-        </p>
+  function acceptFiles(selected: File[]) {
+    const images = selected.filter((f) => f.type.startsWith('image/'));
+    if (images.length === 0) {
+      setError('현재 개인정보 마스킹은 이미지 파일에서 지원돼요. JPG, PNG, HEIC 사진을 올려주세요.');
+      return;
+    }
+    setFiles(images);
+    setCurrentMaskingIdx(0);
+    setMaskedFiles([]);
+    setError(null);
+    setStep('masking');
+  }
 
-        <label
-          onDragOver={e => { e.preventDefault(); setIsDragging(true); }}
-          onDragLeave={e => { e.preventDefault(); setIsDragging(false); }}
-          onDrop={e => {
-            e.preventDefault();
-            setIsDragging(false);
-            const droppedFiles = Array.from(e.dataTransfer.files).filter(f => f.type.startsWith('image/'));
-            if (droppedFiles.length > 0) {
-              setFiles(droppedFiles);
-              setCurrentMaskingIdx(0);
-              setMaskedFiles([]);
-              setStep('masking');
-            }
-          }}
-          className={`block w-full rounded-[24px] p-12 text-center cursor-pointer transition-all duration-300 ${
-            isDragging 
-              ? 'bg-[#E8F3FF] border-2 border-[#3182F6] border-solid shadow-inner scale-[0.98]' 
-              : 'bg-white border-2 border-[#E5E8EB] border-dashed hover:border-[#3182F6] hover:bg-[#F9FAFB] shadow-sm'
-          }`}
-        >
-          <div className="w-16 h-16 bg-[#F2F4F6] rounded-full flex items-center justify-center text-3xl mx-auto mb-5 transition-transform duration-300 hover:scale-110">
-            📸
-          </div>
-          <p className="font-bold text-[#333D4B] text-[18px] mb-2">
-            {isDragging ? '여기에 놓아주세요' : '사진 선택 또는 드래그'}
-          </p>
-          <p className="text-[14px] font-medium text-[#8B95A1]">
-            여러 장의 이미지도 한 번에 올릴 수 있어요
-          </p>
-          <input
-            type="file"
-            accept="image/*"
-            multiple
-            className="hidden"
-            onChange={e => {
-              const selected = Array.from(e.target.files || []);
-              if (selected.length > 0) {
-                setFiles(selected);
-                setCurrentMaskingIdx(0);
-                setMaskedFiles([]);
-                setStep('masking');
-              }
-            }}
-          />
-        </label>
-      </div>
-    </main>
-  );
-
-  // Step 3: 마스킹
-  if (step === 'masking') return (
-    <main className="min-h-screen bg-[#191F28] flex flex-col p-4 sm:p-6 pb-12">
-      <div className="w-full max-w-[600px] mx-auto flex-1 flex flex-col pt-4">
-        {/* 상단 네비게이션: 뒤로가기 & 진행 상황 */}
-        <div className="flex items-center justify-between mb-8">
-           <button 
-             onClick={() => setStep('upload')} 
-             className="text-white flex items-center gap-2 font-bold text-[16px] hover:text-[#8B95A1] transition-colors"
-           >
-             <svg width="24" height="24" viewBox="0 0 24 24" fill="none">
-               <path d="M15 18L9 12L15 6" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"/>
-             </svg>
-             이전으로
-           </button>
-           <div className="bg-[#333D4B] text-white px-4 py-1.5 rounded-full text-[14px] font-bold shadow-md">
-              {currentMaskingIdx + 1} <span className="text-[#8B95A1] font-medium">/ {files.length}</span>
-           </div>
-        </div>
-        
-        <div>
-           <h2 className="text-[26px] font-bold text-white tracking-tight">개인정보 지우기</h2>
-           <p className="text-[15px] font-medium text-[#8B95A1] mt-2 mb-8">
-             주민번호 등 민감한 정보를 손가락으로 가려주세요
-           </p>
-        </div>
-        
-        <div className="flex-1 bg-black/50 rounded-[28px] overflow-hidden shadow-2xl relative border border-[#333D4B] flex items-center justify-center min-h-[400px]">
-          <MaskingCanvas
-            imageFile={files[currentMaskingIdx]}
-            onMaskingComplete={(maskedFile) => {
-              const updated = [...maskedFiles, maskedFile];
-              setMaskedFiles(updated);
-              if (currentMaskingIdx + 1 < files.length) {
-                setCurrentMaskingIdx(i => i + 1);
-              } else {
-                handleUpload(updated);
-              }
-            }}
-          />
-        </div>
-      </div>
-    </main>
-  );
-
-  // Step 4: 업로드 중
   async function handleUpload(masked: File[]) {
     setStep('uploading');
+    setError(null);
     try {
       const result = await uploadOCR(masked, contractType);
-
       if (result.ocrStatus === 'success' || result.ocrStatus === 'partial_success') {
-        if (result.ocrStatus === 'partial_success') {
-          console.warn('일부 페이지 OCR 처리에 실패했습니다.');
-        }
         router.push(`/ocr?contractId=${result.contractId}`);
-      } else {
-        alert('OCR 처리에 실패했습니다. 다시 시도해주세요.');
-        setStep('masking');
+        return;
       }
+      setError('OCR 처리에 실패했습니다. 다시 시도해주세요.');
+      setStep('upload');
     } catch (err) {
       console.error('업로드 실패:', err);
-      alert('업로드에 실패했습니다. 다시 시도해주세요.');
-      setStep('masking');
+      setError('업로드에 실패했습니다. 잠시 후 다시 시도해주세요.');
+      setStep('upload');
     }
   }
 
+  if (step === 'masking') {
+    return (
+      <main className="min-h-screen bg-[#0d1524] p-4 text-white sm:p-6">
+        <div className="mx-auto flex min-h-[calc(100vh-32px)] w-full max-w-[680px] flex-col">
+          <div className="flex items-center justify-between py-2">
+            <button type="button" onClick={() => setStep('upload')} className="text-[15px] font-bold text-white/90">
+              이전으로
+            </button>
+            <div className="rounded-full bg-white/10 px-4 py-1.5 text-[13px] font-extrabold">
+              {currentMaskingIdx + 1} <span className="text-white/45">/ {files.length}</span>
+            </div>
+          </div>
+          <div className="mt-8">
+            <h1 className="text-[27px] font-extrabold tracking-tight">개인정보 지우기</h1>
+            <p className="mt-2 text-[15px] font-medium text-white/55">
+              주민번호 등 민감한 정보를 손가락이나 마우스로 가려주세요.
+            </p>
+          </div>
+          <div className="mt-8 flex min-h-[420px] flex-1 items-center justify-center overflow-hidden rounded-[28px] border border-white/10 bg-black/40 shadow-2xl">
+            <MaskingCanvas
+              imageFile={files[currentMaskingIdx]}
+              onMaskingComplete={(maskedFile) => {
+                const updated = [...maskedFiles, maskedFile];
+                setMaskedFiles(updated);
+                if (currentMaskingIdx + 1 < files.length) {
+                  setCurrentMaskingIdx((i) => i + 1);
+                } else {
+                  handleUpload(updated);
+                }
+              }}
+            />
+          </div>
+        </div>
+      </main>
+    );
+  }
+
+  if (step === 'uploading') {
+    return (
+      <main className="flex min-h-screen items-center justify-center bg-[#0d1524] p-6 text-white">
+        <div className="w-full max-w-[460px] text-center">
+          <div className="mx-auto h-20 w-20 rounded-full border-4 border-white/10 border-t-[#3b7bf0] animate-spin" />
+          <h1 className="mt-8 text-[23px] font-extrabold tracking-tight">계약서를 읽고 있어요</h1>
+          <p className="mt-2 text-[14px] font-medium text-white/55">OCR 분석을 준비하는 중입니다.</p>
+        </div>
+      </main>
+    );
+  }
+
   return (
-    <main className="min-h-screen bg-[#F2F4F6] flex items-center justify-center p-6">
-      <div className="text-center flex flex-col items-center bg-white rounded-[32px] p-12 shadow-[0_8px_30px_rgba(0,0,0,0.04)] w-full max-w-[400px]">
-        <div className="w-16 h-16 border-4 border-[#F2F4F6] border-t-[#3182F6] rounded-full animate-[spin_1s_cubic-bezier(0.5,0.1,0.1,0.8)_infinite] mb-8"></div>
-        <h2 className="text-[22px] font-bold text-[#191F28] mb-3 tracking-tight">계약서를 읽고 있어요</h2>
-        <p className="text-[16px] font-medium text-[#8B95A1]">내용을 추출하는 중이니 잠시만 기다려주세요</p>
+    <AppShell>
+      <div className="rd-narrow">
+        {step === 'select-type' ? (
+          <>
+            <div className="rd-section-label">새 분석</div>
+            <h1 className="mt-1 text-[29px] font-extrabold tracking-tight">어떤 계약서인가요?</h1>
+            <p className="mt-2 text-[14px] font-medium text-[var(--rd-ink-2)]">
+              계약 유형을 고르면 분석 기준과 법률팁이 더 정확해져요.
+            </p>
+            <div className="mt-8 grid gap-3">
+              {contractTypes.map((item) => (
+                <button
+                  key={item.type}
+                  type="button"
+                  onClick={() => beginUpload(item.type)}
+                  className="rd-card rd-card-hover flex items-center justify-between gap-4 p-5 text-left"
+                >
+                  <div className="flex items-center gap-4">
+                    <div
+                      className="flex h-14 w-14 items-center justify-center rounded-xl text-white"
+                      style={{ backgroundColor: item.accent }}
+                    >
+                      <FileText size={22} />
+                    </div>
+                    <div>
+                      <div className="text-[17px] font-extrabold">{item.title}</div>
+                      <div className="mt-1 text-[13px] font-semibold text-[var(--rd-ink-2)]">{item.desc}</div>
+                    </div>
+                  </div>
+                  <ChevronRight size={18} className="text-[var(--rd-ink-3)]" />
+                </button>
+              ))}
+            </div>
+          </>
+        ) : (
+          <>
+            <div className="rd-section-label">계약서 업로드</div>
+            <h1 className="mt-1 text-[29px] font-extrabold tracking-tight">계약서를 올려주세요</h1>
+            <p className="mt-2 text-[14px] font-medium text-[var(--rd-ink-2)]">
+              전체 페이지가 잘 보이게 찍은 이미지를 여러 장 올릴 수 있어요.
+            </p>
+
+            <label
+              onDragOver={(e) => {
+                e.preventDefault();
+                setIsDragging(true);
+              }}
+              onDragLeave={(e) => {
+                e.preventDefault();
+                setIsDragging(false);
+              }}
+              onDrop={(e) => {
+                e.preventDefault();
+                setIsDragging(false);
+                acceptFiles(Array.from(e.dataTransfer.files));
+              }}
+              className={`mt-8 flex min-h-[280px] cursor-pointer flex-col items-center justify-center rounded-[18px] border-2 border-dashed p-8 text-center transition ${
+                isDragging
+                  ? 'border-[var(--rd-blue)] bg-[var(--rd-blue-soft)]'
+                  : 'border-[var(--rd-line)] bg-[var(--rd-paper-2)] hover:border-[var(--rd-blue)]'
+              }`}
+            >
+              <UploadCloud size={38} className="text-[var(--rd-ink-3)]" strokeWidth={1.6} />
+              <div className="mt-4 text-[18px] font-extrabold">
+                {isDragging ? '여기에 놓아주세요' : '사진 선택 또는 드래그'}
+              </div>
+              <div className="mt-1 text-[13px] font-semibold text-[var(--rd-ink-2)]">JPG · PNG · HEIC</div>
+              <span className="rd-btn mt-5">파일 선택</span>
+              <input
+                type="file"
+                accept="image/*"
+                multiple
+                className="hidden"
+                onChange={(e) => acceptFiles(Array.from(e.target.files || []))}
+              />
+            </label>
+
+            <div className="mt-3 grid gap-3 sm:grid-cols-2">
+              <div className="rd-card flex items-center gap-3 p-4">
+                <div className="flex h-11 w-11 items-center justify-center rounded-xl bg-[var(--rd-blue-soft)] text-[var(--rd-blue)]">
+                  <Camera size={20} />
+                </div>
+                <div>
+                  <div className="text-[14px] font-extrabold">모바일 촬영</div>
+                  <div className="text-[12px] font-semibold text-[var(--rd-ink-2)]">휴대폰에서 바로 찍기</div>
+                </div>
+              </div>
+              <div className="rd-card flex items-center gap-3 p-4">
+                <div className="flex h-11 w-11 items-center justify-center rounded-xl bg-[var(--rd-line-2)] text-[var(--rd-ink-2)]">
+                  <Shield size={20} />
+                </div>
+                <div>
+                  <div className="text-[14px] font-extrabold">마스킹 지원</div>
+                  <div className="text-[12px] font-semibold text-[var(--rd-ink-2)]">업로드 전 개인정보 가리기</div>
+                </div>
+              </div>
+            </div>
+
+            {error && (
+              <div className="mt-4 rounded-xl bg-[var(--rd-risk-hi-bg)] p-4 text-[13px] font-bold text-[var(--rd-risk-hi)]">
+                {error}
+              </div>
+            )}
+          </>
+        )}
       </div>
-    </main>
+    </AppShell>
   );
 }

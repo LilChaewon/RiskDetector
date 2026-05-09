@@ -17,6 +17,7 @@ import org.jsoup.Jsoup;
 import org.jsoup.safety.Safelist;
 import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.stereotype.Service;
+import org.springframework.util.StringUtils;
 import org.springframework.web.multipart.MultipartFile;
 
 import software.amazon.awssdk.services.lambda.model.InvokeResponse;
@@ -59,10 +60,13 @@ public class OcrProcessService {
         this.ocrExecutor = ocrExecutor;
     }
 
-    public OcrUploadResponse processUpload(String email, String title, String contractType,
+    public OcrUploadResponse processUpload(String email, String guestSessionId, String title, String contractType,
                                            List<MultipartFile> files) {
         User user = isGuest(email) ? null : userRepository.findByEmail(email)
                 .orElseThrow(() -> new ResourceNotFoundException("User not found"));
+        String effectiveGuestSessionId = user == null && StringUtils.hasText(guestSessionId)
+                ? guestSessionId.trim()
+                : null;
 
         String contractId = UUID.randomUUID().toString();
         String s3KeyPrefix = "contracts/" + contractId + "/ocr/";
@@ -73,6 +77,7 @@ public class OcrProcessService {
                         .user(user)
                         .title(title)
                         .contractType(contractType)
+                        .guestSessionId(effectiveGuestSessionId)
                         .s3KeyPrefix(s3KeyPrefix)
                         .build()
         );
@@ -133,11 +138,11 @@ public class OcrProcessService {
                 .build();
     }
 
-    public OcrResultResponse getOcrResult(String email, String contractId) {
+    public OcrResultResponse getOcrResult(String email, String guestSessionId, String contractId) {
         Contract contract = contractRepository.findById(contractId)
                 .orElseThrow(() -> new ResourceNotFoundException("Contract not found: " + contractId));
 
-        if (!hasAccess(contract, email)) {
+        if (!hasAccess(contract, email, guestSessionId)) {
             throw new ResourceNotFoundException("Contract not found: " + contractId);
         }
 
@@ -163,11 +168,11 @@ public class OcrProcessService {
                 .htmlArray(htmlArray)
                 .build();
     }
-    public OcrResultResponse updateOcrContent(String email, String contractId, OcrUpdateRequest request) {
+    public OcrResultResponse updateOcrContent(String email, String guestSessionId, String contractId, OcrUpdateRequest request) {
         Contract contract = contractRepository.findById(contractId)
                 .orElseThrow(() -> new ResourceNotFoundException("Contract not found: " + contractId));
 
-        if (!hasAccess(contract, email)) {
+        if (!hasAccess(contract, email, guestSessionId)) {
             throw new ResourceNotFoundException("Unauthorized access to contract");
         }
 
@@ -184,18 +189,21 @@ public class OcrProcessService {
         content.setContent(sanitizedContent);
         ocrContentRepository.save(content);
 
-        return getOcrResult(email, contractId);
+        return getOcrResult(email, guestSessionId, contractId);
     }
 
     private boolean isGuest(String email) {
         return email == null || email.isBlank() || "anonymousUser".equals(email);
     }
 
-    private boolean hasAccess(Contract contract, String email) {
-        // 게스트 계약(소유자 없음)은 contractId만 알면 누구나 접근 가능
-        if (contract.getUser() == null) return true;
+    private boolean hasAccess(Contract contract, String email, String guestSessionId) {
         // 소유자가 있으면 이메일 일치 필요
-        return !isGuest(email) && contract.getUser().getEmail().equals(email);
+        if (contract.getUser() != null) {
+            return !isGuest(email) && contract.getUser().getEmail().equals(email);
+        }
+        // 이전 게스트 계약은 session id가 없을 수 있어 contractId 접근을 유지한다.
+        if (!StringUtils.hasText(contract.getGuestSessionId())) return true;
+        return StringUtils.hasText(guestSessionId) && contract.getGuestSessionId().equals(guestSessionId.trim());
     }
 
     private String extractCategory(String html) {

@@ -23,10 +23,13 @@ CREATE TABLE IF NOT EXISTS prod.contracts (
     user_id         BIGINT       REFERENCES prod.users(id),
     title           VARCHAR(500),
     contract_type   VARCHAR(50),                -- RENTAL, EMPLOYMENT
+    guest_session_id VARCHAR(100),               -- 비로그인 PWA 세션
     s3_key_prefix   VARCHAR(500),
     created_at      TIMESTAMP    DEFAULT NOW(),
     updated_at      TIMESTAMP    DEFAULT NOW()
 );
+
+ALTER TABLE prod.contracts ADD COLUMN IF NOT EXISTS guest_session_id VARCHAR(100);
 
 -- ocr_content 테이블
 CREATE TABLE IF NOT EXISTS prod.ocr_content (
@@ -65,11 +68,38 @@ CREATE TABLE IF NOT EXISTS prod.toxic_clauses (
     created_at              TIMESTAMP    DEFAULT NOW()
 );
 
+-- legal_tips 테이블
+CREATE TABLE IF NOT EXISTS prod.legal_tips (
+    id          BIGSERIAL PRIMARY KEY,
+    source_id   VARCHAR(100) UNIQUE NOT NULL,
+    category    VARCHAR(255) NOT NULL,
+    question    TEXT NOT NULL,
+    answer      TEXT NOT NULL,
+    source_url  TEXT,
+    view_count  BIGINT DEFAULT 0,
+    created_at  TIMESTAMP DEFAULT NOW(),
+    updated_at  TIMESTAMP DEFAULT NOW()
+);
+
+-- legal_tip_bookmarks 테이블
+CREATE TABLE IF NOT EXISTS prod.legal_tip_bookmarks (
+    id               BIGSERIAL PRIMARY KEY,
+    tip_id           BIGINT REFERENCES prod.legal_tips(id) ON DELETE CASCADE,
+    user_id          BIGINT REFERENCES prod.users(id) ON DELETE CASCADE,
+    guest_session_id VARCHAR(100),
+    created_at       TIMESTAMP DEFAULT NOW()
+);
+
 -- =============================================
 -- 인덱스
 -- =============================================
 
 CREATE INDEX IF NOT EXISTS idx_contracts_user_id        ON prod.contracts(user_id);
+CREATE INDEX IF NOT EXISTS idx_contracts_guest_session_id ON prod.contracts(guest_session_id);
 CREATE INDEX IF NOT EXISTS idx_ocr_content_contract_id  ON prod.ocr_content(contract_id);
 CREATE INDEX IF NOT EXISTS idx_analyses_contract_id     ON prod.contract_analyses(contract_id);
 CREATE INDEX IF NOT EXISTS idx_toxic_clauses_analysis_id ON prod.toxic_clauses(analysis_id);
+CREATE INDEX IF NOT EXISTS idx_legal_tips_category ON prod.legal_tips(category);
+CREATE INDEX IF NOT EXISTS idx_legal_tip_bookmarks_tip_id ON prod.legal_tip_bookmarks(tip_id);
+CREATE INDEX IF NOT EXISTS idx_legal_tip_bookmarks_user_id ON prod.legal_tip_bookmarks(user_id);
+CREATE INDEX IF NOT EXISTS idx_legal_tip_bookmarks_guest_session_id ON prod.legal_tip_bookmarks(guest_session_id);

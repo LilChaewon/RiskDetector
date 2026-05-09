@@ -38,7 +38,7 @@ function CallbackHandler() {
                 console.error('로그인 처리 중 오류:', err);
             }
 
-            router.replace('/upload');
+            router.replace('/');
         }
 
         fetchUserAndRedirect();
@@ -48,9 +48,9 @@ function CallbackHandler() {
 }
 
 const Spinner = () => (
-    <div className="min-h-screen flex flex-col items-center justify-center bg-[#F0FDF4] gap-4">
-        <div className="w-10 h-10 border-4 border-[#059669] border-t-transparent rounded-full animate-spin" />
-        <p className="text-[#059669] font-medium text-sm">로그인 처리 중...</p>
+    <div className="min-h-screen flex flex-col items-center justify-center bg-[var(--rd-bg)] gap-4">
+        <div className="w-10 h-10 border-4 border-[var(--rd-line)] border-t-[var(--rd-blue)] rounded-full animate-spin" />
+        <p className="text-[var(--rd-blue)] font-bold text-sm">로그인 처리 중...</p>
     </div>
 );
 
