@@ -15,6 +15,16 @@ function normalizeText(value: string) {
   return value.replace(/<[^>]+>/g, '').replace(/\s+/g, '');
 }
 
+function textChunks(value: string, size = 10) {
+  const normalized = normalizeText(value);
+  if (normalized.length < size) return normalized ? [normalized] : [];
+  const chunks: string[] = [];
+  for (let i = 0; i <= normalized.length - size; i += Math.max(4, Math.floor(size / 2))) {
+    chunks.push(normalized.slice(i, i + size));
+  }
+  return chunks;
+}
+
 function overallLevel(toxics: Toxic[]) {
   return toxics.reduce((acc, toxic) => Math.max(acc, toxic.warnLevel || 0), 0);
 }
@@ -65,10 +75,38 @@ function findToxicForBlock(block: OcrBlock, toxics: Toxic[]) {
   if (tagMatchIndex >= 0) return tagMatchIndex;
 
   return toxics.findIndex((toxic) => {
-    const clause = normalizeText(toxic.clause || '');
-    if (clause.length < 4) return false;
-    return text.includes(clause) || clause.includes(text.slice(0, Math.min(text.length, 24)));
+    const sources = [toxic.clause || '', toxic.title || ''].filter(Boolean);
+    return sources.some((source) => {
+      const normalized = normalizeText(source);
+      if (normalized.length < 4) return false;
+      if (text.includes(normalized) || normalized.includes(text.slice(0, Math.min(text.length, 24)))) {
+        return true;
+      }
+      return textChunks(source).some((chunk) => chunk.length >= 6 && text.includes(chunk));
+    });
   });
+}
+
+function fallbackOriginBlocks(originContent: string): OcrBlock[] {
+  if (!originContent) return [];
+  if (typeof window === 'undefined') {
+    return [{ id: 'origin-0', category: 'document', content: originContent, tagIdx: 0 }];
+  }
+
+  const doc = new DOMParser().parseFromString(`<div>${originContent}</div>`, 'text/html');
+  const root = doc.body.firstElementChild;
+  const children = root ? Array.from(root.children) : [];
+
+  if (children.length === 0) {
+    return [{ id: 'origin-0', category: 'document', content: originContent, tagIdx: 0 }];
+  }
+
+  return children.map((element, index) => ({
+    id: `origin-${index}`,
+    category: element.tagName.toLowerCase(),
+    content: element.outerHTML,
+    tagIdx: index,
+  }));
 }
 
 function AnalysisResultContent() {
@@ -106,9 +144,7 @@ function AnalysisResultContent() {
   const originBlocks = useMemo(
     () => data?.ocrBlocks?.length
       ? data.ocrBlocks
-      : (data?.originContent
-        ? [{ id: 'origin', category: 'document', content: data.originContent, tagIdx: 0 }]
-        : []),
+      : fallbackOriginBlocks(data?.originContent || ''),
     [data]
   );
 
