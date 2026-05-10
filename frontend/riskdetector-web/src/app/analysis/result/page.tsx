@@ -21,7 +21,7 @@ function statusText(status: string) {
   return '분석 실패';
 }
 
-function buildRevisionText(data: ContractAnalysisDTO) {
+function buildAnalysisExportText(data: ContractAnalysisDTO) {
   const lines = [
     `계약서: ${data.title || '업로드된 계약서'}`,
     `분석일: ${new Date(data.createdAt).toLocaleString('ko-KR')}`,
@@ -32,7 +32,7 @@ function buildRevisionText(data: ContractAnalysisDTO) {
     data.riskdetectorCommentary?.warningComment ? `주의: ${data.riskdetectorCommentary.warningComment}` : '',
     data.riskdetectorCommentary?.advice ? `제안: ${data.riskdetectorCommentary.advice}` : '',
     '',
-    '[조항별 수정 참고]',
+    '[조항별 분석 참고]',
   ].filter(Boolean);
 
   data.toxics.forEach((toxic, index) => {
@@ -98,14 +98,14 @@ function AnalysisResultContent() {
     await navigator.clipboard?.writeText(`${shareText}\n${shareUrl}`);
   }
 
-  function exportRevisionText() {
+  function exportAnalysisText() {
     if (!data) return;
-    const content = buildRevisionText(data);
+    const content = buildAnalysisExportText(data);
     const blob = new Blob([content], { type: 'text/plain;charset=utf-8' });
     const url = URL.createObjectURL(blob);
     const link = document.createElement('a');
     link.href = url;
-    link.download = `${data.title || 'riskdetector-analysis'}-revision.txt`;
+    link.download = `${data.title || 'riskdetector-analysis'}-report.txt`;
     link.click();
     URL.revokeObjectURL(url);
   }
@@ -164,9 +164,9 @@ function AnalysisResultContent() {
                   <Share2 size={15} />
                   공유
                 </button>
-                <button type="button" onClick={exportRevisionText} className="rd-btn">
+                <button type="button" onClick={exportAnalysisText} className="rd-btn">
                   <Sparkles size={15} />
-                  수정안 내보내기
+                  분석 리포트 저장
                 </button>
               </div>
             </div>

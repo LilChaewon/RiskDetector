@@ -36,6 +36,9 @@ import java.util.stream.Collectors;
 @Service
 public class OcrProcessService {
 
+    private static final int OCR_MAX_ATTEMPTS = 3;
+    private static final long OCR_PAGE_DELAY_MS = 1500L;
+
     private final UserRepository userRepository;
     private final ContractRepository contractRepository;
     private final OcrContentRepository ocrContentRepository;
@@ -85,19 +88,19 @@ public class OcrProcessService {
 
         log.info("Starting OCR process for contractId: {}", contractId);
         
-        // 각 페이지를 병렬로 OCR 처리
-        List<CompletableFuture<OcrPageResult>> futures = new ArrayList<>();
+        // Upstage OCR rate limit 방지를 위해 페이지는 순차 처리한다.
+        List<OcrPageResult> results = new ArrayList<>();
         for (int i = 0; i < files.size(); i++) {
             log.info("Submitting OCR task for page {}", i);
-            futures.add(processOcrPageAsync(files.get(i), contractId, s3KeyPrefix, i));
+            OcrPageResult result = processOcrPageAsync(files.get(i), contractId, s3KeyPrefix, i).join();
+            if (result != null && result.isSuccess()) {
+                results.add(result);
+            }
+            if (i + 1 < files.size()) {
+                sleepQuietly(OCR_PAGE_DELAY_MS);
+            }
         }
-
-        // 전체 완료 대기 후 pageIdx 순으로 정렬
-        List<OcrPageResult> results = futures.stream()
-                .map(CompletableFuture::join)
-                .filter(r -> r != null && r.isSuccess())
-                .sorted(Comparator.comparingInt(OcrPageResult::getPageIdx))
-                .collect(Collectors.toList());
+        results.sort(Comparator.comparingInt(OcrPageResult::getPageIdx));
 
         // OcrContent 저장 (tagIdx: 페이지 순서 * 100 + 요소 순서)
         List<OcrContent> savedContents = new ArrayList<>();
@@ -128,7 +131,7 @@ public class OcrProcessService {
                         .build())
                 .collect(Collectors.toList());
 
-        String ocrStatus = results.isEmpty() ? "fail" : 
+        String ocrStatus = savedContents.isEmpty() ? "fail" :
                           (results.size() < files.size() ? "partial_success" : "success");
 
         return OcrUploadResponse.builder()
@@ -227,31 +230,55 @@ public class OcrProcessService {
 
                 // ======= 실제 Lambda 호출 =======
                 OcrLambdaPayload payload = new OcrLambdaPayload(s3Key, pageIdx);
-                InvokeResponse response = lambdaUtil.invokeAndWait(
-                        awsConfig.getLambda().getOcrFunctionName(), payload);
+                for (int attempt = 1; attempt <= OCR_MAX_ATTEMPTS; attempt++) {
+                    InvokeResponse response = lambdaUtil.invokeAndWait(
+                            awsConfig.getLambda().getOcrFunctionName(), payload);
 
-                String rawPayload = response.payload().asUtf8String();
-                log.info("OCR Lambda 응답 (pageIdx={}): {}", pageIdx, rawPayload);
+                    String rawPayload = response.payload().asUtf8String();
+                    log.info("OCR Lambda 응답 (pageIdx={}, attempt={}): {}", pageIdx, attempt, rawPayload);
 
-                if (lambdaUtil.hasError(response)) {
-                    log.error("OCR Lambda functionError (pageIdx={}): {}", pageIdx, rawPayload);
-                    return new OcrPageResult(pageIdx, Collections.emptyList(), false);
+                    if (lambdaUtil.hasError(response)) {
+                        log.error("OCR Lambda functionError (pageIdx={}, attempt={}): {}", pageIdx, attempt, rawPayload);
+                        if (attempt < OCR_MAX_ATTEMPTS && isRateLimited(rawPayload)) {
+                            sleepQuietly(OCR_PAGE_DELAY_MS * attempt);
+                            continue;
+                        }
+                        return new OcrPageResult(pageIdx, Collections.emptyList(), false);
+                    }
+
+                    OcrLambdaResponse ocrResponse = lambdaUtil.parseResponse(response, OcrLambdaResponse.class);
+
+                    if (!ocrResponse.isSuccess()) {
+                        log.warn("OCR Lambda success=false (pageIdx={}, attempt={}): {}", pageIdx, attempt, rawPayload);
+                        if (attempt < OCR_MAX_ATTEMPTS && isRateLimited(rawPayload)) {
+                            sleepQuietly(OCR_PAGE_DELAY_MS * attempt);
+                            continue;
+                        }
+                        return new OcrPageResult(pageIdx, Collections.emptyList(), false);
+                    }
+
+                    List<String> htmlArray = ocrResponse.getData().getHtmlArray();
+                    return new OcrPageResult(pageIdx, htmlArray != null ? htmlArray : Collections.emptyList(), true);
                 }
 
-                OcrLambdaResponse ocrResponse = lambdaUtil.parseResponse(response, OcrLambdaResponse.class);
-
-                if (!ocrResponse.isSuccess()) {
-                    log.warn("OCR Lambda success=false (pageIdx={}): {}", pageIdx, rawPayload);
-                    return new OcrPageResult(pageIdx, Collections.emptyList(), false);
-                }
-
-                List<String> htmlArray = ocrResponse.getData().getHtmlArray();
-                return new OcrPageResult(pageIdx, htmlArray != null ? htmlArray : Collections.emptyList(), true);
+                return new OcrPageResult(pageIdx, Collections.emptyList(), false);
 
             } catch (Exception e) {
                 log.error("OCR 처리 실패: {}", e.getMessage());
                 return null;
             }
         }, ocrExecutor);
+    }
+
+    private boolean isRateLimited(String payload) {
+        return payload != null && (payload.contains("429") || payload.contains("too_many_requests"));
+    }
+
+    private void sleepQuietly(long millis) {
+        try {
+            Thread.sleep(millis);
+        } catch (InterruptedException e) {
+            Thread.currentThread().interrupt();
+        }
     }
 }
