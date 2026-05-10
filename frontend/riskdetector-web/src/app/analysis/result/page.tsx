@@ -3,13 +3,17 @@
 import { Suspense, useEffect, useMemo, useState } from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
 import DOMPurify from 'dompurify';
-import { Copy, FileText, Loader2, Share2, Sparkles } from 'lucide-react';
+import { Copy, FileText, Loader2, Share2, Sparkles, X } from 'lucide-react';
 import AppShell from '@/components/AppShell';
 import RiskTag, { riskMeta } from '@/components/RiskTag';
 import { fetchAnalysis } from '@/api/contract';
 import type { ContractAnalysisDTO } from '@/types/api';
 
 type Toxic = ContractAnalysisDTO['toxics'][number];
+
+function normalizeText(value: string) {
+  return value.replace(/<[^>]+>/g, '').replace(/\s+/g, '');
+}
 
 function overallLevel(toxics: Toxic[]) {
   return toxics.reduce((acc, toxic) => Math.max(acc, toxic.warnLevel || 0), 0);
@@ -49,6 +53,42 @@ function buildAnalysisExportText(data: ContractAnalysisDTO) {
   return lines.filter(Boolean).join('\n');
 }
 
+function buildInteractiveOriginHtml(data: ContractAnalysisDTO, selectedIndex: number) {
+  if (typeof window === 'undefined') return DOMPurify.sanitize(data.originContent || '');
+
+  const sanitized = DOMPurify.sanitize(data.originContent || '');
+  const doc = new DOMParser().parseFromString(`<div>${sanitized}</div>`, 'text/html');
+  const root = doc.body.firstElementChild;
+  if (!root) return sanitized;
+
+  const blocks = Array.from(root.children);
+  const matched = new Set<Element>();
+
+  data.toxics.forEach((toxic, index) => {
+    const clause = normalizeText(toxic.clause || '');
+    if (clause.length < 4) return;
+
+    const target = blocks.find((block) => {
+      if (matched.has(block)) return false;
+      const blockText = normalizeText(block.textContent || '');
+      return blockText.includes(clause) || clause.includes(blockText.slice(0, Math.min(blockText.length, 24)));
+    });
+
+    if (!target) return;
+    matched.add(target);
+    const level = toxic.warnLevel || 1;
+    const original = target.innerHTML;
+    target.innerHTML = `
+      <button type="button" class="rd-origin-hit rd-origin-risk-${level} ${selectedIndex === index ? 'is-active' : ''}" data-toxic-index="${index}">
+        <span class="rd-origin-hit-text">${original}</span>
+        <span class="rd-origin-hit-badge">${riskMeta(level).label}</span>
+      </button>
+    `;
+  });
+
+  return root.innerHTML;
+}
+
 function AnalysisResultContent() {
   const searchParams = useSearchParams();
   const router = useRouter();
@@ -57,6 +97,7 @@ function AnalysisResultContent() {
 
   const [data, setData] = useState<ContractAnalysisDTO | null>(null);
   const [selectedIndex, setSelectedIndex] = useState(0);
+  const [mobileContextOpen, setMobileContextOpen] = useState(false);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const invalidAccess = !contractId || !analysisId;
@@ -80,6 +121,10 @@ function AnalysisResultContent() {
 
   const selected = data?.toxics[selectedIndex];
   const level = useMemo(() => overallLevel(data?.toxics || []), [data]);
+  const originHtml = useMemo(
+    () => (data ? buildInteractiveOriginHtml(data, selectedIndex) : ''),
+    [data, selectedIndex]
+  );
 
   async function handleShare() {
     if (!data) return;
@@ -108,6 +153,11 @@ function AnalysisResultContent() {
     link.download = `${data.title || 'riskdetector-analysis'}-report.txt`;
     link.click();
     URL.revokeObjectURL(url);
+  }
+
+  function selectToxic(index: number, openMobileContext = false) {
+    setSelectedIndex(index);
+    if (openMobileContext) setMobileContextOpen(true);
   }
 
   if (invalidAccess) {
@@ -222,7 +272,13 @@ function AnalysisResultContent() {
               </div>
               <div
                 className="rd-doc mt-4 max-h-[520px] overflow-auto rounded-xl bg-[var(--rd-paper-2)] p-5"
-                dangerouslySetInnerHTML={{ __html: DOMPurify.sanitize(data.originContent || '') }}
+                onClick={(event) => {
+                  const target = (event.target as HTMLElement).closest<HTMLElement>('[data-toxic-index]');
+                  if (!target) return;
+                  const index = Number(target.dataset.toxicIndex);
+                  if (Number.isFinite(index)) selectToxic(index, true);
+                }}
+                dangerouslySetInnerHTML={{ __html: originHtml }}
               />
             </section>
 
@@ -240,7 +296,7 @@ function AnalysisResultContent() {
                       <button
                         key={`${toxic.title}-${index}`}
                         type="button"
-                        onClick={() => setSelectedIndex(index)}
+                        onClick={() => selectToxic(index, true)}
                         className={`rd-card rd-card-hover w-full p-5 text-left ${
                           selectedIndex === index ? 'border-[var(--rd-blue)]' : ''
                         }`}
@@ -274,6 +330,21 @@ function AnalysisResultContent() {
           </aside>
         </div>
       </div>
+      {mobileContextOpen && selected && (
+        <div className="rd-mobile-sheet-backdrop lg:hidden" onClick={() => setMobileContextOpen(false)}>
+          <div className="rd-mobile-sheet" onClick={(event) => event.stopPropagation()}>
+            <button
+              type="button"
+              className="absolute right-5 top-5 rounded-full p-2 text-[var(--rd-ink-3)] hover:bg-[var(--rd-line-2)]"
+              onClick={() => setMobileContextOpen(false)}
+              aria-label="닫기"
+            >
+              <X size={18} />
+            </button>
+            <ClauseContext toxic={selected} />
+          </div>
+        </div>
+      )}
     </AppShell>
   );
 }

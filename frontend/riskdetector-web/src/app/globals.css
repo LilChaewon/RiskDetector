@@ -239,6 +239,81 @@ button {
   margin-bottom: 14px;
 }
 
+.rd-origin-hit {
+  display: inline;
+  width: auto;
+  border-radius: 6px;
+  color: inherit;
+  text-align: inherit;
+  line-height: inherit;
+  cursor: pointer;
+}
+
+.rd-origin-hit-text {
+  border-radius: 5px;
+  box-decoration-break: clone;
+  -webkit-box-decoration-break: clone;
+  padding: 1px 4px;
+}
+
+.rd-origin-risk-3 .rd-origin-hit-text,
+.rd-origin-risk-4 .rd-origin-hit-text,
+.rd-origin-risk-5 .rd-origin-hit-text {
+  background: var(--rd-risk-hi-bg);
+  box-shadow: inset 0 -2px 0 rgba(217, 58, 58, 0.35);
+}
+
+.rd-origin-risk-2 .rd-origin-hit-text {
+  background: var(--rd-risk-md-bg);
+  box-shadow: inset 0 -2px 0 rgba(224, 147, 15, 0.35);
+}
+
+.rd-origin-risk-1 .rd-origin-hit-text {
+  background: var(--rd-blue-soft);
+  box-shadow: inset 0 -2px 0 rgba(27, 100, 218, 0.25);
+}
+
+.rd-origin-hit.is-active .rd-origin-hit-text {
+  outline: 2px solid var(--rd-blue);
+  outline-offset: 2px;
+}
+
+.rd-origin-hit-badge {
+  display: inline-flex;
+  align-items: center;
+  margin-left: 6px;
+  transform: translateY(-1px);
+  border-radius: 999px;
+  background: #fff;
+  border: 1px solid var(--rd-line);
+  padding: 1px 6px;
+  color: var(--rd-risk-hi);
+  font-size: 11px;
+  font-weight: 800;
+  white-space: nowrap;
+}
+
+.rd-mobile-sheet-backdrop {
+  position: fixed;
+  inset: 0;
+  z-index: 80;
+  display: flex;
+  align-items: flex-end;
+  background: rgba(15, 23, 42, 0.28);
+  backdrop-filter: blur(8px);
+}
+
+.rd-mobile-sheet {
+  position: relative;
+  width: 100%;
+  max-height: 82vh;
+  overflow: auto;
+  border-radius: 24px 24px 0 0;
+  background: #fff;
+  padding: 18px 16px calc(18px + env(safe-area-inset-bottom));
+  box-shadow: 0 -16px 40px rgba(15, 23, 42, 0.18);
+}
+
 .rd-mobile-top {
   display: none;
 }
