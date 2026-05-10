@@ -31,6 +31,7 @@ export default function UploadPage() {
   const [currentMaskingIdx, setCurrentMaskingIdx] = useState(0);
   const [isDragging, setIsDragging] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [preparing, setPreparing] = useState(false);
 
   function beginUpload(type: ContractType) {
     setContractType(type);
@@ -38,30 +39,41 @@ export default function UploadPage() {
     setError(null);
   }
 
-  function acceptFiles(selected: File[]) {
+  async function acceptFiles(selected: File[]) {
+    setPreparing(true);
+    setError(null);
+
     const supported = selected.filter(isSupportedFile);
     if (supported.length === 0) {
       setError('JPG, PNG, HEIC 이미지 또는 PDF 파일을 올려주세요.');
+      setPreparing(false);
       return;
     }
 
-    const firstImageIndex = supported.findIndex(isImageFile);
-    setFiles(supported);
-    setPreparedFiles(supported.map((file) => (isImageFile(file) ? null : file)));
-    setCurrentMaskingIdx(firstImageIndex);
-    setError(null);
+    try {
+      const uploadFiles = await expandPdfFiles(supported);
+      const firstMaskingIndex = uploadFiles.findIndex((file) => isImageFile(file) && !isPdfPageImage(file));
+      setFiles(uploadFiles);
+      setPreparedFiles(uploadFiles.map((file) => (isImageFile(file) && !isPdfPageImage(file) ? null : file)));
+      setCurrentMaskingIdx(firstMaskingIndex);
 
-    if (firstImageIndex === -1) {
-      handleUpload(supported);
-      return;
+      if (firstMaskingIndex === -1) {
+        handleUpload(uploadFiles);
+        return;
+      }
+
+      setStep('masking');
+    } catch (err) {
+      console.error('파일 준비 실패:', err);
+      setError('PDF를 페이지별 이미지로 변환하지 못했습니다. 다른 파일로 다시 시도해주세요.');
+    } finally {
+      setPreparing(false);
     }
-
-    setStep('masking');
   }
 
   function nextImageIndex(fromIndex: number, list = files) {
     for (let i = fromIndex + 1; i < list.length; i += 1) {
-      if (isImageFile(list[i])) return i;
+      if (isImageFile(list[i]) && !isPdfPageImage(list[i])) return i;
     }
     return -1;
   }
@@ -212,7 +224,7 @@ export default function UploadPage() {
             >
               <UploadCloud size={38} className="text-[var(--rd-ink-3)]" strokeWidth={1.6} />
               <div className="mt-4 text-[18px] font-extrabold">
-                {isDragging ? '여기에 놓아주세요' : 'PDF · 사진 선택 또는 드래그'}
+                {preparing ? '파일을 준비하고 있어요' : isDragging ? '여기에 놓아주세요' : 'PDF · 사진 선택 또는 드래그'}
               </div>
               <div className="mt-1 text-[13px] font-semibold text-[var(--rd-ink-2)]">PDF · JPG · PNG · HEIC · 여러 파일 가능</div>
               <span className="rd-btn mt-5">파일 선택</span>
@@ -280,4 +292,60 @@ function isPdfFile(file: File) {
 
 function isSupportedFile(file: File) {
   return isImageFile(file) || isPdfFile(file);
+}
+
+function isPdfPageImage(file: File) {
+  return file.name.includes('__pdf_page_');
+}
+
+async function expandPdfFiles(files: File[]) {
+  const expanded: File[] = [];
+
+  for (const file of files) {
+    if (isPdfFile(file)) {
+      expanded.push(...await pdfToImageFiles(file));
+    } else {
+      expanded.push(file);
+    }
+  }
+
+  return expanded;
+}
+
+async function pdfToImageFiles(file: File) {
+  const pdfjs = await import('pdfjs-dist');
+  pdfjs.GlobalWorkerOptions.workerSrc = new URL('pdfjs-dist/build/pdf.worker.mjs', import.meta.url).toString();
+
+  const data = await file.arrayBuffer();
+  const pdf = await pdfjs.getDocument({ data }).promise;
+  const pages: File[] = [];
+
+  for (let pageNumber = 1; pageNumber <= pdf.numPages; pageNumber += 1) {
+    const page = await pdf.getPage(pageNumber);
+    const viewport = page.getViewport({ scale: 2 });
+    const canvas = document.createElement('canvas');
+    const context = canvas.getContext('2d');
+
+    if (!context) {
+      throw new Error('Canvas context is not available');
+    }
+
+    canvas.width = Math.floor(viewport.width);
+    canvas.height = Math.floor(viewport.height);
+    await page.render({ canvas, canvasContext: context, viewport }).promise;
+
+    const blob = await new Promise<Blob>((resolve, reject) => {
+      canvas.toBlob((result) => {
+        if (result) resolve(result);
+        else reject(new Error('PDF page image export failed'));
+      }, 'image/jpeg', 0.92);
+    });
+
+    const baseName = file.name.replace(/\.pdf$/i, '').replace(/[^\w.-]+/g, '_') || 'contract';
+    pages.push(new File([blob], `${baseName}__pdf_page_${String(pageNumber).padStart(3, '0')}.jpg`, {
+      type: 'image/jpeg',
+    }));
+  }
+
+  return pages;
 }
