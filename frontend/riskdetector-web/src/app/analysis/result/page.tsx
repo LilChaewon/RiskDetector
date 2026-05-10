@@ -179,7 +179,8 @@ function AnalysisResultContent() {
 
   function selectToxic(index: number, openMobileContext = false) {
     setSelectedIndex(index);
-    if (openMobileContext) setMobileContextOpen(true);
+    const isMobileLayout = typeof window !== 'undefined' && window.matchMedia('(max-width: 900px)').matches;
+    if (openMobileContext && isMobileLayout) setMobileContextOpen(true);
   }
 
   if (invalidAccess) {
@@ -320,51 +321,24 @@ function AnalysisResultContent() {
                         className="rd-doc text-left"
                         dangerouslySetInnerHTML={{ __html: block.content }}
                       />
+                      {toxic && (
+                        <div className="rd-origin-analysis">
+                          <div className="flex items-center justify-between gap-3">
+                            <div className="text-[12px] font-extrabold text-[var(--rd-risk-hi)]">
+                              {toxic.title || '위험 조항'}
+                            </div>
+                            <span className="text-[11px] font-bold text-[var(--rd-ink-3)]">클릭해서 근거 보기</span>
+                          </div>
+                          {toxic.reason && (
+                            <p className="mt-2 line-clamp-2 text-[12px] font-semibold leading-5 text-[var(--rd-ink-2)]">
+                              {toxic.reason}
+                            </p>
+                          )}
+                        </div>
+                      )}
                     </button>
                   );
                 })}
-              </div>
-            </section>
-
-            <section className="mt-6">
-              <h2 className="text-[17px] font-extrabold">조항별 분석</h2>
-              <div className="mt-3 space-y-3">
-                {data.toxics.length === 0 ? (
-                  <div className="rd-card p-8 text-center text-[14px] font-bold text-[var(--rd-ink-2)]">
-                    발견된 독소조항이 없습니다.
-                  </div>
-                ) : (
-                  data.toxics.map((toxic, index) => {
-                    const meta = riskMeta(toxic.warnLevel);
-                    return (
-                      <button
-                        key={`${toxic.title}-${index}`}
-                        type="button"
-                        onClick={() => selectToxic(index, true)}
-                        className={`rd-card rd-card-hover w-full p-5 text-left ${
-                          selectedIndex === index ? 'border-[var(--rd-blue)]' : ''
-                        }`}
-                      >
-                        <div className="flex items-start justify-between gap-3">
-                          <div className="min-w-0">
-                            <div className="text-[12px] font-bold text-[var(--rd-ink-3)]">
-                              tag #{toxic.sourceContractTagIdx ?? '-'}
-                            </div>
-                            <div className="mt-1 text-[15px] font-extrabold leading-6">
-                              {toxic.title || `독소조항 ${index + 1}`}
-                            </div>
-                          </div>
-                          <span className={`rd-risk-tag ${meta.className}`}>{meta.label}</span>
-                        </div>
-                        {toxic.clause && (
-                          <p className="mt-3 rounded-xl bg-[var(--rd-paper-2)] p-3 text-[13px] font-medium leading-6 text-[var(--rd-ink-2)]">
-                            {toxic.clause}
-                          </p>
-                        )}
-                      </button>
-                    );
-                  })
-                )}
               </div>
             </section>
           </div>
