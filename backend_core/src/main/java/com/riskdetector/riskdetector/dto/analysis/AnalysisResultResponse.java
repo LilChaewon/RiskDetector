@@ -23,8 +23,18 @@ public class AnalysisResultResponse {
     private String summary;
     private String analysisStatus; // "in_progress", "completed", "failed"
     private int toxicCount;
+    private List<OcrBlockDto> ocrBlocks;
     private List<ToxicDto> toxics;
     private RiskdetectorCommentary riskdetectorCommentary;
+
+    @Getter
+    @Builder
+    public static class OcrBlockDto {
+        private String id;
+        private String category;
+        private String content;
+        private Integer tagIdx;
+    }
 
     @Getter
     @Builder
@@ -66,6 +76,14 @@ public class AnalysisResultResponse {
                 .summary(analysis.getSummary())
                 .analysisStatus(analysisStatus)
                 .toxicCount(toxics.size())
+                .ocrBlocks(ocrContents.stream()
+                        .map(c -> OcrBlockDto.builder()
+                                .id(c.getId())
+                                .category(c.getCategory())
+                                .content(c.getContent())
+                                .tagIdx(c.getTagIdx())
+                                .build())
+                        .collect(Collectors.toList()))
                 .toxics(toxics.stream()
                         .map(t -> ToxicDto.builder()
                                 .title(t.getTitle())

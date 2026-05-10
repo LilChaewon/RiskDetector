@@ -18,6 +18,7 @@ export interface ContractAnalysisDTO {
     summary: string;
     analysisStatus: string;
     toxicCount: number;
+    ocrBlocks?: HtmlBlock[];
     riskdetectorCommentary: {
         overallComment: string;
         warningComment: string;

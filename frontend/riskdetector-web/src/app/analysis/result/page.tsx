@@ -2,7 +2,6 @@
 
 import { Suspense, useEffect, useMemo, useState } from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
-import DOMPurify from 'dompurify';
 import { Copy, FileText, Loader2, Share2, Sparkles, X } from 'lucide-react';
 import AppShell from '@/components/AppShell';
 import RiskTag, { riskMeta } from '@/components/RiskTag';
@@ -10,6 +9,7 @@ import { fetchAnalysis } from '@/api/contract';
 import type { ContractAnalysisDTO } from '@/types/api';
 
 type Toxic = ContractAnalysisDTO['toxics'][number];
+type OcrBlock = NonNullable<ContractAnalysisDTO['ocrBlocks']>[number];
 
 function normalizeText(value: string) {
   return value.replace(/<[^>]+>/g, '').replace(/\s+/g, '');
@@ -53,40 +53,22 @@ function buildAnalysisExportText(data: ContractAnalysisDTO) {
   return lines.filter(Boolean).join('\n');
 }
 
-function buildInteractiveOriginHtml(data: ContractAnalysisDTO, selectedIndex: number) {
-  if (typeof window === 'undefined') return DOMPurify.sanitize(data.originContent || '');
+function blockText(block: OcrBlock) {
+  return normalizeText(block.content || '');
+}
 
-  const sanitized = DOMPurify.sanitize(data.originContent || '');
-  const doc = new DOMParser().parseFromString(`<div>${sanitized}</div>`, 'text/html');
-  const root = doc.body.firstElementChild;
-  if (!root) return sanitized;
+function findToxicForBlock(block: OcrBlock, toxics: Toxic[]) {
+  const text = blockText(block);
+  if (!text) return -1;
 
-  const blocks = Array.from(root.children);
-  const matched = new Set<Element>();
+  const tagMatchIndex = toxics.findIndex((toxic) => toxic.sourceContractTagIdx === block.tagIdx);
+  if (tagMatchIndex >= 0) return tagMatchIndex;
 
-  data.toxics.forEach((toxic, index) => {
+  return toxics.findIndex((toxic) => {
     const clause = normalizeText(toxic.clause || '');
-    if (clause.length < 4) return;
-
-    const target = blocks.find((block) => {
-      if (matched.has(block)) return false;
-      const blockText = normalizeText(block.textContent || '');
-      return blockText.includes(clause) || clause.includes(blockText.slice(0, Math.min(blockText.length, 24)));
-    });
-
-    if (!target) return;
-    matched.add(target);
-    const level = toxic.warnLevel || 1;
-    const original = target.innerHTML;
-    target.innerHTML = `
-      <button type="button" class="rd-origin-hit rd-origin-risk-${level} ${selectedIndex === index ? 'is-active' : ''}" data-toxic-index="${index}">
-        <span class="rd-origin-hit-text">${original}</span>
-        <span class="rd-origin-hit-badge">${riskMeta(level).label}</span>
-      </button>
-    `;
+    if (clause.length < 4) return false;
+    return text.includes(clause) || clause.includes(text.slice(0, Math.min(text.length, 24)));
   });
-
-  return root.innerHTML;
 }
 
 function AnalysisResultContent() {
@@ -121,9 +103,13 @@ function AnalysisResultContent() {
 
   const selected = data?.toxics[selectedIndex];
   const level = useMemo(() => overallLevel(data?.toxics || []), [data]);
-  const originHtml = useMemo(
-    () => (data ? buildInteractiveOriginHtml(data, selectedIndex) : ''),
-    [data, selectedIndex]
+  const originBlocks = useMemo(
+    () => data?.ocrBlocks?.length
+      ? data.ocrBlocks
+      : (data?.originContent
+        ? [{ id: 'origin', category: 'document', content: data.originContent, tagIdx: 0 }]
+        : []),
+    [data]
   );
 
   async function handleShare() {
@@ -270,16 +256,38 @@ function AnalysisResultContent() {
                 <FileText size={18} className="text-[var(--rd-ink-3)]" />
                 <h2 className="text-[16px] font-extrabold">원문</h2>
               </div>
-              <div
-                className="rd-doc mt-4 max-h-[520px] overflow-auto rounded-xl bg-[var(--rd-paper-2)] p-5"
-                onClick={(event) => {
-                  const target = (event.target as HTMLElement).closest<HTMLElement>('[data-toxic-index]');
-                  if (!target) return;
-                  const index = Number(target.dataset.toxicIndex);
-                  if (Number.isFinite(index)) selectToxic(index, true);
-                }}
-                dangerouslySetInnerHTML={{ __html: originHtml }}
-              />
+              <div className="rd-origin-block-list mt-4 max-h-[520px] overflow-auto rounded-xl bg-[var(--rd-paper-2)] p-4">
+                {originBlocks.map((block) => {
+                  const toxicIndex = findToxicForBlock(block, data.toxics);
+                  const toxic = toxicIndex >= 0 ? data.toxics[toxicIndex] : undefined;
+                  const toxicLevel = toxic?.warnLevel || 0;
+                  const active = toxicIndex === selectedIndex;
+                  const clickable = toxicIndex >= 0;
+
+                  return (
+                    <button
+                      key={block.id || block.tagIdx}
+                      type="button"
+                      disabled={!clickable}
+                      onClick={() => {
+                        if (clickable) selectToxic(toxicIndex, true);
+                      }}
+                      className={`rd-origin-block ${clickable ? `is-clickable rd-origin-block-risk-${toxicLevel}` : ''} ${active ? 'is-active' : ''}`}
+                    >
+                      <div className="mb-2 flex items-center justify-between gap-3">
+                        <span className="text-[11px] font-extrabold text-[var(--rd-ink-3)]">
+                          원문 블록 #{block.tagIdx}
+                        </span>
+                        {toxic && <span className={`rd-risk-tag ${riskMeta(toxic.warnLevel).className}`}>{riskMeta(toxic.warnLevel).label}</span>}
+                      </div>
+                      <div
+                        className="rd-doc text-left"
+                        dangerouslySetInnerHTML={{ __html: block.content }}
+                      />
+                    </button>
+                  );
+                })}
+              </div>
             </section>
 
             <section className="mt-6">
