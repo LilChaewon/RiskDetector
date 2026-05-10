@@ -21,6 +21,8 @@ const navItems = [
   { href: '/my', label: '내 정보', icon: User },
 ];
 
+const apiBase = process.env.NEXT_PUBLIC_API_BASE_URL || '/api';
+
 function isActive(pathname: string, href: string) {
   if (href === '/') return pathname === '/';
   return pathname.startsWith(href);
@@ -43,7 +45,12 @@ export default function AppShell({ children }: { children: React.ReactNode }) {
     return () => window.removeEventListener('storage', syncLoginState);
   }, [pathname]);
 
-  function logout() {
+  async function logout() {
+    await fetch(`${apiBase}/auth/logout`, {
+      method: 'POST',
+      credentials: 'include',
+    }).catch((err) => console.warn('logout cookie cleanup failed:', err));
+
     localStorage.removeItem('accessToken');
     localStorage.removeItem('refreshToken');
     localStorage.removeItem('userEmail');
