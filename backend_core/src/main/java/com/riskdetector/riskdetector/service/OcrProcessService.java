@@ -14,6 +14,7 @@ import com.riskdetector.riskdetector.util.S3Util;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.jsoup.Jsoup;
+import org.jsoup.nodes.Element;
 import org.jsoup.safety.Safelist;
 import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.stereotype.Service;
@@ -257,8 +258,8 @@ public class OcrProcessService {
                         return new OcrPageResult(pageIdx, Collections.emptyList(), false);
                     }
 
-                    List<String> htmlArray = ocrResponse.getData().getHtmlArray();
-                    return new OcrPageResult(pageIdx, htmlArray != null ? htmlArray : Collections.emptyList(), true);
+                    List<String> htmlArray = extractHtmlElements(ocrResponse.getData());
+                    return new OcrPageResult(pageIdx, htmlArray, true);
                 }
 
                 return new OcrPageResult(pageIdx, Collections.emptyList(), false);
@@ -272,6 +273,22 @@ public class OcrProcessService {
 
     private boolean isRateLimited(String payload) {
         return payload != null && (payload.contains("429") || payload.contains("too_many_requests"));
+    }
+
+    private List<String> extractHtmlElements(OcrLambdaResponse.Data data) {
+        if (data == null) return Collections.emptyList();
+        if (data.getHtmlArray() != null && !data.getHtmlArray().isEmpty()) {
+            return data.getHtmlArray();
+        }
+        if (!StringUtils.hasText(data.getHtmlEntire())) {
+            return Collections.emptyList();
+        }
+        return Jsoup.parseBodyFragment(data.getHtmlEntire())
+                .body()
+                .children()
+                .stream()
+                .map(Element::outerHtml)
+                .collect(Collectors.toList());
     }
 
     private void sleepQuietly(long millis) {
