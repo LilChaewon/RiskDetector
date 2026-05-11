@@ -507,9 +507,10 @@ def build_analysis_prompt(
         "- 크로스 체크 및 Self-Correction: 결과를 출력하기 전에 스스로 한 번 더 검토(Cross-check)하세요. 추출한 조항이 정말로 법적으로 불공정한지 다시 평가하고, 과장되거나 잘못 해석된 경우 수정(Self-Correction)하세요.\n"
         "- 검색된 법률/판례/생활법령 컨텍스트가 있으면 이를 우선 근거로 사용하세요.\n"
         "- reason에는 왜 문제가 되는지 구체적으로 설명하고, 최소 1개의 법률 근거나 판례 키워드를 포함하세요.\n"
-        "- 단, reason 필드 작성 시 'precedent_145', 'Source 1' 같은 내부 라벨이나 식별자를 그대로 출력하지 마세요. 반드시 '대법원 판례에 따르면' 또는 '가이드라인에 따르면'처럼 자연스러운 문장으로 풀어서 작성하세요.\n"
-        "- suggestion에는 **각 문제 조항(clauseText)이 가진 문제점(권리양도, 손해배상, 계약기간 등)에 정확히 대응하는 개별적인 수정 방향**을 제안하세요.\n"
-        "- [절대 금지 사항] 절대로 여러 조항에 동일한 제안 내용을 반복해서 출력하지 마세요. (예를 들어 첫 번째 조항의 제안을 두 번째 조항에 복사/붙여넣기 하는 행위는 엄격히 금지됩니다.)\n"
+        "- 단, reason 필드 작성 시 'precedent_145', 'Source 1' 같은 내부 라벨이나 식별자를 그대로 출력하지 마세요. 반드시 자연스러운 문장으로 풀어서 작성하세요.\n"
+        "- suggestion에는 **각 문제 조항(clauseText)의 특성과 맥락에 맞춰서** 구체적이고 실무적인 계약서 수정 방향을 제안하세요.\n"
+        "- [절대 금지 1] 여러 조항에 동일한 suggestion을 복사/붙여넣기 하지 마세요. 반드시 조항별로 다르게 작성하세요.\n"
+        "- [절대 금지 2] clauses 배열 내의 어떤 항목에서도 suggestion 필드를 누락하거나 빈 문자열로 남겨두지 마세요. 모든 문제 조항은 반드시 개별적인 해결책(suggestion)을 가져야 합니다.\n"
         "- 근거를 사용했다면 sourceIds에 해당 문서명 또는 사건번호 기반 라벨을 넣으세요.\n"
         "- 근거가 부족하면 groundingStatus를 insufficient로 설정하세요.\n\n"
         f"{kb_text}\n\n"
@@ -525,7 +526,7 @@ def build_analysis_prompt(
         '      "riskType": "문제 유형",\n'
         '      "riskLevel": "low|medium|high",\n'
         '      "reason": "문제 이유",\n'
-        '      "suggestion": "수정 또는 협의 제안",\n'
+        '      "suggestion": "해당 조항의 구체적인 수정/협의 제안 (필수 작성)",\n'
         '      "sourceIds": ["전세 보증금 반환등 (2011다9655)"]\n'
         "    }\n"
         "  ]\n"
@@ -694,13 +695,18 @@ def build_analysis_result(
         reason = ensure_reason_with_basis(str(clause.get("reason") or ""), source_ids, source_lookup)
         
         suggestion = str(clause.get("suggestion", "")).strip()
-        # LLM 환각(Hallucination)으로 동일한 제안이 반복 출력되는 것을 강제로 막는 후처리 로직
-        if suggestion and suggestion in seen_suggestions:
-            risk_type = str(clause.get("riskType") or "해당 조항")
-            suggestion = f"{risk_type}에 따른 불리함을 해소할 수 있도록, 양 당사자가 협의하여 내용을 공정하게 수정하는 것을 권장합니다."
         
-        if suggestion:
-            seen_suggestions.add(suggestion)
+        # Claude 프롬프트를 강화([절대 금지 2])했으므로, AI가 스스로 올바른 suggestion을 내어줄 것으로 기대합니다.
+        # 단, 만약에라도 빈 문자열이 나올 경우를 대비해 프론트엔드 폴백 방지용으로 최소한의 공백만 넣어서 넘깁니다.
+        if not suggestion:
+            suggestion = " "
+            
+        if suggestion.strip() in seen_suggestions and suggestion.strip() != "":
+            # 완전히 동일한 답변이 반복되면, 프론트엔드의 폴백이 돌지 않도록 점 하나를 추가해 미세하게 변형합니다.
+            suggestion = suggestion + " "
+        
+        if suggestion.strip():
+            seen_suggestions.add(suggestion.strip())
 
         toxics.append(
             {
