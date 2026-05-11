@@ -152,11 +152,20 @@ def build_retrieval_query(contract_texts: list[str], event_query: str | None = N
     important_sentences = []
     seen = set()
     
-    # 3. 키워드가 포함된 위험 문장들만 우선적으로 쏙쏙 뽑아냄
+    # 3. 정의 조항 필터링 키워드
+    def_keywords = ["말한다", "뜻한다", "의미한다", "라 한다", "정의한다"]
+    
+    # 4. 키워드가 포함된 위험 문장들만 우선적으로 쏙쏙 뽑아냄
     for sentence in sentences:
         sentence_clean = sentence.strip()
         if not sentence_clean or sentence_clean in seen:
             continue
+            
+        # 순전히 정의를 다루는 조항 배제 (문장 끝부분 서술어 또는 특수 패턴 확인)
+        is_definition = any(dk in sentence_clean[-15:] for dk in def_keywords)
+        if is_definition or "라 함은" in sentence_clean or "용어의 정의" in sentence_clean:
+            continue
+
         if any(keyword in sentence_clean for keyword in risk_keywords):
             important_sentences.append(sentence_clean)
             seen.add(sentence_clean)
@@ -499,7 +508,7 @@ def build_analysis_prompt(
         "- 검색된 법률/판례/생활법령 컨텍스트가 있으면 이를 우선 근거로 사용하세요.\n"
         "- reason에는 왜 문제가 되는지 구체적으로 설명하고, 최소 1개의 법률 근거나 판례 키워드를 포함하세요.\n"
         "- 단, reason 필드 작성 시 'precedent_145', 'Source 1' 같은 내부 라벨이나 식별자를 그대로 출력하지 마세요. 반드시 '대법원 판례에 따르면' 또는 '가이드라인에 따르면'처럼 자연스러운 문장으로 풀어서 작성하세요.\n"
-        "- suggestion에는 계약서 수정 방향을 실무적으로 제안하세요.\n"
+        "- suggestion에는 **각 문제 조항별로 서로 다른 고유한** 수정 방향을 구체적이고 실무적으로 제안하세요. 절대로 여러 조항에 동일한 제안을 복사/붙여넣기 하지 마세요.\n"
         "- 근거를 사용했다면 sourceIds에 해당 문서명 또는 사건번호 기반 라벨을 넣으세요.\n"
         "- 근거가 부족하면 groundingStatus를 insufficient로 설정하세요.\n\n"
         f"{kb_text}\n\n"
@@ -600,8 +609,10 @@ def needs_korean_localization(parsed: dict[str, Any]) -> bool:
 def localize_analysis_to_korean(parsed: dict[str, Any], model_id_override: str | None = None) -> dict[str, Any]:
     response = call_gemini_generate(
         (
-            "다음 JSON의 구조는 그대로 유지하고, summary, riskType, reason, suggestion만 자연스러운 한국어로 바꾸세요. "
-            "riskLevel, groundingStatus, sourceIds 값은 유지하세요. JSON만 반환하세요.\n\n"
+            "다음 JSON의 구조는 그대로 유지하고, 각 clause 배열 항목별로 고유한 내용을 유지하면서 "
+            "summary, riskType, reason, suggestion을 자연스러운 한국어로 번역/윤문하세요. "
+            "절대로 첫 번째 clause의 reason이나 suggestion을 다른 clause에 동일하게 복사해서 덮어쓰지 마세요. 각 조항에 맞는 개별적인 내용을 유지해야 합니다. "
+            "riskLevel, groundingStatus, sourceIds 값은 변경하지 말고 그대로 유지하세요. 반드시 JSON만 반환하세요.\n\n"
             f"{json.dumps(parsed, ensure_ascii=False)}"
         ),
         response_schema=build_gemini_response_schema(),
