@@ -28,6 +28,7 @@ export interface ContractAnalysisDTO {
         title: string;
         clause: string;
         reason: string;
+        suggestion?: string;
         reasonReference: string;
         sourceContractTagIdx?: number;
         warnLevel: number;

@@ -254,10 +254,11 @@ def replace_toxic_clauses(conn: Any, payload: dict[str, Any]) -> dict[str, Any]:
                     title,
                     clause,
                     reason,
+                    suggestion,
                     reason_reference,
                     source_contract_tag_idx,
                     warn_level
-                ) VALUES (%s, %s, %s, %s, %s, %s, %s, %s)
+                ) VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s)
                 """,
                 (
                     str(uuid4()),
@@ -265,6 +266,7 @@ def replace_toxic_clauses(conn: Any, payload: dict[str, Any]) -> dict[str, Any]:
                     str(item.get("riskType", "") or item.get("title", "") or "독소 조항"),
                     str(item.get("clauseText", "") or item.get("clause", "")),
                     str(item.get("reason", "")),
+                    str(item.get("suggestion", "")),
                     ", ".join(str(source_id) for source_id in (item.get("sourceIds", []) or [])),
                     item.get("sourceContractTagIdx"),
                     map_warn_level(str(item.get("riskLevel", "") or payload["risk_level"])),
