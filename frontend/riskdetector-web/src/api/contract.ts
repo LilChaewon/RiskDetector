@@ -4,6 +4,7 @@ import type {
     ContractAnalysisResponse,
     OcrUploadResponseBody
 } from '@/types/api';
+import { demoAnalysis } from './mock-analysis';
 
 type ContractType = 'RENTAL' | 'EMPLOYMENT';
 
@@ -39,6 +40,17 @@ export async function uploadOCR(files: File[], contractType: string) {
         {
             method: 'POST',
             body: formData,
+            mockData: {
+                contractId: 'demo-contract',
+                title: '샘플 계약서',
+                ocrStatus: 'completed',
+                contents: demoAnalysis.ocrBlocks?.map((block) => ({
+                    id: block.id,
+                    category: block.category,
+                    content: block.content,
+                    tagIdx: block.tagIdx,
+                })) || [],
+            },
         }
     );
 }
@@ -86,10 +98,15 @@ export async function startAnalysis(contractId: string) {
 
 // 5) AI 분석이 완료된 최종 결과(독소 조항 등)를 가져올 때 사용
 export async function fetchAnalysis(contractId: string, analysisId: string) {
+    if (contractId === 'demo' || analysisId === 'demo' || contractId === demoAnalysis.contractId || analysisId === demoAnalysis.analysisId) {
+        return demoAnalysis;
+    }
+
     return apiFetch<ContractAnalysisResponse>(
         `/analysis/${analysisId}`,
         {
             method: 'GET',
+            mockData: demoAnalysis,
         }
     );
 }

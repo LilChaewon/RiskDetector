@@ -2,7 +2,7 @@
 
 import { Suspense, useEffect, useMemo, useState } from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
-import { Copy, FileText, Loader2, Share2, Sparkles, X } from 'lucide-react';
+import { Lightbulb, Loader2, Share2, Sparkles, X } from 'lucide-react';
 import AppShell from '@/components/AppShell';
 import RiskTag, { riskMeta } from '@/components/RiskTag';
 import { fetchAnalysis } from '@/api/contract';
@@ -10,6 +10,7 @@ import type { ContractAnalysisDTO } from '@/types/api';
 
 type Toxic = ContractAnalysisDTO['toxics'][number];
 type OcrBlock = NonNullable<ContractAnalysisDTO['ocrBlocks']>[number];
+type FilterKey = 'all' | 'warning' | 'review' | 'safe';
 
 function normalizeText(value: string) {
   return value.replace(/<[^>]+>/g, '').replace(/\s+/g, '');
@@ -23,10 +24,6 @@ function textChunks(value: string, size = 10) {
     chunks.push(normalized.slice(i, i + size));
   }
   return chunks;
-}
-
-function overallLevel(toxics: Toxic[]) {
-  return toxics.reduce((acc, toxic) => Math.max(acc, toxic.warnLevel || 0), 0);
 }
 
 function statusText(status: string) {
@@ -67,6 +64,25 @@ function blockText(block: OcrBlock) {
   return normalizeText(block.content || '');
 }
 
+function htmlToPlainText(value: string) {
+  return value
+    .replace(/<\/(h[1-6]|p|div|li)>/gi, '\n')
+    .replace(/<br\s*\/?>/gi, '\n')
+    .replace(/<[^>]+>/g, '')
+    .replace(/&nbsp;/g, ' ')
+    .replace(/&amp;/g, '&')
+    .replace(/&lt;/g, '<')
+    .replace(/&gt;/g, '>')
+    .replace(/[ \t]+/g, ' ')
+    .replace(/\n{3,}/g, '\n\n')
+    .trim();
+}
+
+function clauseSectionTitle(text: string) {
+  const heading = text.split('\n').map((line) => line.trim()).find((line) => /^(제\d+조|전\s*속|계약서)/.test(line));
+  return heading || '';
+}
+
 function findToxicForBlock(block: OcrBlock, toxics: Toxic[]) {
   const text = blockText(block);
   if (!text) return -1;
@@ -85,6 +101,71 @@ function findToxicForBlock(block: OcrBlock, toxics: Toxic[]) {
       return textChunks(source).some((chunk) => chunk.length >= 6 && text.includes(chunk));
     });
   });
+}
+
+function highlightNeedle(blockTextValue: string, toxic?: Toxic) {
+  if (!toxic) return '';
+  const candidates = [toxic.clause, toxic.title].filter(Boolean);
+  const normalizedBlock = normalizeText(blockTextValue);
+
+  for (const candidate of candidates) {
+    const normalized = normalizeText(candidate);
+    if (normalized.length >= 4 && normalizedBlock.includes(normalized)) {
+      return candidate;
+    }
+  }
+
+  const chunks = textChunks(toxic.clause || toxic.title || '', 14)
+    .filter((chunk) => chunk.length >= 8)
+    .sort((a, b) => b.length - a.length);
+  return chunks.find((chunk) => normalizedBlock.includes(chunk)) || '';
+}
+
+function splitByNeedle(text: string, needle: string) {
+  if (!needle) return null;
+  const normalizedNeedle = normalizeText(needle);
+  if (!normalizedNeedle) return null;
+
+  const chars = Array.from(text);
+  for (let start = 0; start < chars.length; start += 1) {
+    let cursor = start;
+    let built = '';
+
+    while (cursor < chars.length && built.length < normalizedNeedle.length) {
+      const char = chars[cursor];
+      if (!/\s/.test(char)) built += char;
+      cursor += 1;
+    }
+
+    if (built === normalizedNeedle) {
+      return {
+        before: chars.slice(0, start).join(''),
+        match: chars.slice(start, cursor).join(''),
+        after: chars.slice(cursor).join(''),
+      };
+    }
+  }
+
+  return null;
+}
+
+function filterMatches(filter: FilterKey, toxic?: Toxic) {
+  if (filter === 'all') return true;
+  if (filter === 'safe') return !toxic;
+  if (!toxic) return false;
+  if (filter === 'warning') return (toxic.warnLevel || 0) >= 3;
+  return toxic.warnLevel === 2;
+}
+
+function shortText(value?: string, limit = 54) {
+  if (!value) return '';
+  const normalized = value.replace(/\s+/g, ' ').trim();
+  return normalized.length > limit ? `${normalized.slice(0, limit).trim()}...` : normalized;
+}
+
+function firstAdvice(value?: string) {
+  if (!value) return '';
+  return value.split(/\s*\/\s*/).map((item) => item.trim()).filter(Boolean)[0] || value;
 }
 
 function fallbackOriginBlocks(originContent: string): OcrBlock[] {
@@ -109,6 +190,57 @@ function fallbackOriginBlocks(originContent: string): OcrBlock[] {
   }));
 }
 
+function DocumentBlock({
+  block,
+  toxic,
+  active,
+  onSelect,
+}: {
+  block: OcrBlock;
+  toxic?: Toxic;
+  active: boolean;
+  onSelect: () => void;
+}) {
+  const text = htmlToPlainText(block.content || '');
+  const heading = clauseSectionTitle(text);
+  const body = heading ? text.replace(heading, '').trim() : text;
+  const needle = highlightNeedle(text, toxic);
+  const split = splitByNeedle(body || text, needle);
+  const highlightLevel = toxic?.warnLevel === 2 ? 'review' : 'warning';
+
+  if (!toxic || !split) {
+    return (
+      <article className={`rd-document-block ${toxic ? `has-risk is-${highlightLevel}` : ''}`}>
+        {heading && <h2>{heading}</h2>}
+        {(body || (!heading && text)) && <p>{body || text}</p>}
+        {toxic && (
+          <button type="button" className="rd-block-fallback" onClick={onSelect}>
+            <RiskTag level={toxic.warnLevel} />
+            <span>{toxic.title || '위험 조항'} 근거 보기</span>
+          </button>
+        )}
+      </article>
+    );
+  }
+
+  return (
+    <article className="rd-document-block">
+      {heading && <h2>{heading}</h2>}
+      <p>
+        {split.before}
+        <button
+          type="button"
+          onClick={onSelect}
+          className={`rd-inline-highlight is-${highlightLevel} ${active ? 'is-active' : ''}`}
+        >
+          {split.match}
+        </button>
+        {split.after}
+      </p>
+    </article>
+  );
+}
+
 function AnalysisResultContent() {
   const searchParams = useSearchParams();
   const router = useRouter();
@@ -116,7 +248,8 @@ function AnalysisResultContent() {
   const analysisId = searchParams.get('analysisId') || '';
 
   const [data, setData] = useState<ContractAnalysisDTO | null>(null);
-  const [selectedIndex, setSelectedIndex] = useState(0);
+  const [selectedIndex, setSelectedIndex] = useState<number | null>(null);
+  const [filter, setFilter] = useState<FilterKey>('all');
   const [mobileContextOpen, setMobileContextOpen] = useState(false);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -139,14 +272,26 @@ function AnalysisResultContent() {
       .finally(() => setLoading(false));
   }, [contractId, analysisId, invalidAccess]);
 
-  const selected = data?.toxics[selectedIndex];
-  const level = useMemo(() => overallLevel(data?.toxics || []), [data]);
+  const selected = selectedIndex === null ? undefined : data?.toxics[selectedIndex];
   const originBlocks = useMemo(
     () => data?.ocrBlocks?.length
       ? data.ocrBlocks
       : fallbackOriginBlocks(data?.originContent || ''),
     [data]
   );
+  const warningCount = data?.toxics.filter((t) => (t.warnLevel || 0) >= 3).length || 0;
+  const reviewCount = data?.toxics.filter((t) => t.warnLevel === 2).length || 0;
+  const safeCount = Math.max(originBlocks.length - (data?.toxics.length || 0), 0);
+  const filteredBlocks = useMemo(() => {
+    if (!data) return [];
+    return originBlocks
+      .map((block) => {
+        const toxicIndex = findToxicForBlock(block, data.toxics);
+        const toxic = toxicIndex >= 0 ? data.toxics[toxicIndex] : undefined;
+        return { block, toxicIndex, toxic };
+      })
+      .filter((item) => filterMatches(filter, item.toxic));
+  }, [data, filter, originBlocks]);
 
   async function handleShare() {
     if (!data) return;
@@ -222,16 +367,18 @@ function AnalysisResultContent() {
 
   return (
     <AppShell>
-      <div className="rd-main-inner">
-        <div className="rd-context-grid">
+      <div className="rd-result-shell">
+        <div className="rd-result-grid">
           <div className="min-w-0">
-            <div className="rd-section-label">
-              {data.title || '업로드된 계약서'} · {statusText(data.analysisStatus)}
-            </div>
-            <div className="mt-1 flex flex-wrap items-center justify-between gap-3">
-              <h1 className="text-[29px] font-extrabold tracking-tight sm:text-[32px]">
-                분석 결과
-              </h1>
+            <div className="flex flex-wrap items-start justify-between gap-4">
+              <div>
+                <div className="rd-section-label">
+                  IMO.PDF · {new Date(data.createdAt).toLocaleDateString('ko-KR')} · {statusText(data.analysisStatus)}
+                </div>
+                <h1 className="mt-2 text-[34px] font-extrabold tracking-tight sm:text-[40px]">
+                  {data.title || '업로드된 계약서'}
+                </h1>
+              </div>
               <div className="flex gap-2">
                 <button type="button" onClick={handleShare} className="rd-btn rd-btn-ghost">
                   <Share2 size={15} />
@@ -239,23 +386,23 @@ function AnalysisResultContent() {
                 </button>
                 <button type="button" onClick={exportAnalysisText} className="rd-btn">
                   <Sparkles size={15} />
-                  분석 리포트 저장
+                  수정안 내보내기
                 </button>
               </div>
             </div>
 
-            <section className="mt-5 grid gap-3 sm:grid-cols-4">
+            <section className="mt-8 grid gap-4 sm:grid-cols-4">
               {[
-                ['총 조항', data.originContent ? 'OCR' : '0', 0],
-                ['독소조항', data.toxicCount, level],
-                ['주의 필요', data.toxics.filter((t) => (t.warnLevel || 0) >= 3).length, 3],
-                ['확인 권장', data.toxics.filter((t) => t.warnLevel === 2).length, 2],
+                ['총 조항', originBlocks.length || data.toxicCount, 0],
+                ['주의 필요', warningCount, 3],
+                ['확인 권장', reviewCount, 2],
+                ['안전', safeCount, 1],
               ].map(([label, value, risk]) => (
-                <div key={label} className="rd-card p-4">
+                <div key={label} className="rd-stat-card">
                   <div className="text-[12px] font-semibold text-[var(--rd-ink-3)]">{label}</div>
                   <div
-                    className="mt-1 text-[25px] font-extrabold"
-                    style={{ color: risk === 3 ? 'var(--rd-risk-hi)' : risk === 2 ? 'var(--rd-risk-md)' : 'var(--rd-ink)' }}
+                    className="mt-2 text-[31px] font-extrabold"
+                    style={{ color: risk === 3 ? 'var(--rd-risk-hi)' : risk === 2 ? 'var(--rd-risk-md)' : risk === 1 ? 'var(--rd-risk-lo)' : 'var(--rd-ink)' }}
                   >
                     {String(value)}
                   </div>
@@ -263,88 +410,48 @@ function AnalysisResultContent() {
               ))}
             </section>
 
-            {data.riskdetectorCommentary && (
-              <section className="rd-card mt-4 p-5">
-                <div className="flex items-center gap-2">
-                  <Sparkles size={18} className="text-[var(--rd-blue)]" />
-                  <h2 className="text-[16px] font-extrabold">AI 종합 의견</h2>
-                  <RiskTag level={level || 1} />
-                </div>
-                {data.riskdetectorCommentary.overallComment && (
-                  <p className="mt-3 text-[14px] font-medium leading-7 text-[var(--rd-ink-2)]">
-                    {data.riskdetectorCommentary.overallComment}
-                  </p>
-                )}
-                {data.riskdetectorCommentary.warningComment && (
-                  <div className="mt-4 rounded-xl bg-[var(--rd-risk-md-bg)] p-4 text-[13px] font-bold leading-6 text-[var(--rd-risk-md)]">
-                    {data.riskdetectorCommentary.warningComment}
-                  </div>
-                )}
-                {data.riskdetectorCommentary.advice && (
-                  <div className="mt-3 rounded-xl bg-[var(--rd-blue-soft)] p-4 text-[13px] font-bold leading-6 text-[var(--rd-blue)]">
-                    {data.riskdetectorCommentary.advice}
-                  </div>
-                )}
+            <div className="mt-6 flex flex-wrap gap-3">
+              {[
+                ['all', `전체 ${originBlocks.length || data.toxicCount}`],
+                ['warning', `주의 ${warningCount}`],
+                ['review', `확인 ${reviewCount}`],
+                ['safe', `안전 ${safeCount}`],
+              ].map(([key, label]) => (
+                <button
+                  key={key}
+                  type="button"
+                  onClick={() => setFilter(key as FilterKey)}
+                  className={`rd-filter-tab ${filter === key ? 'is-active' : ''}`}
+                >
+                  {label}
+                </button>
+              ))}
+            </div>
+
+            {data.riskdetectorCommentary?.overallComment && (
+              <section className="rd-summary-strip">
+                <Sparkles size={16} className="text-[var(--rd-blue)]" />
+                <p>{data.riskdetectorCommentary.overallComment}</p>
               </section>
             )}
 
-            <section className="rd-card mt-4 p-5">
-              <div className="flex items-center gap-2">
-                <FileText size={18} className="text-[var(--rd-ink-3)]" />
-                <h2 className="text-[16px] font-extrabold">원문</h2>
-              </div>
-              <div className="rd-origin-block-list mt-4 max-h-[520px] overflow-auto rounded-xl bg-[var(--rd-paper-2)] p-4">
-                {originBlocks.map((block) => {
-                  const toxicIndex = findToxicForBlock(block, data.toxics);
-                  const toxic = toxicIndex >= 0 ? data.toxics[toxicIndex] : undefined;
-                  const toxicLevel = toxic?.warnLevel || 0;
-                  const active = toxicIndex === selectedIndex;
-                  const clickable = toxicIndex >= 0;
-
-                  return (
-                    <button
-                      key={block.id || block.tagIdx}
-                      type="button"
-                      disabled={!clickable}
-                      onClick={() => {
-                        if (clickable) selectToxic(toxicIndex, true);
-                      }}
-                      className={`rd-origin-block ${clickable ? `is-clickable rd-origin-block-risk-${toxicLevel}` : ''} ${active ? 'is-active' : ''}`}
-                    >
-                      <div className="mb-2 flex items-center justify-between gap-3">
-                        <span className="text-[11px] font-extrabold text-[var(--rd-ink-3)]">
-                          원문 블록 #{block.tagIdx}
-                        </span>
-                        {toxic && <span className={`rd-risk-tag ${riskMeta(toxic.warnLevel).className}`}>{riskMeta(toxic.warnLevel).label}</span>}
-                      </div>
-                      <div
-                        className="rd-doc text-left"
-                        dangerouslySetInnerHTML={{ __html: block.content }}
-                      />
-                      {toxic && (
-                        <div className="rd-origin-analysis">
-                          <div className="flex items-center justify-between gap-3">
-                            <div className="text-[12px] font-extrabold text-[var(--rd-risk-hi)]">
-                              {toxic.title || '위험 조항'}
-                            </div>
-                            <span className="text-[11px] font-bold text-[var(--rd-ink-3)]">클릭해서 근거 보기</span>
-                          </div>
-                          {toxic.reason && (
-                            <p className="mt-2 line-clamp-2 text-[12px] font-semibold leading-5 text-[var(--rd-ink-2)]">
-                              {toxic.reason}
-                            </p>
-                          )}
-                        </div>
-                      )}
-                    </button>
-                  );
-                })}
-              </div>
+            <section className="rd-document-card">
+              {filteredBlocks.map(({ block, toxicIndex, toxic }) => (
+                <DocumentBlock
+                  key={block.id || block.tagIdx}
+                  block={block}
+                  toxic={toxic}
+                  active={selectedIndex !== null && toxicIndex === selectedIndex}
+                  onSelect={() => {
+                    if (toxicIndex >= 0) selectToxic(toxicIndex, true);
+                  }}
+                />
+              ))}
             </section>
           </div>
 
-          <aside className="rd-context-panel">
-            <ClauseContext toxic={selected} />
+          <aside className="rd-context-panel rd-result-context-panel">
+            <ClauseContext toxic={selected} advice={data.riskdetectorCommentary?.advice} onClear={() => setSelectedIndex(null)} />
           </aside>
         </div>
       </div>
@@ -359,7 +466,7 @@ function AnalysisResultContent() {
             >
               <X size={18} />
             </button>
-            <ClauseContext toxic={selected} />
+            <ClauseContext toxic={selected} advice={data.riskdetectorCommentary?.advice} onClear={() => setSelectedIndex(null)} />
           </div>
         </div>
       )}
@@ -367,48 +474,89 @@ function AnalysisResultContent() {
   );
 }
 
-function ClauseContext({ toxic }: { toxic?: Toxic }) {
+function ClauseContext({ toxic, advice, onClear }: { toxic?: Toxic; advice?: string; onClear?: () => void }) {
   if (!toxic) {
     return (
-      <div className="rd-card p-5">
+      <div className="rd-context-empty">
         <div className="rd-section-label">컨텍스트</div>
-        <div className="mt-2 text-[15px] font-extrabold">조항을 선택해보세요</div>
-        <p className="mt-2 text-[13px] font-medium leading-6 text-[var(--rd-ink-2)]">
-          왼쪽의 독소조항을 선택하면 위험 이유와 근거를 바로 볼 수 있어요.
+        <h2 className="mt-3 text-[20px] font-extrabold leading-7">원문의 하이라이트를 클릭해보세요</h2>
+        <p className="mt-4 text-[13px] font-semibold leading-7 text-[var(--rd-ink-2)]">
+          빨강은 주의가 필요한 조항, 노랑은 한번 확인해볼 조항이에요.
         </p>
+        <div className="mt-6 rounded-2xl bg-[var(--rd-line-2)] p-5">
+          <div className="flex items-center gap-2 text-[13px] font-extrabold">
+            <Lightbulb size={16} className="text-[var(--rd-risk-md)]" />
+            팁
+          </div>
+          <p className="mt-3 text-[13px] font-semibold leading-7 text-[var(--rd-ink-2)]">
+            분석 결과는 법률 자문이 아닌 참고 자료예요. 중요한 계약은 전문가 상담도 같이 받아보세요.
+          </p>
+        </div>
       </div>
     );
   }
 
+  const adviceText = firstAdvice(advice) || '불리한 범위와 기준을 구체적으로 줄이고, 상호 협의 조항을 추가하는 방향으로 수정하는 것이 좋습니다.';
+
   return (
-    <div className="rd-card p-5">
-      <div className="flex items-center justify-between gap-2">
-        <div className="rd-section-label">선택된 조항</div>
-        <RiskTag level={toxic.warnLevel} />
+    <div className="rd-context-detail">
+      <div className="flex items-start justify-between gap-3">
+        <div>
+          <div className="rd-section-label">선택된 조항</div>
+          <div className="mt-3 flex flex-wrap items-center gap-2">
+            <RiskTag level={toxic.warnLevel} />
+            <span className="text-[12px] font-bold text-[var(--rd-ink-3)]">{toxic.title || '위험 조항'}</span>
+          </div>
+        </div>
+        <button
+          type="button"
+          onClick={onClear}
+          className="rounded-full p-1 text-[var(--rd-ink-3)] hover:bg-[var(--rd-line-2)]"
+          aria-label="선택 해제"
+        >
+          <X size={17} />
+        </button>
       </div>
-      <h2 className="mt-3 text-[20px] font-extrabold leading-7">{toxic.title}</h2>
+      <h2 className="mt-4 text-[22px] font-extrabold leading-8">{toxic.title}</h2>
       {toxic.reason && (
-        <p className="mt-3 text-[13px] font-medium leading-7 text-[var(--rd-ink-2)]">{toxic.reason}</p>
+        <p className="mt-4 text-[14px] font-semibold leading-8 text-[var(--rd-ink-2)]">{toxic.reason}</p>
       )}
+
       {toxic.clause && (
-        <div className="mt-4 rounded-xl bg-[var(--rd-risk-hi-bg)] p-4">
-          <div className="text-[11px] font-extrabold tracking-[0.08em] text-[var(--rd-risk-hi)]">원문</div>
-          <div className="mt-2 text-[13px] font-bold leading-6">{toxic.clause}</div>
+        <div className="mt-6 rounded-2xl bg-[var(--rd-risk-hi-bg)] p-4">
+          <div className="text-[12px] font-extrabold tracking-[0.06em] text-[var(--rd-risk-hi)]">BEFORE</div>
+          <div className="mt-2 text-[14px] font-bold leading-7">{shortText(toxic.clause, 64)}</div>
         </div>
       )}
+
+      <div className="mt-3 rounded-2xl bg-[var(--rd-blue-soft)] p-4">
+        <div className="text-[12px] font-extrabold tracking-[0.06em] text-[var(--rd-blue)]">AFTER</div>
+        <div className="mt-2 text-[14px] font-bold leading-7">{shortText(adviceText, 72)}</div>
+      </div>
+
       {toxic.reasonReference && (
-        <div className="mt-3 rounded-xl bg-[var(--rd-blue-soft)] p-4">
-          <div className="text-[11px] font-extrabold tracking-[0.08em] text-[var(--rd-blue)]">법률 근거</div>
-          <div className="mt-2 text-[13px] font-bold leading-6">{toxic.reasonReference}</div>
+        <div className="mt-6">
+          <div className="text-[12px] font-extrabold text-[var(--rd-ink-3)]">관련 근거</div>
+          <div className="mt-3 rounded-2xl border border-[var(--rd-line)] bg-white p-4">
+            <div className="text-[14px] font-extrabold leading-6">{shortText(toxic.reasonReference, 84)}</div>
+          </div>
         </div>
       )}
+
       <button
         type="button"
-        className="rd-btn mt-4 w-full"
-        onClick={() => navigator.clipboard?.writeText(toxic.reasonReference || toxic.reason || toxic.clause || '')}
+        className="rd-btn mt-5 w-full"
+        onClick={() => navigator.clipboard?.writeText(
+          [
+            toxic.title,
+            toxic.reason ? `위험 이유: ${toxic.reason}` : '',
+            toxic.reasonReference ? `근거: ${toxic.reasonReference}` : '',
+            adviceText ? `수정 방향: ${adviceText}` : '',
+          ].filter(Boolean).join('\n')
+        )}
       >
-        <Copy size={15} />
-        근거 복사
+        <Sparkles size={15} />
+        상세 보기 · 전체 근거
       </button>
     </div>
   );
