@@ -684,12 +684,23 @@ def build_analysis_result(
     clauses = parsed.get("clauses", []) or []
     toxics = []
 
+    seen_suggestions = set()
+
     for clause in clauses:
         risk_level = str(clause.get("riskLevel") or "low").lower()
         if risk_level == "low":
             continue
         source_ids = normalize_clause_source_ids(clause.get("sourceIds", []) or [], source_lookup)
         reason = ensure_reason_with_basis(str(clause.get("reason") or ""), source_ids, source_lookup)
+        
+        suggestion = str(clause.get("suggestion", "")).strip()
+        # LLM 환각(Hallucination)으로 동일한 제안이 반복 출력되는 것을 강제로 막는 후처리 로직
+        if suggestion and suggestion in seen_suggestions:
+            risk_type = str(clause.get("riskType") or "해당 조항")
+            suggestion = f"{risk_type}에 따른 불리함을 해소할 수 있도록, 양 당사자가 협의하여 내용을 공정하게 수정하는 것을 권장합니다."
+        
+        if suggestion:
+            seen_suggestions.add(suggestion)
 
         toxics.append(
             {
@@ -697,7 +708,7 @@ def build_analysis_result(
                 "riskType": clause.get("riskType", ""),
                 "riskLevel": risk_level,
                 "reason": reason,
-                "suggestion": clause.get("suggestion", ""),
+                "suggestion": suggestion,
                 "sourceIds": source_ids,
             }
         )
