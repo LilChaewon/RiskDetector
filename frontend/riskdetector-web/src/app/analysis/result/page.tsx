@@ -1,6 +1,7 @@
 'use client';
 
 import { Suspense, useEffect, useMemo, useState } from 'react';
+import type { ReactNode } from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
 import { Lightbulb, Loader2, Share2, Sparkles, X } from 'lucide-react';
 import AppShell from '@/components/AppShell';
@@ -11,6 +12,8 @@ import type { ContractAnalysisDTO } from '@/types/api';
 type Toxic = ContractAnalysisDTO['toxics'][number];
 type OcrBlock = NonNullable<ContractAnalysisDTO['ocrBlocks']>[number];
 type FilterKey = 'all' | 'warning' | 'review' | 'safe';
+type ToxicMatch = { toxic: Toxic; toxicIndex: number };
+type HighlightRange = { start: number; end: number; toxic: Toxic; toxicIndex: number };
 
 function normalizeText(value: string) {
   return value.replace(/<[^>]+>/g, '').replace(/\s+/g, '');
@@ -53,6 +56,7 @@ function buildAnalysisExportText(data: ContractAnalysisDTO) {
       `위험도: ${riskMeta(toxic.warnLevel).label}`,
       toxic.clause ? `원문: ${toxic.clause}` : '',
       toxic.reason ? `위험 이유: ${toxic.reason}` : '',
+      toxic.suggestion ? `수정 방향: ${toxic.suggestion}` : '',
       toxic.reasonReference ? `근거: ${toxic.reasonReference}` : ''
     );
   });
@@ -83,46 +87,45 @@ function clauseSectionTitle(text: string) {
   return heading || '';
 }
 
-function findToxicForBlock(block: OcrBlock, toxics: Toxic[]) {
+function meaningfulNeedleCandidates(toxic: Toxic) {
+  const clause = toxic.clause || '';
+  const riskyWords = ['년', '배', '%', '모든 권리', '양도', '손해배상', '일실이익', '위약', '정규앨범', '발설', '중지', '자동 연장'];
+  const parts = clause
+    .split(/(?<=[.。])\s*|[,，;；]\s*/g)
+    .map((part) => part.trim())
+    .filter((part) => normalizeText(part).length >= 6);
+
+  const focused = parts.flatMap((part) => riskyWords
+    .map((word) => {
+      const index = part.indexOf(word);
+      if (index < 0) return '';
+      const start = Math.max(0, index - 18);
+      const end = Math.min(part.length, index + word.length + 55);
+      return part.slice(start, end).replace(/^[,，.\s]+|[,，.\s]+$/g, '').trim();
+    })
+    .filter((item) => normalizeText(item).length >= 6));
+
+  return Array.from(new Set([...focused, ...parts, clause, toxic.title || ''].filter(Boolean)));
+}
+
+function findToxicMatchesForBlock(block: OcrBlock, toxics: Toxic[]): ToxicMatch[] {
   const text = blockText(block);
-  if (!text) return -1;
+  if (!text) return [];
 
-  const tagMatchIndex = toxics.findIndex((toxic) => toxic.sourceContractTagIdx === block.tagIdx);
-  if (tagMatchIndex >= 0) return tagMatchIndex;
-
-  return toxics.findIndex((toxic) => {
-    const sources = [toxic.clause || '', toxic.title || ''].filter(Boolean);
-    return sources.some((source) => {
-      const normalized = normalizeText(source);
-      if (normalized.length < 4) return false;
-      if (text.includes(normalized) || normalized.includes(text.slice(0, Math.min(text.length, 24)))) {
-        return true;
-      }
-      return textChunks(source).some((chunk) => chunk.length >= 6 && text.includes(chunk));
+  return toxics
+    .map((toxic, toxicIndex) => ({ toxic, toxicIndex }))
+    .filter(({ toxic }) => {
+      if (toxic.sourceContractTagIdx === block.tagIdx) return true;
+      const clause = normalizeText(toxic.clause || '');
+      if (clause.length >= 8 && text.includes(clause)) return true;
+      return meaningfulNeedleCandidates(toxic).some((candidate) => {
+        const normalized = normalizeText(candidate);
+        return normalized.length >= 8 && text.includes(normalized);
+      });
     });
-  });
 }
 
-function highlightNeedle(blockTextValue: string, toxic?: Toxic) {
-  if (!toxic) return '';
-  const candidates = [toxic.clause, toxic.title].filter(Boolean);
-  const normalizedBlock = normalizeText(blockTextValue);
-
-  for (const candidate of candidates) {
-    const normalized = normalizeText(candidate);
-    if (normalized.length >= 4 && normalizedBlock.includes(normalized)) {
-      return candidate;
-    }
-  }
-
-  const chunks = textChunks(toxic.clause || toxic.title || '', 14)
-    .filter((chunk) => chunk.length >= 8)
-    .sort((a, b) => b.length - a.length);
-  return chunks.find((chunk) => normalizedBlock.includes(chunk)) || '';
-}
-
-function splitByNeedle(text: string, needle: string) {
-  if (!needle) return null;
+function findTextRange(text: string, needle: string) {
   const normalizedNeedle = normalizeText(needle);
   if (!normalizedNeedle) return null;
 
@@ -138,23 +141,78 @@ function splitByNeedle(text: string, needle: string) {
     }
 
     if (built === normalizedNeedle) {
-      return {
-        before: chars.slice(0, start).join(''),
-        match: chars.slice(start, cursor).join(''),
-        after: chars.slice(cursor).join(''),
-      };
+      return { start, end: cursor };
     }
   }
 
   return null;
 }
 
-function filterMatches(filter: FilterKey, toxic?: Toxic) {
+function highlightRangeForToxic(text: string, toxic: Toxic, toxicIndex: number): HighlightRange | null {
+  for (const candidate of meaningfulNeedleCandidates(toxic)) {
+    if (normalizeText(candidate).length < 6) continue;
+    const range = findTextRange(text, candidate);
+    if (range) return { ...range, toxic, toxicIndex };
+  }
+
+  const chunks = textChunks(toxic.clause || toxic.title || '', 18)
+    .filter((chunk) => chunk.length >= 10)
+    .sort((a, b) => b.length - a.length);
+
+  for (const chunk of chunks) {
+    const range = findTextRange(text, chunk);
+    if (range) return { ...range, toxic, toxicIndex };
+  }
+
+  return null;
+}
+
+function visibleHighlightRanges(text: string, matches: ToxicMatch[]) {
+  const ranges = matches
+    .map(({ toxic, toxicIndex }) => highlightRangeForToxic(text, toxic, toxicIndex))
+    .filter((range): range is HighlightRange => Boolean(range))
+    .sort((a, b) => a.start - b.start || (b.end - b.start) - (a.end - a.start));
+
+  const accepted: HighlightRange[] = [];
+  for (const range of ranges) {
+    const overlaps = accepted.some((existing) => range.start < existing.end && range.end > existing.start);
+    if (!overlaps) accepted.push(range);
+  }
+  return accepted;
+}
+
+function renderHighlightedText(text: string, ranges: HighlightRange[], selectedIndex: number | null, onSelect: (index: number) => void) {
+  if (ranges.length === 0) return text;
+
+  const nodes: ReactNode[] = [];
+  let cursor = 0;
+
+  ranges.forEach((range, index) => {
+    if (range.start > cursor) nodes.push(text.slice(cursor, range.start));
+    const highlightLevel = range.toxic.warnLevel === 2 ? 'review' : 'warning';
+    nodes.push(
+      <button
+        key={`${range.toxicIndex}-${range.start}-${index}`}
+        type="button"
+        onClick={() => onSelect(range.toxicIndex)}
+        className={`rd-inline-highlight is-${highlightLevel} ${selectedIndex === range.toxicIndex ? 'is-active' : ''}`}
+      >
+        {text.slice(range.start, range.end)}
+      </button>
+    );
+    cursor = range.end;
+  });
+
+  if (cursor < text.length) nodes.push(text.slice(cursor));
+  return nodes;
+}
+
+function filterMatches(filter: FilterKey, matches: ToxicMatch[]) {
   if (filter === 'all') return true;
-  if (filter === 'safe') return !toxic;
-  if (!toxic) return false;
-  if (filter === 'warning') return (toxic.warnLevel || 0) >= 3;
-  return toxic.warnLevel === 2;
+  if (filter === 'safe') return matches.length === 0;
+  if (matches.length === 0) return false;
+  if (filter === 'warning') return matches.some(({ toxic }) => (toxic.warnLevel || 0) >= 3);
+  return matches.some(({ toxic }) => toxic.warnLevel === 2);
 }
 
 function shortText(value?: string, limit = 54) {
@@ -192,51 +250,37 @@ function fallbackOriginBlocks(originContent: string): OcrBlock[] {
 
 function DocumentBlock({
   block,
-  toxic,
-  active,
+  matches,
+  selectedIndex,
   onSelect,
 }: {
   block: OcrBlock;
-  toxic?: Toxic;
-  active: boolean;
-  onSelect: () => void;
+  matches: ToxicMatch[];
+  selectedIndex: number | null;
+  onSelect: (index: number) => void;
 }) {
   const text = htmlToPlainText(block.content || '');
   const heading = clauseSectionTitle(text);
   const body = heading ? text.replace(heading, '').trim() : text;
-  const needle = highlightNeedle(text, toxic);
-  const split = splitByNeedle(body || text, needle);
-  const highlightLevel = toxic?.warnLevel === 2 ? 'review' : 'warning';
-
-  if (!toxic || !split) {
-    return (
-      <article className={`rd-document-block ${toxic ? `has-risk is-${highlightLevel}` : ''}`}>
-        {heading && <h2>{heading}</h2>}
-        {(body || (!heading && text)) && <p>{body || text}</p>}
-        {toxic && (
-          <button type="button" className="rd-block-fallback" onClick={onSelect}>
-            <RiskTag level={toxic.warnLevel} />
-            <span>{toxic.title || '위험 조항'} 근거 보기</span>
-          </button>
-        )}
-      </article>
-    );
-  }
+  const ranges = visibleHighlightRanges(body || text, matches);
+  const fallbackMatches = matches.filter(({ toxicIndex }) => !ranges.some((range) => range.toxicIndex === toxicIndex));
 
   return (
-    <article className="rd-document-block">
+    <article className={`rd-document-block ${fallbackMatches.length > 0 ? 'has-risk is-warning' : ''}`}>
       {heading && <h2>{heading}</h2>}
-      <p>
-        {split.before}
-        <button
-          type="button"
-          onClick={onSelect}
-          className={`rd-inline-highlight is-${highlightLevel} ${active ? 'is-active' : ''}`}
-        >
-          {split.match}
-        </button>
-        {split.after}
-      </p>
+      {(body || (!heading && text)) && (
+        <p>{renderHighlightedText(body || text, ranges, selectedIndex, onSelect)}</p>
+      )}
+      {fallbackMatches.length > 0 && (
+        <div className="mt-3 flex flex-wrap gap-2">
+          {fallbackMatches.map(({ toxic, toxicIndex }) => (
+            <button key={toxicIndex} type="button" className="rd-block-fallback" onClick={() => onSelect(toxicIndex)}>
+              <RiskTag level={toxic.warnLevel} />
+              <span>{toxic.title || '위험 조항'} 근거 보기</span>
+            </button>
+          ))}
+        </div>
+      )}
     </article>
   );
 }
@@ -281,17 +325,19 @@ function AnalysisResultContent() {
   );
   const warningCount = data?.toxics.filter((t) => (t.warnLevel || 0) >= 3).length || 0;
   const reviewCount = data?.toxics.filter((t) => t.warnLevel === 2).length || 0;
-  const safeCount = Math.max(originBlocks.length - (data?.toxics.length || 0), 0);
-  const filteredBlocks = useMemo(() => {
+  const blocksWithMatches = useMemo(() => {
     if (!data) return [];
     return originBlocks
       .map((block) => {
-        const toxicIndex = findToxicForBlock(block, data.toxics);
-        const toxic = toxicIndex >= 0 ? data.toxics[toxicIndex] : undefined;
-        return { block, toxicIndex, toxic };
-      })
-      .filter((item) => filterMatches(filter, item.toxic));
-  }, [data, filter, originBlocks]);
+        const matches = findToxicMatchesForBlock(block, data.toxics);
+        return { block, matches };
+      });
+  }, [data, originBlocks]);
+  const safeCount = blocksWithMatches.filter((item) => item.matches.length === 0).length;
+  const filteredBlocks = useMemo(
+    () => blocksWithMatches.filter((item) => filterMatches(filter, item.matches)),
+    [blocksWithMatches, filter]
+  );
 
   async function handleShare() {
     if (!data) return;
@@ -436,15 +482,13 @@ function AnalysisResultContent() {
             )}
 
             <section className="rd-document-card">
-              {filteredBlocks.map(({ block, toxicIndex, toxic }) => (
+              {filteredBlocks.map(({ block, matches }) => (
                 <DocumentBlock
                   key={block.id || block.tagIdx}
                   block={block}
-                  toxic={toxic}
-                  active={selectedIndex !== null && toxicIndex === selectedIndex}
-                  onSelect={() => {
-                    if (toxicIndex >= 0) selectToxic(toxicIndex, true);
-                  }}
+                  matches={matches}
+                  selectedIndex={selectedIndex}
+                  onSelect={(toxicIndex) => selectToxic(toxicIndex, true)}
                 />
               ))}
             </section>
@@ -496,7 +540,7 @@ function ClauseContext({ toxic, advice, onClear }: { toxic?: Toxic; advice?: str
     );
   }
 
-  const adviceText = firstAdvice(advice) || '불리한 범위와 기준을 구체적으로 줄이고, 상호 협의 조항을 추가하는 방향으로 수정하는 것이 좋습니다.';
+  const adviceText = toxic.suggestion || firstAdvice(advice) || '불리한 범위와 기준을 구체적으로 줄이고, 상호 협의 조항을 추가하는 방향으로 수정하는 것이 좋습니다.';
 
   return (
     <div className="rd-context-detail">

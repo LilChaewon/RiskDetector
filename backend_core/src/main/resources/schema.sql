@@ -62,11 +62,14 @@ CREATE TABLE IF NOT EXISTS prod.toxic_clauses (
     title                   VARCHAR(500),
     clause                  TEXT,
     reason                  TEXT,
+    suggestion              TEXT,
     reason_reference        TEXT,
     source_contract_tag_idx INTEGER,
     warn_level              INTEGER,            -- 1(낮음) ~ 3(높음)
     created_at              TIMESTAMP    DEFAULT NOW()
 );
+
+ALTER TABLE prod.toxic_clauses ADD COLUMN IF NOT EXISTS suggestion TEXT;
 
 -- legal_tips 테이블
 CREATE TABLE IF NOT EXISTS prod.legal_tips (
