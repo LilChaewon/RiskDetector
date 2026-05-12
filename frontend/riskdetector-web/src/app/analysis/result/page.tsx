@@ -164,11 +164,58 @@ function findTextRange(text: string, needle: string) {
   return null;
 }
 
+function isSentenceBoundary(text: string, index: number) {
+  const char = text[index];
+  if (!char || !/[.!?。！？]/.test(char)) return false;
+
+  const prev = text[index - 1] || '';
+  const next = text[index + 1] || '';
+  const prevPrev = text[index - 2] || '';
+  if (char === '.' && /\d/.test(prev) && (/\d/.test(next) || /^\s$/.test(next))) {
+    const markerPrefix = index <= 1 || /[\n\s]/.test(prevPrev);
+    if (markerPrefix || /\d/.test(next)) return false;
+  }
+
+  return true;
+}
+
+function trimRangeWhitespace(text: string, start: number, end: number) {
+  let nextStart = start;
+  let nextEnd = end;
+  while (nextStart < nextEnd && /\s/.test(text[nextStart])) nextStart += 1;
+  while (nextEnd > nextStart && /\s/.test(text[nextEnd - 1])) nextEnd -= 1;
+  return { start: nextStart, end: nextEnd };
+}
+
+function expandRangeToSentence(text: string, range: { start: number; end: number }) {
+  let start = range.start;
+  let end = range.end;
+
+  for (let index = range.start - 1; index >= 0; index -= 1) {
+    if (text[index] === '\n') {
+      start = index + 1;
+      break;
+    }
+    if (isSentenceBoundary(text, index)) {
+      start = index + 1;
+      break;
+    }
+    start = index;
+  }
+
+  for (let index = range.end; index < text.length; index += 1) {
+    end = index + 1;
+    if (text[index] === '\n' || isSentenceBoundary(text, index)) break;
+  }
+
+  return trimRangeWhitespace(text, start, end);
+}
+
 function highlightRangeForToxic(text: string, toxic: Toxic, toxicIndex: number): HighlightRange | null {
   for (const candidate of meaningfulNeedleCandidates(toxic)) {
     if (normalizeText(candidate).length < 6) continue;
     const range = findTextRange(text, candidate);
-    if (range) return { ...range, toxic, toxicIndex };
+    if (range) return { ...expandRangeToSentence(text, range), toxic, toxicIndex };
   }
 
   const chunks = textChunks(toxic.clause || toxic.title || '', 18)
@@ -177,7 +224,7 @@ function highlightRangeForToxic(text: string, toxic: Toxic, toxicIndex: number):
 
   for (const chunk of chunks) {
     const range = findTextRange(text, chunk);
-    if (range) return { ...range, toxic, toxicIndex };
+    if (range) return { ...expandRangeToSentence(text, range), toxic, toxicIndex };
   }
 
   return null;
