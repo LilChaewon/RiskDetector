@@ -2,7 +2,7 @@
 
 import { Suspense, useEffect, useMemo, useRef, useState } from 'react';
 import { useSearchParams } from 'next/navigation';
-import { Bookmark, BookmarkCheck, Eye, Loader2, Search } from 'lucide-react';
+import { Bookmark, BookmarkCheck, Eye, Loader2, Search, X } from 'lucide-react';
 import AppShell from '@/components/AppShell';
 import { bookmarkTip, getTipCategories, getTips, unbookmarkTip } from '@/api/app';
 import type { LegalTip } from '@/types/api';
@@ -15,8 +15,9 @@ function FeedContent() {
   const [debouncedQ, setDebouncedQ] = useState('');
   const [tips, setTips] = useState<LegalTip[]>([]);
   const [selectedId, setSelectedId] = useState<number | null>(null);
+  const [mobileAnswerOpen, setMobileAnswerOpen] = useState(false);
   const [loading, setLoading] = useState(true);
-  const answerRef = useRef<HTMLElement | null>(null);
+  const answerRef = useRef<HTMLDivElement | null>(null);
 
   const selectedTipId = searchParams.get('tip');
   const routeSelectedId = selectedTipId ? Number(selectedTipId) : null;
@@ -72,16 +73,18 @@ function FeedContent() {
       .filter(Boolean);
   }
 
-  function scrollToAnswer() {
-    window.requestAnimationFrame(() => {
-      answerRef.current?.scrollIntoView({ behavior: 'smooth', block: 'start' });
-    });
-  }
-
   function selectTip(tip: LegalTip, forceScroll = false) {
     setSelectedId(tip.id);
     const mobileLayout = typeof window !== 'undefined' && window.matchMedia('(max-width: 1023px)').matches;
-    if (forceScroll || mobileLayout) scrollToAnswer();
+    if (mobileLayout) {
+      setMobileAnswerOpen(true);
+      return;
+    }
+    if (forceScroll) {
+      window.requestAnimationFrame(() => {
+        answerRef.current?.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+      });
+    }
   }
 
   async function toggleBookmark(tip: LegalTip) {
@@ -189,46 +192,88 @@ function FeedContent() {
             )}
           </section>
 
-          <aside ref={answerRef}>
-            <div className="rd-card sticky top-7 max-h-none overflow-visible p-5 lg:max-h-[calc(100vh-56px)] lg:overflow-y-auto lg:p-7">
-              <div className="rd-section-label">답변 보기</div>
-              {selected ? (
-                <>
-                  <div className="mt-4 flex flex-wrap items-center gap-2">
-                    <span className="rd-pill">#{categoryLabel(selected.category)}</span>
-                    <span className="flex items-center gap-1 text-[12px] font-bold text-[var(--rd-ink-3)]">
-                      <Eye size={13} />
-                      {selected.viewCount.toLocaleString('ko-KR')}
-                    </span>
-                  </div>
-                  <h2 className="mt-4 text-[23px] font-extrabold leading-9">{selected.question}</h2>
-                  <div className="mt-5 rounded-2xl bg-[var(--rd-line-2)] p-5">
-                    <div className="text-[12px] font-extrabold tracking-[0.08em] text-[var(--rd-blue)]">핵심 요약</div>
-                    <div className="mt-3 space-y-3 text-[15px] font-semibold leading-8 text-[var(--rd-ink-2)]">
-                      {summaryParagraphs(tipSummary(selected)).map((paragraph, index) => (
-                        <p key={`${selected.id}-${index}`}>{paragraph}</p>
-                      ))}
-                    </div>
-                  </div>
-                  {selected.sourceUrl && (
-                    <a
-                      href={selected.sourceUrl}
-                      target="_blank"
-                      rel="noreferrer"
-                      className="rd-btn rd-btn-ghost mt-4 w-full"
-                    >
-                      원문 보기
-                    </a>
-                  )}
-                </>
-              ) : (
-                <p className="mt-3 text-[13px] font-medium text-[var(--rd-ink-2)]">질문을 선택하면 답변을 크게 볼 수 있어요.</p>
-              )}
+          <aside ref={answerRef} className="hidden lg:block">
+            <div className="rd-card sticky top-7 max-h-[calc(100vh-56px)] overflow-y-auto p-7">
+              <TipAnswerReader
+                selected={selected}
+                categoryLabel={categoryLabel}
+                tipSummary={tipSummary}
+                summaryParagraphs={summaryParagraphs}
+              />
             </div>
           </aside>
         </div>
       </div>
+
+      {mobileAnswerOpen && selected && (
+        <div className="rd-mobile-sheet-backdrop lg:hidden" onClick={() => setMobileAnswerOpen(false)}>
+          <div className="rd-mobile-sheet" onClick={(event) => event.stopPropagation()}>
+            <button
+              type="button"
+              className="absolute right-5 top-5 rounded-full p-2 text-[var(--rd-ink-3)] hover:bg-[var(--rd-line-2)]"
+              onClick={() => setMobileAnswerOpen(false)}
+              aria-label="닫기"
+            >
+              <X size={18} />
+            </button>
+            <TipAnswerReader
+              selected={selected}
+              categoryLabel={categoryLabel}
+              tipSummary={tipSummary}
+              summaryParagraphs={summaryParagraphs}
+            />
+          </div>
+        </div>
+      )}
     </AppShell>
+  );
+}
+
+function TipAnswerReader({
+  selected,
+  categoryLabel,
+  tipSummary,
+  summaryParagraphs,
+}: {
+  selected?: LegalTip;
+  categoryLabel: (category: string) => string;
+  tipSummary: (tip: LegalTip) => string;
+  summaryParagraphs: (summary: string) => string[];
+}) {
+  if (!selected) {
+    return <p className="text-[13px] font-medium text-[var(--rd-ink-2)]">질문을 선택하면 답변을 크게 볼 수 있어요.</p>;
+  }
+
+  return (
+    <>
+      <div className="rd-section-label">답변 보기</div>
+      <div className="mt-4 flex flex-wrap items-center gap-2">
+        <span className="rd-pill">#{categoryLabel(selected.category)}</span>
+        <span className="flex items-center gap-1 text-[12px] font-bold text-[var(--rd-ink-3)]">
+          <Eye size={13} />
+          {selected.viewCount.toLocaleString('ko-KR')}
+        </span>
+      </div>
+      <h2 className="mt-4 text-[23px] font-extrabold leading-9">{selected.question}</h2>
+      <div className="mt-5 rounded-2xl bg-[var(--rd-line-2)] p-5">
+        <div className="text-[12px] font-extrabold tracking-[0.08em] text-[var(--rd-blue)]">핵심 요약</div>
+        <div className="mt-3 space-y-3 text-[15px] font-semibold leading-8 text-[var(--rd-ink-2)]">
+          {summaryParagraphs(tipSummary(selected)).map((paragraph, index) => (
+            <p key={`${selected.id}-${index}`}>{paragraph}</p>
+          ))}
+        </div>
+      </div>
+      {selected.sourceUrl && (
+        <a
+          href={selected.sourceUrl}
+          target="_blank"
+          rel="noreferrer"
+          className="rd-btn rd-btn-ghost mt-4 w-full"
+        >
+          원문 보기
+        </a>
+      )}
+    </>
   );
 }
 
