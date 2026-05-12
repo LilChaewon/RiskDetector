@@ -190,7 +190,7 @@ function FeedContent() {
           </section>
 
           <aside ref={answerRef}>
-            <div className="rd-card sticky top-7 p-5 lg:p-7">
+            <div className="rd-card sticky top-7 max-h-none overflow-visible p-5 lg:max-h-[calc(100vh-56px)] lg:overflow-y-auto lg:p-7">
               <div className="rd-section-label">답변 보기</div>
               {selected ? (
                 <>
