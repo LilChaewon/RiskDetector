@@ -192,10 +192,6 @@ function expandRangeToSentence(text: string, range: { start: number; end: number
   let end = range.end;
 
   for (let index = range.start - 1; index >= 0; index -= 1) {
-    if (text[index] === '\n') {
-      start = index + 1;
-      break;
-    }
     if (isSentenceBoundary(text, index)) {
       start = index + 1;
       break;
@@ -205,7 +201,7 @@ function expandRangeToSentence(text: string, range: { start: number; end: number
 
   for (let index = range.end; index < text.length; index += 1) {
     end = index + 1;
-    if (text[index] === '\n' || isSentenceBoundary(text, index)) break;
+    if (isSentenceBoundary(text, index)) break;
   }
 
   return trimRangeWhitespace(text, start, end);
@@ -276,12 +272,6 @@ function filterMatches(filter: FilterKey, matches: ToxicMatch[]) {
   if (matches.length === 0) return false;
   if (filter === 'warning') return matches.some(({ toxic }) => (toxic.warnLevel || 0) >= 3);
   return matches.some(({ toxic }) => toxic.warnLevel === 2);
-}
-
-function shortText(value?: string, limit = 54) {
-  if (!value) return '';
-  const normalized = value.replace(/\s+/g, ' ').trim();
-  return normalized.length > limit ? `${normalized.slice(0, limit).trim()}...` : normalized;
 }
 
 function firstAdvice(value?: string) {
@@ -633,39 +623,23 @@ function ClauseContext({ toxic, advice, onClear }: { toxic?: Toxic; advice?: str
       {toxic.clause && (
         <div className="mt-6 rounded-2xl bg-[var(--rd-risk-hi-bg)] p-4">
           <div className="text-[12px] font-extrabold tracking-[0.06em] text-[var(--rd-risk-hi)]">BEFORE</div>
-          <div className="mt-2 text-[14px] font-bold leading-7">{shortText(toxic.clause, 64)}</div>
+          <div className="mt-2 whitespace-pre-wrap text-[14px] font-bold leading-7">{toxic.clause}</div>
         </div>
       )}
 
       <div className="mt-3 rounded-2xl bg-[var(--rd-blue-soft)] p-4">
         <div className="text-[12px] font-extrabold tracking-[0.06em] text-[var(--rd-blue)]">AFTER</div>
-        <div className="mt-2 text-[14px] font-bold leading-7">{shortText(adviceText, 72)}</div>
+        <div className="mt-2 whitespace-pre-wrap text-[14px] font-bold leading-7">{adviceText}</div>
       </div>
 
       {parsedReference.reference && (
         <div className="mt-6">
           <div className="text-[12px] font-extrabold text-[var(--rd-ink-3)]">관련 근거</div>
           <div className="mt-3 rounded-2xl border border-[var(--rd-line)] bg-white p-4">
-            <div className="text-[14px] font-extrabold leading-6">{shortText(parsedReference.reference, 84)}</div>
+            <div className="whitespace-pre-wrap text-[14px] font-extrabold leading-6">{parsedReference.reference}</div>
           </div>
         </div>
       )}
-
-      <button
-        type="button"
-        className="rd-btn mt-5 w-full"
-        onClick={() => navigator.clipboard?.writeText(
-          [
-            toxic.title,
-            toxic.reason ? `위험 이유: ${toxic.reason}` : '',
-            parsedReference.reference ? `근거: ${parsedReference.reference}` : '',
-            adviceText ? `수정 방향: ${adviceText}` : '',
-          ].filter(Boolean).join('\n')
-        )}
-      >
-        <Sparkles size={15} />
-        상세 보기 · 전체 근거
-      </button>
     </div>
   );
 }
