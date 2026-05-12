@@ -13,6 +13,7 @@ function FeedContent() {
   const searchParams = useSearchParams();
   const [active, setActive] = useState('전체');
   const [q, setQ] = useState('');
+  const [debouncedQ, setDebouncedQ] = useState('');
   const [tips, setTips] = useState<LegalTip[]>([]);
   const [selectedId, setSelectedId] = useState<number | null>(null);
   const [loading, setLoading] = useState(true);
@@ -22,15 +23,20 @@ function FeedContent() {
   const routeSelectedId = selectedTipId ? Number(selectedTipId) : null;
 
   useEffect(() => {
+    const timer = window.setTimeout(() => setDebouncedQ(q.trim()), 300);
+    return () => window.clearTimeout(timer);
+  }, [q]);
+
+  useEffect(() => {
     getTips({
       category: active === '전체' ? undefined : active,
-      q: q || undefined,
+      q: debouncedQ || undefined,
       size: 24,
     })
       .then((page) => setTips(page.content))
       .catch((err) => console.error('tips load failed:', err))
       .finally(() => setLoading(false));
-  }, [active, q]);
+  }, [active, debouncedQ]);
 
   const selected = useMemo(
     () => tips.find((tip) => tip.id === selectedId)
@@ -41,6 +47,35 @@ function FeedContent() {
 
   function answerSummary(answer: string) {
     return answer.replace(/\s+/g, ' ').trim().slice(0, 84);
+  }
+
+  function answerParagraphs(answer: string) {
+    const normalized = answer
+      .replace(/\s+/g, ' ')
+      .replace(/\s*(◇|◆|※|☞|▶)\s*/g, '\n\n$1 ')
+      .replace(/\s+(다만|또한|따라서|예를 들어|그러나|그리고),?\s/g, '\n\n$1 ')
+      .trim();
+
+    const paragraphs = normalized
+      .split(/\n{2,}/)
+      .map((item) => item.trim())
+      .filter(Boolean);
+
+    if (paragraphs.length > 1) return paragraphs;
+
+    return normalized
+      .split(/(?<=다\.|요\.|니다\.|습니다\.)\s+/)
+      .reduce<string[]>((items, sentence) => {
+        const last = items[items.length - 1] || '';
+        if (!last || last.length > 130) {
+          items.push(sentence);
+        } else {
+          items[items.length - 1] = `${last} ${sentence}`;
+        }
+        return items;
+      }, [])
+      .map((item) => item.trim())
+      .filter(Boolean);
   }
 
   function scrollToAnswer() {
@@ -173,9 +208,11 @@ function FeedContent() {
                     </span>
                   </div>
                   <h2 className="mt-4 text-[23px] font-extrabold leading-9">{selected.question}</h2>
-                  <p className="mt-5 whitespace-pre-wrap text-[15px] font-semibold leading-8 text-[var(--rd-ink-2)]">
-                    {selected.answer}
-                  </p>
+                  <div className="mt-5 space-y-4 text-[15px] font-semibold leading-8 text-[var(--rd-ink-2)]">
+                    {answerParagraphs(selected.answer).map((paragraph, index) => (
+                      <p key={`${selected.id}-${index}`}>{paragraph}</p>
+                    ))}
+                  </div>
                   {selected.sourceUrl && (
                     <a
                       href={selected.sourceUrl}
