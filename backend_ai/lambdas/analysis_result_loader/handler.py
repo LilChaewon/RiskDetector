@@ -17,6 +17,7 @@ ENV_PATH = Path(__file__).with_name(".env")
 SCHEMA_NAME = "prod"
 ANALYSES_TABLE = f"{SCHEMA_NAME}.contract_analyses"
 TOXICS_TABLE = f"{SCHEMA_NAME}.toxic_clauses"
+SUGGESTION_MARKER = "[RD_SUGGESTION]"
 
 
 def load_env_file(env_path: Path = ENV_PATH) -> None:
@@ -125,14 +126,42 @@ def extract_events(event: dict[str, Any]) -> list[dict[str, Any]]:
     return extracted or [event]
 
 
+def is_success_event(event: dict[str, Any]) -> bool:
+    status = str(event.get("status", "") or "").strip().lower()
+    if status:
+        return status in {"success", "succeeded", "completed", "complete", "ok"}
+    return bool(event.get("success", True))
+
+
+def pick_analysis_result(event: dict[str, Any], data: dict[str, Any]) -> dict[str, Any]:
+    candidates = (
+        data.get("analysisResult"),
+        data.get("result"),
+        event.get("analysisResult"),
+        event.get("result"),
+        data.get("analysis"),
+        event.get("analysis"),
+    )
+    for candidate in candidates:
+        if isinstance(candidate, dict):
+            return candidate
+    return {}
+
+
 def normalize_event(event: dict[str, Any]) -> dict[str, Any]:
     """Normalize the lambda event into a standard format suitable for database persistence.
     람다 이벤트를 DB 저장에 적합한 표준 형식으로 변환합니다."""
-    data = event.get("data", event) or {}
-    analysis_result = data.get("analysisResult", {}) or {}
+    data = event.get("data")
+    if not isinstance(data, dict):
+        data = event
+
+    analysis_result = pick_analysis_result(event, data)
     toxics = analysis_result.get("toxics", []) or []
+    if not isinstance(toxics, list):
+        toxics = []
+
     return {
-        "success": bool(event.get("success", True)),
+        "success": is_success_event(event),
         "contract_id": data.get("contractId") or event.get("contractId"),
         "analysis_id": data.get("analysisId") or event.get("analysisId"),
         "title": analysis_result.get("title", ""),
@@ -140,6 +169,7 @@ def normalize_event(event: dict[str, Any]) -> dict[str, Any]:
         "risk_level": str(analysis_result.get("riskLevel", "") or "").lower(),
         "grounding_status": analysis_result.get("groundingStatus", ""),
         "toxics": toxics,
+        "raw_output_present": bool(event.get("rawOutput") or data.get("rawOutput")),
     }
 
 
@@ -183,6 +213,42 @@ def build_advice(toxics: list[dict[str, Any]]) -> str:
         for item in toxics[:3]
         if str(item.get("suggestion", "")).strip()
     )
+
+
+def normalize_source_ids(source_ids: Any) -> str:
+    if isinstance(source_ids, str):
+        return source_ids.strip()
+    if isinstance(source_ids, list):
+        return ", ".join(str(source_id).strip() for source_id in source_ids if str(source_id).strip())
+    return ""
+
+
+def build_reason_reference(item: dict[str, Any]) -> str:
+    source_text = normalize_source_ids(item.get("sourceIds") or item.get("source_ids") or item.get("sources"))
+    suggestion = str(item.get("suggestion", "") or item.get("after", "") or "").strip()
+    if not suggestion:
+        return source_text
+    if not source_text:
+        return f"{SUGGESTION_MARKER}{suggestion}"
+    return f"{source_text}\n{SUGGESTION_MARKER}{suggestion}"
+
+
+def log_payload_diagnostics(payload: dict[str, Any]) -> None:
+    toxics = payload.get("toxics", [])
+    diagnostics = {
+        "level": "info",
+        "message": "analysis_result_loader_payload",
+        "contractId": payload.get("contract_id"),
+        "analysisId": payload.get("analysis_id"),
+        "success": payload.get("success"),
+        "summaryPresent": bool(payload.get("summary")),
+        "riskLevel": payload.get("risk_level"),
+        "toxicCount": len(toxics),
+        "suggestionCount": sum(1 for item in toxics if str(item.get("suggestion", "")).strip()),
+        "sourceIdsCount": sum(1 for item in toxics if normalize_source_ids(item.get("sourceIds") or item.get("source_ids") or item.get("sources"))),
+        "rawOutputPresent": payload.get("raw_output_present"),
+    }
+    print(json.dumps(diagnostics, ensure_ascii=False))
 
 
 def upsert_contract_analysis(conn: Any, payload: dict[str, Any]) -> dict[str, Any]:
@@ -254,11 +320,10 @@ def replace_toxic_clauses(conn: Any, payload: dict[str, Any]) -> dict[str, Any]:
                     title,
                     clause,
                     reason,
-                    suggestion,
                     reason_reference,
                     source_contract_tag_idx,
                     warn_level
-                ) VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s)
+                ) VALUES (%s, %s, %s, %s, %s, %s, %s, %s)
                 """,
                 (
                     str(uuid4()),
@@ -266,8 +331,7 @@ def replace_toxic_clauses(conn: Any, payload: dict[str, Any]) -> dict[str, Any]:
                     str(item.get("riskType", "") or item.get("title", "") or "독소 조항"),
                     str(item.get("clauseText", "") or item.get("clause", "")),
                     str(item.get("reason", "")),
-                    str(item.get("suggestion", "")),
-                    ", ".join(str(source_id) for source_id in (item.get("sourceIds", []) or [])),
+                    build_reason_reference(item),
                     item.get("sourceContractTagIdx"),
                     map_warn_level(str(item.get("riskLevel", "") or payload["risk_level"])),
                 ),
@@ -295,6 +359,7 @@ def lambda_handler(event: dict[str, Any], context: Any) -> dict[str, Any]:
 
             for raw_event in raw_events:
                 payload = normalize_event(raw_event)
+                log_payload_diagnostics(payload)
                 validate_payload(payload)
                 saved_analysis = upsert_contract_analysis(conn, payload)
                 toxic_result = replace_toxic_clauses(conn, payload)
@@ -318,4 +383,13 @@ def lambda_handler(event: dict[str, Any], context: Any) -> dict[str, Any]:
             },
         }
     except Exception as exc:
+        error_report = {
+            "level": "error",
+            "message": "analysis_result_loader_failed",
+            "errorType": type(exc).__name__,
+            "error": str(exc),
+            "eventKeys": list(event.keys()) if isinstance(event, dict) else [],
+            "recordCount": len(event.get("Records", [])) if isinstance(event, dict) and isinstance(event.get("Records"), list) else 0,
+        }
+        print(json.dumps(error_report, ensure_ascii=False))
         raise RuntimeError(f"Failed to upsert analysis result: {exc}") from exc
