@@ -485,7 +485,7 @@ function AnalysisResultContent() {
                 </button>
                 <button type="button" onClick={exportAnalysisText} className="rd-btn">
                   <Sparkles size={15} />
-                  수정안 내보내기
+                  분석 리포트 내보내기
                 </button>
               </div>
             </div>
