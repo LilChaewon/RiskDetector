@@ -434,6 +434,9 @@ button {
 
 .rd-inline-highlight {
   display: inline;
+  -webkit-box-decoration-break: clone;
+  box-decoration-break: clone;
+  --rd-highlight-line: var(--rd-risk-hi);
   min-height: 0;
   border-radius: 5px;
   padding: 1px 4px 2px;
@@ -442,20 +445,22 @@ button {
   font-weight: 600;
   line-height: inherit;
   text-align: left;
-  text-decoration-line: underline;
-  text-decoration-thickness: 2px;
-  text-underline-offset: 4px;
+  text-decoration: none;
+  background-image: linear-gradient(var(--rd-highlight-line), var(--rd-highlight-line));
+  background-position: 0 calc(100% - 2px);
+  background-repeat: repeat-x;
+  background-size: 100% 2px;
   transition: box-shadow 140ms ease, background 140ms ease;
 }
 
 .rd-inline-highlight.is-warning {
-  background: rgba(217, 58, 58, 0.12);
-  text-decoration-color: var(--rd-risk-hi);
+  --rd-highlight-line: var(--rd-risk-hi);
+  background-color: rgba(217, 58, 58, 0.12);
 }
 
 .rd-inline-highlight.is-review {
-  background: rgba(224, 147, 15, 0.15);
-  text-decoration-color: var(--rd-risk-md);
+  --rd-highlight-line: var(--rd-risk-md);
+  background-color: rgba(224, 147, 15, 0.15);
 }
 
 .rd-inline-highlight:hover {
