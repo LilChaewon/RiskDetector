@@ -8,12 +8,22 @@ import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
 
 import java.util.List;
+import java.util.Optional;
 
 public interface LegalTipRepository extends JpaRepository<LegalTip, Long> {
 
     boolean existsBySourceId(String sourceId);
 
+    Optional<LegalTip> findBySourceId(String sourceId);
+
     List<LegalTip> findTop5ByOrderByViewCountDescCreatedAtDesc();
+
+    @Query("""
+            select distinct t.category from LegalTip t
+            where t.category is not null and t.category <> ''
+            order by t.category asc
+            """)
+    List<String> findDistinctCategories();
 
     @Query("""
             select t from LegalTip t

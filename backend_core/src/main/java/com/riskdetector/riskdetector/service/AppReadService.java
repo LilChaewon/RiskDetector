@@ -92,6 +92,11 @@ public class AppReadService {
         return tipPage.map(t -> toTipResponse(t, bookmarkedIds.contains(t.getId())));
     }
 
+    @Transactional(readOnly = true)
+    public List<String> getTipCategories() {
+        return legalTipRepository.findDistinctCategories();
+    }
+
     @Transactional
     public LegalTipResponse getTip(String email, String guestSessionId, Long tipId) {
         Scope scope = scope(email, guestSessionId);
@@ -201,6 +206,7 @@ public class AppReadService {
                 tip.getId(),
                 tip.getCategory(),
                 tip.getQuestion(),
+                nullToBlank(tip.getSummary()),
                 tip.getAnswer(),
                 tip.getSourceUrl(),
                 tip.getViewCount() == null ? 0L : tip.getViewCount(),

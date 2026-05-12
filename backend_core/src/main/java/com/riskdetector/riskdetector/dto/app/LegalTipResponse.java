@@ -4,6 +4,7 @@ public record LegalTipResponse(
         Long id,
         String category,
         String question,
+        String summary,
         String answer,
         String sourceUrl,
         long viewCount,

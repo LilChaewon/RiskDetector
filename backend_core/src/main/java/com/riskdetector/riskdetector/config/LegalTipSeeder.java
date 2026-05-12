@@ -31,11 +31,12 @@ public class LegalTipSeeder implements ApplicationRunner {
     public void run(ApplicationArguments args) throws Exception {
         if (!seedEnabled) return;
 
-        Resource[] resources = resourcePatternResolver.getResources("classpath*:/legal-tips/easylaw/*.txt");
+        Resource[] resources = resourcePatternResolver.getResources("classpath*:/legal-tips/easylaw-summary/*.txt");
         int inserted = 0;
+        int updated = 0;
         for (Resource resource : resources) {
             String filename = resource.getFilename();
-            if (!StringUtils.hasText(filename) || legalTipRepository.existsBySourceId(filename)) {
+            if (!StringUtils.hasText(filename)) {
                 continue;
             }
             String raw = new String(resource.getInputStream().readAllBytes(), StandardCharsets.UTF_8);
@@ -44,11 +45,18 @@ public class LegalTipSeeder implements ApplicationRunner {
                 log.debug("Skipping invalid legal tip seed: {}", filename);
                 continue;
             }
+            var existing = legalTipRepository.findBySourceId(filename);
+            if (existing.isPresent()) {
+                existing.get().updateFromSummaryDocument(tip.category(), tip.question(), tip.summary(), tip.sourceUrl());
+                updated++;
+                continue;
+            }
             legalTipRepository.save(LegalTip.builder()
                     .sourceId(filename)
                     .category(tip.category())
                     .question(tip.question())
-                    .answer(tip.answer())
+                    .summary(tip.summary())
+                    .answer(tip.summary())
                     .sourceUrl(tip.sourceUrl())
                     .viewCount(0L)
                     .build());
@@ -57,14 +65,17 @@ public class LegalTipSeeder implements ApplicationRunner {
         if (inserted > 0) {
             log.info("Seeded {} EasyLaw legal tips", inserted);
         }
+        if (updated > 0) {
+            log.info("Updated summaries for {} EasyLaw legal tips", updated);
+        }
     }
 
     private ParsedTip parse(String raw) {
-        String question = between(raw, "질문:", "\n\n답변:");
-        String answer = between(raw, "답변:", "\n\n카테고리:");
+        String question = between(raw, "질문:", "\n\n요약:");
+        String summary = between(raw, "요약:", "\n\n카테고리:");
         String category = between(raw, "카테고리:", "\n\n원문URL:");
         String sourceUrl = after(raw, "원문URL:");
-        return new ParsedTip(clean(question), clean(answer), clean(category), clean(sourceUrl));
+        return new ParsedTip(clean(question), clean(summary), clean(category), clean(sourceUrl));
     }
 
     private String between(String raw, String start, String end) {
@@ -86,10 +97,10 @@ public class LegalTipSeeder implements ApplicationRunner {
         return value == null ? "" : value.trim();
     }
 
-    private record ParsedTip(String question, String answer, String category, String sourceUrl) {
+    private record ParsedTip(String question, String summary, String category, String sourceUrl) {
         boolean valid() {
             return StringUtils.hasText(question)
-                    && StringUtils.hasText(answer)
+                    && StringUtils.hasText(summary)
                     && StringUtils.hasText(category);
         }
     }
