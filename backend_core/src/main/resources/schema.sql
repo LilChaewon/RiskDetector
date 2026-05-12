@@ -74,12 +74,15 @@ CREATE TABLE IF NOT EXISTS prod.legal_tips (
     source_id   VARCHAR(100) UNIQUE NOT NULL,
     category    VARCHAR(255) NOT NULL,
     question    TEXT NOT NULL,
+    summary     TEXT,
     answer      TEXT NOT NULL,
     source_url  TEXT,
     view_count  BIGINT DEFAULT 0,
     created_at  TIMESTAMP DEFAULT NOW(),
     updated_at  TIMESTAMP DEFAULT NOW()
 );
+
+ALTER TABLE prod.legal_tips ADD COLUMN IF NOT EXISTS summary TEXT;
 
 -- legal_tip_bookmarks 테이블
 CREATE TABLE IF NOT EXISTS prod.legal_tip_bookmarks (

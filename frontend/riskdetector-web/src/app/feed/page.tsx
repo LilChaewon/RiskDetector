@@ -4,15 +4,15 @@ import { Suspense, useEffect, useMemo, useRef, useState } from 'react';
 import { useSearchParams } from 'next/navigation';
 import { Bookmark, BookmarkCheck, Eye, Loader2, Search } from 'lucide-react';
 import AppShell from '@/components/AppShell';
-import { bookmarkTip, getTips, unbookmarkTip } from '@/api/app';
+import { bookmarkTip, getTipCategories, getTips, unbookmarkTip } from '@/api/app';
 import type { LegalTip } from '@/types/api';
-
-const categories = ['전체', '임대차', '근로', '계약', '금융', '부동산'];
 
 function FeedContent() {
   const searchParams = useSearchParams();
   const [active, setActive] = useState('전체');
+  const [categories, setCategories] = useState<string[]>(['전체']);
   const [q, setQ] = useState('');
+  const [debouncedQ, setDebouncedQ] = useState('');
   const [tips, setTips] = useState<LegalTip[]>([]);
   const [selectedId, setSelectedId] = useState<number | null>(null);
   const [loading, setLoading] = useState(true);
@@ -22,15 +22,28 @@ function FeedContent() {
   const routeSelectedId = selectedTipId ? Number(selectedTipId) : null;
 
   useEffect(() => {
+    const timer = window.setTimeout(() => setDebouncedQ(q.trim()), 300);
+    return () => window.clearTimeout(timer);
+  }, [q]);
+
+  useEffect(() => {
+    getTipCategories()
+      .then((items) => {
+        setCategories(['전체', ...items.filter(Boolean)]);
+      })
+      .catch((err) => console.error('tip categories load failed:', err));
+  }, []);
+
+  useEffect(() => {
     getTips({
       category: active === '전체' ? undefined : active,
-      q: q || undefined,
+      q: debouncedQ || undefined,
       size: 24,
     })
       .then((page) => setTips(page.content))
       .catch((err) => console.error('tips load failed:', err))
       .finally(() => setLoading(false));
-  }, [active, q]);
+  }, [active, debouncedQ]);
 
   const selected = useMemo(
     () => tips.find((tip) => tip.id === selectedId)
@@ -41,6 +54,22 @@ function FeedContent() {
 
   function answerSummary(answer: string) {
     return answer.replace(/\s+/g, ' ').trim().slice(0, 84);
+  }
+
+  function categoryLabel(category: string) {
+    return category.split('/').pop() || category;
+  }
+
+  function tipSummary(tip: LegalTip) {
+    return (tip.summary || tip.answer || '').trim();
+  }
+
+  function summaryParagraphs(summary: string) {
+    return summary
+      .replace(/\s+/g, ' ')
+      .split(/\n+|(?<=다\.|요\.|니다\.|습니다\.)\s+/)
+      .map((item) => item.trim())
+      .filter(Boolean);
   }
 
   function scrollToAnswer() {
@@ -84,7 +113,7 @@ function FeedContent() {
               onClick={() => setActive(category)}
               className={`rd-pill shrink-0 ${active === category ? 'is-active' : ''}`}
             >
-              {category}
+              {categoryLabel(category)}
             </button>
           ))}
         </div>
@@ -129,7 +158,7 @@ function FeedContent() {
                   >
                     <div className="flex items-start justify-between gap-3">
                       <div className="min-w-0">
-                        <span className="rd-pill">#{tip.category.split('/').pop()}</span>
+                        <span className="rd-pill">#{categoryLabel(tip.category)}</span>
                         <h3 className="mt-3 text-[15px] font-extrabold leading-6">{tip.question}</h3>
                       </div>
                       <button
@@ -145,7 +174,7 @@ function FeedContent() {
                       </button>
                     </div>
                     <p className="mt-2 line-clamp-1 text-[13px] font-semibold leading-6 text-[var(--rd-ink-2)]">
-                      {answerSummary(tip.answer)}
+                      {answerSummary(tipSummary(tip))}
                     </p>
                     <div className="mt-3 flex items-center justify-between gap-2 text-[12px] font-bold text-[var(--rd-ink-3)]">
                       <span className="flex items-center gap-1">
@@ -166,16 +195,21 @@ function FeedContent() {
               {selected ? (
                 <>
                   <div className="mt-4 flex flex-wrap items-center gap-2">
-                    <span className="rd-pill">#{selected.category.split('/').pop()}</span>
+                    <span className="rd-pill">#{categoryLabel(selected.category)}</span>
                     <span className="flex items-center gap-1 text-[12px] font-bold text-[var(--rd-ink-3)]">
                       <Eye size={13} />
                       {selected.viewCount.toLocaleString('ko-KR')}
                     </span>
                   </div>
                   <h2 className="mt-4 text-[23px] font-extrabold leading-9">{selected.question}</h2>
-                  <p className="mt-5 whitespace-pre-wrap text-[15px] font-semibold leading-8 text-[var(--rd-ink-2)]">
-                    {selected.answer}
-                  </p>
+                  <div className="mt-5 rounded-2xl bg-[var(--rd-line-2)] p-5">
+                    <div className="text-[12px] font-extrabold tracking-[0.08em] text-[var(--rd-blue)]">핵심 요약</div>
+                    <div className="mt-3 space-y-3 text-[15px] font-semibold leading-8 text-[var(--rd-ink-2)]">
+                      {summaryParagraphs(tipSummary(selected)).map((paragraph, index) => (
+                        <p key={`${selected.id}-${index}`}>{paragraph}</p>
+                      ))}
+                    </div>
+                  </div>
                   {selected.sourceUrl && (
                     <a
                       href={selected.sourceUrl}

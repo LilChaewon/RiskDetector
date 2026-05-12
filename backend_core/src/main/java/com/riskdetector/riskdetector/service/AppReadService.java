@@ -12,8 +12,11 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.util.StringUtils;
 
+import java.util.Collections;
 import java.util.List;
 import java.util.Objects;
+import java.util.Set;
+import java.util.stream.Collectors;
 
 @Service
 @RequiredArgsConstructor
@@ -43,9 +46,10 @@ public class AppReadService {
                 .filter(c -> c.maxWarnLevel() >= 3)
                 .count();
 
-        List<LegalTipResponse> featured = legalTipRepository.findTop5ByOrderByViewCountDescCreatedAtDesc()
-                .stream()
-                .map(t -> toTipResponse(t, scope))
+        List<LegalTip> featuredTips = legalTipRepository.findTop5ByOrderByViewCountDescCreatedAtDesc();
+        Set<Long> featuredBookmarkIds = bookmarkedTipIds(featuredTips, scope);
+        List<LegalTipResponse> featured = featuredTips.stream()
+                .map(t -> toTipResponse(t, featuredBookmarkIds.contains(t.getId())))
                 .toList();
 
         return new DashboardResponse(
@@ -83,8 +87,14 @@ public class AppReadService {
     @Transactional(readOnly = true)
     public Page<LegalTipResponse> getTips(String email, String guestSessionId, String category, String q, int page, int size) {
         Scope scope = scope(email, guestSessionId);
-        return legalTipRepository.search(nullToBlank(category), nullToBlank(q), PageRequest.of(page, size))
-                .map(t -> toTipResponse(t, scope));
+        Page<LegalTip> tipPage = legalTipRepository.search(nullToBlank(category), nullToBlank(q), PageRequest.of(page, size));
+        Set<Long> bookmarkedIds = bookmarkedTipIds(tipPage.getContent(), scope);
+        return tipPage.map(t -> toTipResponse(t, bookmarkedIds.contains(t.getId())));
+    }
+
+    @Transactional(readOnly = true)
+    public List<String> getTipCategories() {
+        return legalTipRepository.findDistinctCategories();
     }
 
     @Transactional
@@ -188,15 +198,42 @@ public class AppReadService {
     }
 
     private LegalTipResponse toTipResponse(LegalTip tip, Scope scope) {
+        return toTipResponse(tip, isBookmarked(tip.getId(), scope));
+    }
+
+    private LegalTipResponse toTipResponse(LegalTip tip, boolean bookmarked) {
         return new LegalTipResponse(
                 tip.getId(),
                 tip.getCategory(),
                 tip.getQuestion(),
+                nullToBlank(tip.getSummary()),
                 tip.getAnswer(),
                 tip.getSourceUrl(),
                 tip.getViewCount() == null ? 0L : tip.getViewCount(),
-                isBookmarked(tip.getId(), scope)
+                bookmarked
         );
+    }
+
+    private Set<Long> bookmarkedTipIds(List<LegalTip> tips, Scope scope) {
+        if (tips.isEmpty()) return Collections.emptySet();
+
+        List<Long> tipIds = tips.stream()
+                .map(LegalTip::getId)
+                .filter(Objects::nonNull)
+                .toList();
+        if (tipIds.isEmpty()) return Collections.emptySet();
+
+        if (scope.email() != null) {
+            return legalTipBookmarkRepository.findBookmarkedTipIdsByUserEmail(tipIds, scope.email())
+                    .stream()
+                    .collect(Collectors.toSet());
+        }
+        if (scope.guestSessionId() != null) {
+            return legalTipBookmarkRepository.findBookmarkedTipIdsByGuestSessionId(tipIds, scope.guestSessionId())
+                    .stream()
+                    .collect(Collectors.toSet());
+        }
+        return Collections.emptySet();
     }
 
     private long countBookmarks(Scope scope) {
