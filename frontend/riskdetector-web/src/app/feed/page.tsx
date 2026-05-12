@@ -1,6 +1,6 @@
 'use client';
 
-import { Suspense, useEffect, useMemo, useState } from 'react';
+import { Suspense, useEffect, useMemo, useRef, useState } from 'react';
 import { useSearchParams } from 'next/navigation';
 import { Bookmark, BookmarkCheck, Eye, Loader2, Search } from 'lucide-react';
 import AppShell from '@/components/AppShell';
@@ -14,10 +14,12 @@ function FeedContent() {
   const [active, setActive] = useState('전체');
   const [q, setQ] = useState('');
   const [tips, setTips] = useState<LegalTip[]>([]);
-  const [preview, setPreview] = useState<LegalTip | null>(null);
+  const [selectedId, setSelectedId] = useState<number | null>(null);
   const [loading, setLoading] = useState(true);
+  const answerRef = useRef<HTMLElement | null>(null);
 
   const selectedTipId = searchParams.get('tip');
+  const routeSelectedId = selectedTipId ? Number(selectedTipId) : null;
 
   useEffect(() => {
     getTips({
@@ -31,9 +33,27 @@ function FeedContent() {
   }, [active, q]);
 
   const selected = useMemo(
-    () => preview || tips.find((tip) => String(tip.id) === selectedTipId) || tips[0],
-    [preview, selectedTipId, tips]
+    () => tips.find((tip) => tip.id === selectedId)
+      || tips.find((tip) => tip.id === routeSelectedId)
+      || tips[0],
+    [routeSelectedId, selectedId, tips]
   );
+
+  function answerSummary(answer: string) {
+    return answer.replace(/\s+/g, ' ').trim().slice(0, 84);
+  }
+
+  function scrollToAnswer() {
+    window.requestAnimationFrame(() => {
+      answerRef.current?.scrollIntoView({ behavior: 'smooth', block: 'start' });
+    });
+  }
+
+  function selectTip(tip: LegalTip, forceScroll = false) {
+    setSelectedId(tip.id);
+    const mobileLayout = typeof window !== 'undefined' && window.matchMedia('(max-width: 1023px)').matches;
+    if (forceScroll || mobileLayout) scrollToAnswer();
+  }
 
   async function toggleBookmark(tip: LegalTip) {
     const updated = tip.bookmarked ? await unbookmarkTip(tip.id) : await bookmarkTip(tip.id);
@@ -80,16 +100,16 @@ function FeedContent() {
           <button
             type="button"
             onClick={() => {
-              if (selected) setPreview(selected);
-              document.getElementById('tip-list')?.scrollIntoView({ behavior: 'smooth', block: 'start' });
+              const recommended = tips[0] || selected;
+              if (recommended) selectTip(recommended, true);
             }}
             className="rd-btn rd-btn-white"
           >
-            읽기
+            추천 질문 보기
           </button>
         </section>
 
-        <div className="mt-7 grid gap-4 lg:grid-cols-[minmax(0,1fr)_360px]">
+        <div className="mt-7 grid gap-4 lg:grid-cols-[minmax(320px,520px)_minmax(0,1fr)]">
           <section id="tip-list">
             <div className="mb-3 flex items-center justify-between">
               <h2 className="text-[17px] font-extrabold">많이 본 질문</h2>
@@ -100,11 +120,18 @@ function FeedContent() {
                 <Loader2 className="animate-spin text-[var(--rd-blue)]" />
               </div>
             ) : (
-              <div className="grid gap-3 md:grid-cols-2">
+              <div className="grid gap-3">
                 {tips.map((tip) => (
-                  <article key={tip.id} className="rd-card rd-card-hover p-5" onClick={() => setPreview(tip)}>
-                    <div className="flex items-center justify-between gap-2">
-                      <span className="rd-pill">#{tip.category.split('/').pop()}</span>
+                  <article
+                    key={tip.id}
+                    className={`rd-card rd-card-hover cursor-pointer p-4 transition ${selected?.id === tip.id ? 'border-[var(--rd-blue)] bg-[var(--rd-blue-soft)] shadow-[0_0_0_3px_rgba(27,100,218,0.12)]' : ''}`}
+                    onClick={() => selectTip(tip)}
+                  >
+                    <div className="flex items-start justify-between gap-3">
+                      <div className="min-w-0">
+                        <span className="rd-pill">#{tip.category.split('/').pop()}</span>
+                        <h3 className="mt-3 text-[15px] font-extrabold leading-6">{tip.question}</h3>
+                      </div>
                       <button
                         type="button"
                         onClick={(event) => {
@@ -117,13 +144,15 @@ function FeedContent() {
                         {tip.bookmarked ? <BookmarkCheck size={17} /> : <Bookmark size={17} />}
                       </button>
                     </div>
-                    <h3 className="mt-3 text-[15px] font-extrabold leading-6">{tip.question}</h3>
-                    <p className="mt-2 line-clamp-3 text-[13px] font-medium leading-6 text-[var(--rd-ink-2)]">
-                      {tip.answer}
+                    <p className="mt-2 line-clamp-1 text-[13px] font-semibold leading-6 text-[var(--rd-ink-2)]">
+                      {answerSummary(tip.answer)}
                     </p>
-                    <div className="mt-3 flex items-center gap-1 text-[12px] font-bold text-[var(--rd-ink-3)]">
-                      <Eye size={13} />
-                      {tip.viewCount.toLocaleString('ko-KR')}
+                    <div className="mt-3 flex items-center justify-between gap-2 text-[12px] font-bold text-[var(--rd-ink-3)]">
+                      <span className="flex items-center gap-1">
+                        <Eye size={13} />
+                        {tip.viewCount.toLocaleString('ko-KR')}
+                      </span>
+                      <span>{selected?.id === tip.id ? '선택됨' : '답변 보기'}</span>
                     </div>
                   </article>
                 ))}
@@ -131,13 +160,20 @@ function FeedContent() {
             )}
           </section>
 
-          <aside className="hidden lg:block">
-            <div className="rd-card sticky top-7 p-5">
-              <div className="rd-section-label">미리보기</div>
+          <aside ref={answerRef}>
+            <div className="rd-card sticky top-7 p-5 lg:p-7">
+              <div className="rd-section-label">답변 보기</div>
               {selected ? (
                 <>
-                  <h2 className="mt-3 text-[19px] font-extrabold leading-7">{selected.question}</h2>
-                  <p className="mt-3 max-h-[420px] overflow-auto text-[13px] font-medium leading-7 text-[var(--rd-ink-2)]">
+                  <div className="mt-4 flex flex-wrap items-center gap-2">
+                    <span className="rd-pill">#{selected.category.split('/').pop()}</span>
+                    <span className="flex items-center gap-1 text-[12px] font-bold text-[var(--rd-ink-3)]">
+                      <Eye size={13} />
+                      {selected.viewCount.toLocaleString('ko-KR')}
+                    </span>
+                  </div>
+                  <h2 className="mt-4 text-[23px] font-extrabold leading-9">{selected.question}</h2>
+                  <p className="mt-5 whitespace-pre-wrap text-[15px] font-semibold leading-8 text-[var(--rd-ink-2)]">
                     {selected.answer}
                   </p>
                   {selected.sourceUrl && (
@@ -152,7 +188,7 @@ function FeedContent() {
                   )}
                 </>
               ) : (
-                <p className="mt-3 text-[13px] font-medium text-[var(--rd-ink-2)]">팁을 선택하면 자세히 볼 수 있어요.</p>
+                <p className="mt-3 text-[13px] font-medium text-[var(--rd-ink-2)]">질문을 선택하면 답변을 크게 볼 수 있어요.</p>
               )}
             </div>
           </aside>
