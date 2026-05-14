@@ -15,6 +15,7 @@ import {
   type LucideIcon,
 } from 'lucide-react';
 import AppShell from '@/components/AppShell';
+import AuthChoiceDialog from '@/components/AuthChoiceDialog';
 import RiskTag from '@/components/RiskTag';
 import { getDashboard, getTips } from '@/api/app';
 import type { DashboardResponse, LegalTip } from '@/types/api';
@@ -41,8 +42,9 @@ export default function MyPage() {
   const [activeSection, setActiveSection] = useState<SectionKey>('history');
   const [analysisNotice, setAnalysisNotice] = useState(() => getSavedNotice('rdAnalysisNotice', true));
   const [tipNotice, setTipNotice] = useState(() => getSavedNotice('rdTipNotice', false));
+  const [authDialogOpen, setAuthDialogOpen] = useState(false);
 
-  useEffect(() => {
+  function loadMyData() {
     getDashboard()
       .then(setDashboard)
       .catch((err) => console.error('profile dashboard load failed:', err));
@@ -50,6 +52,10 @@ export default function MyPage() {
     getTips({ size: 100 })
       .then((page) => setBookmarkedTips(page.content.filter((tip) => tip.bookmarked)))
       .catch((err) => console.error('bookmarked tips load failed:', err));
+  }
+
+  useEffect(() => {
+    loadMyData();
   }, []);
 
   const user = dashboard?.user;
@@ -75,13 +81,22 @@ export default function MyPage() {
     localStorage.setItem('rdTipNotice', String(checked));
   }
 
+  function openAuthDialogIfGuest() {
+    if (user?.guest === false) return;
+    setAuthDialogOpen(true);
+  }
+
   return (
     <AppShell>
       <div className="rd-narrow">
         <div className="rd-section-label">내 정보</div>
         <h1 className="mt-1 text-[29px] font-extrabold tracking-tight">계정 · 설정</h1>
 
-        <section className="rd-card mt-5 flex items-center gap-4 p-5">
+        <button
+          type="button"
+          onClick={openAuthDialogIfGuest}
+          className="rd-card mt-5 flex w-full items-center gap-4 p-5 text-left transition hover:border-[var(--rd-blue)]"
+        >
           {user?.picture ? (
             <Image
               src={user.picture}
@@ -102,7 +117,10 @@ export default function MyPage() {
               {user?.email || '로그인 없이 둘러보는 중'}
             </div>
           </div>
-        </section>
+          {user?.guest !== false && (
+            <span className="shrink-0 text-[12px] font-extrabold text-[var(--rd-blue)]">로그인</span>
+          )}
+        </button>
 
         <section className="mt-3 grid grid-cols-3 gap-3">
           {statCards.map(({ label, value, icon: Icon }) => (
@@ -246,6 +264,15 @@ export default function MyPage() {
 
         <div className="mt-6 text-center text-[11px] font-bold text-[var(--rd-ink-3)]">RD · PWA v1.0.0</div>
       </div>
+      {authDialogOpen && (
+        <AuthChoiceDialog
+          onClose={() => setAuthDialogOpen(false)}
+          onComplete={() => {
+            setAuthDialogOpen(false);
+            loadMyData();
+          }}
+        />
+      )}
     </AppShell>
   );
 }

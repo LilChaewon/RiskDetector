@@ -13,6 +13,7 @@ import {
   Plus,
   User,
 } from 'lucide-react';
+import AuthChoiceDialog from '@/components/AuthChoiceDialog';
 
 const navItems = [
   { href: '/', label: '홈', icon: Home },
@@ -32,18 +33,29 @@ export default function AppShell({ children }: { children: React.ReactNode }) {
   const pathname = usePathname();
   const router = useRouter();
   const [isLoggedIn, setIsLoggedIn] = useState(false);
+  const [showInitialAuth, setShowInitialAuth] = useState(false);
 
   useEffect(() => {
     const syncLoginState = () => {
       const token = localStorage.getItem('accessToken');
       const loginFlag = localStorage.getItem('isLoggedIn') === 'true';
+      const authChoiceSeen = sessionStorage.getItem('rdAuthChoiceSeen') === 'true';
+      const shouldAskAuthChoice = !authChoiceSeen && !loginFlag && pathname !== '/login' && pathname !== '/oauth2/callback';
+
       setIsLoggedIn(loginFlag || Boolean(token && token !== 'guest'));
+      setShowInitialAuth(shouldAskAuthChoice);
     };
 
     syncLoginState();
     window.addEventListener('storage', syncLoginState);
     return () => window.removeEventListener('storage', syncLoginState);
   }, [pathname]);
+
+  function completeInitialAuth() {
+    sessionStorage.setItem('rdAuthChoiceSeen', 'true');
+    setShowInitialAuth(false);
+    setIsLoggedIn(false);
+  }
 
   async function logout() {
     await fetch(`${apiBase}/auth/logout`, {
@@ -138,6 +150,8 @@ export default function AppShell({ children }: { children: React.ReactNode }) {
           );
         })}
       </nav>
+
+      {showInitialAuth && <AuthChoiceDialog required onComplete={completeInitialAuth} />}
     </div>
   );
 }
