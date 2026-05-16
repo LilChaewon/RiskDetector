@@ -304,20 +304,18 @@ button {
   inset: 0;
   z-index: 80;
   display: flex;
-  align-items: flex-end;
+  align-items: stretch;
   background: rgba(15, 23, 42, 0.28);
-  backdrop-filter: blur(8px);
 }
 
 .rd-mobile-sheet {
   position: relative;
   width: 100%;
-  max-height: 82vh;
+  height: 100%;
   overflow: auto;
-  border-radius: 24px 24px 0 0;
+  border-radius: 0;
   background: #fff;
   padding: 18px 16px calc(18px + env(safe-area-inset-bottom));
-  box-shadow: 0 -16px 40px rgba(15, 23, 42, 0.18);
 }
 
 .rd-mobile-top {
