@@ -586,7 +586,7 @@ function ClauseContext({ toxic, advice, onClear }: { toxic?: Toxic; advice?: str
   }
 
   const parsedReference = splitReasonReference(toxic.reasonReference);
-  const adviceText = toxic.suggestion || parsedReference.suggestion || '';
+  const adviceText = toxic.suggestion || parsedReference.suggestion;
 
   return (
     <div className="rd-context-detail">
@@ -619,12 +619,12 @@ function ClauseContext({ toxic, advice, onClear }: { toxic?: Toxic; advice?: str
         </div>
       )}
 
-      {adviceText && (
-        <div className="mt-3 rounded-2xl bg-[var(--rd-blue-soft)] p-4">
-          <div className="text-[12px] font-extrabold tracking-[0.06em] text-[var(--rd-blue)]">AFTER</div>
-          <div className="mt-2 whitespace-pre-wrap text-[14px] font-bold leading-7">{adviceText}</div>
+      <div className="mt-3 rounded-2xl bg-[var(--rd-blue-soft)] p-4">
+        <div className="text-[12px] font-extrabold tracking-[0.06em] text-[var(--rd-blue)]">AFTER</div>
+        <div className="mt-2 whitespace-pre-wrap text-[14px] font-bold leading-7">
+          {adviceText || '수정 제안이 준비되지 않았습니다.'}
         </div>
-      )}
+      </div>
 
       {parsedReference.reference && (
         <div className="mt-6">
