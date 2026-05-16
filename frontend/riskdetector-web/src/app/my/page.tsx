@@ -55,6 +55,21 @@ export default function MyPage() {
   }
 
   useEffect(() => {
+    const cachedName = localStorage.getItem('userName');
+    const isLoggedIn = localStorage.getItem('isLoggedIn') === 'true';
+    if (cachedName && isLoggedIn) {
+      setDashboard((prev) => ({
+        user: {
+          name: cachedName,
+          email: localStorage.getItem('userEmail'),
+          picture: localStorage.getItem('userPicture'),
+          guest: false,
+        },
+        stats: prev?.stats ?? { totalContracts: 0, completedAnalyses: 0, bookmarkCount: 0, highRiskContracts: 0 },
+        recentContracts: prev?.recentContracts ?? [],
+        featuredTips: prev?.featuredTips ?? [],
+      }));
+    }
     loadMyData();
   }, []);
 
