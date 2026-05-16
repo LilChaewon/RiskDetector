@@ -553,17 +553,9 @@ function AnalysisResultContent() {
         </div>
       </div>
       {mobileContextOpen && selected && (
-        <div className="rd-mobile-sheet-backdrop lg:hidden" onClick={() => setMobileContextOpen(false)}>
+        <div className="rd-mobile-sheet-backdrop lg:hidden" onClick={() => { setMobileContextOpen(false); setSelectedIndex(null); }}>
           <div className="rd-mobile-sheet" onClick={(event) => event.stopPropagation()}>
-            <button
-              type="button"
-              className="absolute right-5 top-5 rounded-full p-2 text-[var(--rd-ink-3)] hover:bg-[var(--rd-line-2)]"
-              onClick={() => setMobileContextOpen(false)}
-              aria-label="닫기"
-            >
-              <X size={18} />
-            </button>
-            <ClauseContext toxic={selected} advice={data.riskdetectorCommentary?.advice} onClear={() => setSelectedIndex(null)} />
+            <ClauseContext toxic={selected} advice={data.riskdetectorCommentary?.advice} onClear={() => { setSelectedIndex(null); setMobileContextOpen(false); }} />
           </div>
         </div>
       )}
@@ -594,7 +586,7 @@ function ClauseContext({ toxic, advice, onClear }: { toxic?: Toxic; advice?: str
   }
 
   const parsedReference = splitReasonReference(toxic.reasonReference);
-  const adviceText = toxic.suggestion || parsedReference.suggestion || firstAdvice(advice) || '불리한 범위와 기준을 구체적으로 줄이고, 상호 협의 조항을 추가하는 방향으로 수정하는 것이 좋습니다.';
+  const adviceText = toxic.suggestion || parsedReference.suggestion || '';
 
   return (
     <div className="rd-context-detail">
@@ -627,10 +619,12 @@ function ClauseContext({ toxic, advice, onClear }: { toxic?: Toxic; advice?: str
         </div>
       )}
 
-      <div className="mt-3 rounded-2xl bg-[var(--rd-blue-soft)] p-4">
-        <div className="text-[12px] font-extrabold tracking-[0.06em] text-[var(--rd-blue)]">AFTER</div>
-        <div className="mt-2 whitespace-pre-wrap text-[14px] font-bold leading-7">{adviceText}</div>
-      </div>
+      {adviceText && (
+        <div className="mt-3 rounded-2xl bg-[var(--rd-blue-soft)] p-4">
+          <div className="text-[12px] font-extrabold tracking-[0.06em] text-[var(--rd-blue)]">AFTER</div>
+          <div className="mt-2 whitespace-pre-wrap text-[14px] font-bold leading-7">{adviceText}</div>
+        </div>
+      )}
 
       {parsedReference.reference && (
         <div className="mt-6">
