@@ -43,6 +43,7 @@ public class AnalysisResultResponse {
         private String clause;
         private String reason;
         private String reasonReference;
+        private String suggestion;
         private Integer sourceContractTagIdx;
         private Integer warnLevel;
     }
@@ -90,6 +91,7 @@ public class AnalysisResultResponse {
                                 .clause(t.getClause())
                                 .reason(t.getReason())
                                 .reasonReference(t.getReasonReference())
+                                .suggestion(t.getSuggestion())
                                 .sourceContractTagIdx(t.getSourceContractTagIdx())
                                 .warnLevel(t.getWarnLevel())
                                 .build())
