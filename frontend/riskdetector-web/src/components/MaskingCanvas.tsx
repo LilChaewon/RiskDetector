@@ -1,6 +1,7 @@
 'use client';
 
 import { useRef, useState, useEffect, useCallback } from 'react';
+import { RotateCcw, Trash2 } from 'lucide-react';
 
 interface Props {
     imageFile: File;
@@ -16,7 +17,6 @@ export default function MaskingCanvas({ imageFile, onMaskingComplete }: Props) {
     const [startPos, setStartPos] = useState({ x: 0, y: 0 });
     const [masks, setMasks] = useState<Rect[]>([]);
 
-    // 화면 그리기 함수 (이미지 + 마스크들 + 드래그 미리보기)
     const drawAll = useCallback((img: HTMLImageElement, maskList: Rect[], previewRect?: Rect) => {
         const canvas = canvasRef.current;
         if (!canvas) return;
@@ -34,9 +34,8 @@ export default function MaskingCanvas({ imageFile, onMaskingComplete }: Props) {
         }
     }, []);
 
-    // 1. 이미지 로드 및 캔버스 초기화 (이미지가 화면에 보임)
     useEffect(() => {
-        setMasks([]); // 새 이미지로 전환할 때 이전 마스크 좌표 초기화
+        setMasks([]);
         const img = new Image();
         const url = URL.createObjectURL(imageFile);
         img.src = url;
@@ -44,17 +43,13 @@ export default function MaskingCanvas({ imageFile, onMaskingComplete }: Props) {
             setImage(img);
             const canvas = canvasRef.current;
             if (!canvas) return;
-
-            // 캔버스 해상도를 이미지 원본 크기에 맞춤 (화질 유지)
             canvas.width = img.width;
             canvas.height = img.height;
-
             drawAll(img, []);
         };
         return () => URL.revokeObjectURL(url);
     }, [imageFile, drawAll]);
 
-    // 좌표 계산 (캔버스 크기가 줄어들어도 정확한 위치 계산)
     function getPos(e: React.PointerEvent<HTMLCanvasElement>) {
         const canvas = canvasRef.current!;
         const rect = canvas.getBoundingClientRect();
@@ -70,7 +65,7 @@ export default function MaskingCanvas({ imageFile, onMaskingComplete }: Props) {
         e.currentTarget.setPointerCapture(e.pointerId);
         setIsDrawing(true);
         setStartPos(getPos(e));
-    }
+    };
 
     const onPointerMove = (e: React.PointerEvent<HTMLCanvasElement>) => {
         if (!isDrawing || !image) return;
@@ -79,10 +74,10 @@ export default function MaskingCanvas({ imageFile, onMaskingComplete }: Props) {
             x: Math.min(startPos.x, pos.x),
             y: Math.min(startPos.y, pos.y),
             w: Math.abs(startPos.x - pos.x),
-            h: Math.abs(startPos.y - pos.y)
+            h: Math.abs(startPos.y - pos.y),
         };
-        drawAll(image, masks, rect); // 실시간 드래그 박스 표시
-    }
+        drawAll(image, masks, rect);
+    };
 
     const onPointerUp = (e: React.PointerEvent<HTMLCanvasElement>) => {
         if (!isDrawing || !image) return;
@@ -93,10 +88,8 @@ export default function MaskingCanvas({ imageFile, onMaskingComplete }: Props) {
             x: Math.min(startPos.x, pos.x),
             y: Math.min(startPos.y, pos.y),
             w: Math.abs(startPos.x - pos.x),
-            h: Math.abs(startPos.y - pos.y)
+            h: Math.abs(startPos.y - pos.y),
         };
-
-        // 너무 작지 않은 박스만 추가 (실수 방지)
         if (rect.w > 2 && rect.h > 2) {
             const newMasks = [...masks, rect];
             setMasks(newMasks);
@@ -104,35 +97,49 @@ export default function MaskingCanvas({ imageFile, onMaskingComplete }: Props) {
         } else {
             drawAll(image, masks);
         }
+    };
+
+    function undoLastMask() {
+        const newMasks = masks.slice(0, -1);
+        setMasks(newMasks);
+        if (image) drawAll(image, newMasks);
     }
 
-    // "다시 그리기" → 전부 초기화
     function clearMasks() {
         setMasks([]);
         if (image) drawAll(image, []);
     }
 
-    // "마스킹 완료" → 파일로 추출해서 넘기기
     function exportMasked() {
         const canvas = canvasRef.current!;
         if (!image) return;
-        drawAll(image, masks); // 마지막으로 깔끔하게 다시 그림
-
+        drawAll(image, masks);
         canvas.toBlob((blob) => {
             if (!blob) return;
             const file = new File([blob], 'masked_contract.jpg', { type: 'image/jpeg' });
-            onMaskingComplete(file); // 부모에게 전달
+            onMaskingComplete(file);
         }, 'image/jpeg', 0.95);
     }
 
     return (
-        <div className="flex flex-col gap-4">
-            <p className="text-sm text-gray-300 font-medium">개인정보(이름, 전화번호 등)를 드래그해서 가려주세요.</p>
+        <div className="flex w-full flex-col gap-4 p-4">
+            {/* 안내 & 마스킹 개수 */}
+            <div className="flex items-center justify-between">
+                <p className="text-[13px] font-semibold text-white/60">
+                    드래그해서 가릴 영역을 선택하세요
+                </p>
+                {masks.length > 0 && (
+                    <span className="rounded-full bg-white/15 px-3 py-1 text-[12px] font-bold text-white">
+                        {masks.length}개 가려짐
+                    </span>
+                )}
+            </div>
 
-            <div className="border-2 border-gray-200 rounded-xl overflow-hidden bg-gray-50 shadow-inner">
+            {/* 캔버스 */}
+            <div className="overflow-hidden rounded-2xl ring-1 ring-white/10">
                 <canvas
                     ref={canvasRef}
-                    className="max-w-full h-auto cursor-crosshair touch-none block mx-auto"
+                    className="block h-auto max-h-[52vh] w-full cursor-crosshair touch-none"
                     onPointerDown={onPointerDown}
                     onPointerMove={onPointerMove}
                     onPointerUp={onPointerUp}
@@ -140,20 +147,36 @@ export default function MaskingCanvas({ imageFile, onMaskingComplete }: Props) {
                 />
             </div>
 
-            <div className="flex gap-3">
+            {/* 보조 버튼 */}
+            <div className="flex gap-2">
                 <button
-                    onClick={clearMasks}
-                    className="flex-1 bg-white border border-gray-300 py-3 rounded-xl text-gray-700 font-bold hover:bg-gray-50"
+                    type="button"
+                    onClick={undoLastMask}
+                    disabled={masks.length === 0}
+                    className="flex flex-1 items-center justify-center gap-2 rounded-xl border border-white/20 bg-white/10 py-3 text-[14px] font-bold text-white transition hover:bg-white/20 disabled:opacity-30"
                 >
-                    다시 그리기
+                    <RotateCcw size={15} />
+                    되돌리기
                 </button>
                 <button
-                    onClick={exportMasked}
-                    className="flex-1 bg-[#1b64da] text-white py-3 rounded-xl font-bold hover:bg-[#0b3d91] shadow-md"
+                    type="button"
+                    onClick={clearMasks}
+                    disabled={masks.length === 0}
+                    className="flex flex-1 items-center justify-center gap-2 rounded-xl border border-white/20 bg-white/10 py-3 text-[14px] font-bold text-white transition hover:bg-white/20 disabled:opacity-30"
                 >
-                    마스킹 완료
+                    <Trash2 size={15} />
+                    전체 지우기
                 </button>
             </div>
+
+            {/* 완료 버튼 */}
+            <button
+                type="button"
+                onClick={exportMasked}
+                className="w-full rounded-xl bg-[#1b64da] py-4 text-[15px] font-extrabold text-white shadow-lg transition hover:bg-[#1452b8]"
+            >
+                마스킹 완료
+            </button>
         </div>
     );
 }
