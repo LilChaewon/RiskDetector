@@ -8,12 +8,19 @@ import org.springframework.http.ResponseEntity;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.web.bind.annotation.*;
 
+import java.util.List;
+
 @RestController
 @RequestMapping("/api/tips")
 @RequiredArgsConstructor
 public class LegalTipController {
 
     private final AppReadService appReadService;
+
+    @GetMapping("/categories")
+    public ResponseEntity<List<String>> getCategories() {
+        return ResponseEntity.ok(appReadService.getTipCategories());
+    }
 
     @GetMapping
     public ResponseEntity<Page<LegalTipResponse>> getTips(

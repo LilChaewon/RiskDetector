@@ -28,11 +28,11 @@ public class ToxicClause {
     @Column(columnDefinition = "TEXT")
     private String reason;
 
-    @Column(columnDefinition = "TEXT")
-    private String suggestion;
-
     @Column(name = "reason_reference", columnDefinition = "TEXT")
     private String reasonReference;
+
+    @Column(columnDefinition = "TEXT")
+    private String suggestion;
 
     @Column(name = "source_contract_tag_idx")
     private Integer sourceContractTagIdx;
@@ -45,14 +45,15 @@ public class ToxicClause {
 
     @Builder
     public ToxicClause(String id, ContractAnalysis analysis, String title, String clause,
-                       String reason, String suggestion, String reasonReference, Integer sourceContractTagIdx, Integer warnLevel) {
+                       String reason, String reasonReference, String suggestion,
+                       Integer sourceContractTagIdx, Integer warnLevel) {
         this.id = id;
         this.analysis = analysis;
         this.title = title;
         this.clause = clause;
         this.reason = reason;
-        this.suggestion = suggestion;
         this.reasonReference = reasonReference;
+        this.suggestion = suggestion;
         this.sourceContractTagIdx = sourceContractTagIdx;
         this.warnLevel = warnLevel;
         this.createdAt = LocalDateTime.now();

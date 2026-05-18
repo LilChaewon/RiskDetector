@@ -104,6 +104,7 @@ export interface LegalTip {
     id: number;
     category: string;
     question: string;
+    summary?: string;
     answer: string;
     sourceUrl: string;
     viewCount: number;

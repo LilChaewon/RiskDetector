@@ -23,6 +23,10 @@ export function getTips(params: { category?: string; q?: string; page?: number; 
   return apiFetch<PageResponse<LegalTip>>(`/tips?${query.toString()}`, { method: 'GET' });
 }
 
+export function getTipCategories() {
+  return apiFetch<string[]>('/tips/categories', { method: 'GET' });
+}
+
 export function getTip(id: number) {
   return apiFetch<LegalTip>(`/tips/${id}`, { method: 'GET' });
 }

@@ -14,6 +14,7 @@ type OcrBlock = NonNullable<ContractAnalysisDTO['ocrBlocks']>[number];
 type FilterKey = 'all' | 'warning' | 'review' | 'safe';
 type ToxicMatch = { toxic: Toxic; toxicIndex: number };
 type HighlightRange = { start: number; end: number; toxic: Toxic; toxicIndex: number };
+const SUGGESTION_MARKER = '[RD_SUGGESTION]';
 
 function normalizeText(value: string) {
   return value.replace(/<[^>]+>/g, '').replace(/\s+/g, '');
@@ -35,6 +36,19 @@ function statusText(status: string) {
   return '분석 실패';
 }
 
+function splitReasonReference(value?: string) {
+  const raw = value || '';
+  const markerIndex = raw.indexOf(SUGGESTION_MARKER);
+  if (markerIndex < 0) {
+    return { reference: raw.trim(), suggestion: '' };
+  }
+
+  return {
+    reference: raw.slice(0, markerIndex).trim(),
+    suggestion: raw.slice(markerIndex + SUGGESTION_MARKER.length).trim(),
+  };
+}
+
 function buildAnalysisExportText(data: ContractAnalysisDTO) {
   const lines = [
     `계약서: ${data.title || '업로드된 계약서'}`,
@@ -50,14 +64,16 @@ function buildAnalysisExportText(data: ContractAnalysisDTO) {
   ].filter(Boolean);
 
   data.toxics.forEach((toxic, index) => {
+    const parsedReference = splitReasonReference(toxic.reasonReference);
+    const suggestion = toxic.suggestion || parsedReference.suggestion;
     lines.push(
       '',
       `${index + 1}. ${toxic.title || '독소조항'}`,
       `위험도: ${riskMeta(toxic.warnLevel).label}`,
       toxic.clause ? `원문: ${toxic.clause}` : '',
       toxic.reason ? `위험 이유: ${toxic.reason}` : '',
-      toxic.suggestion ? `수정 방향: ${toxic.suggestion}` : '',
-      toxic.reasonReference ? `근거: ${toxic.reasonReference}` : ''
+      suggestion ? `수정 방향: ${suggestion}` : '',
+      parsedReference.reference ? `근거: ${parsedReference.reference}` : ''
     );
   });
 
@@ -148,11 +164,54 @@ function findTextRange(text: string, needle: string) {
   return null;
 }
 
+function isSentenceBoundary(text: string, index: number) {
+  const char = text[index];
+  if (!char || !/[.!?。！？]/.test(char)) return false;
+
+  const prev = text[index - 1] || '';
+  const next = text[index + 1] || '';
+  const prevPrev = text[index - 2] || '';
+  if (char === '.' && /\d/.test(prev) && (/\d/.test(next) || /^\s$/.test(next))) {
+    const markerPrefix = index <= 1 || /[\n\s]/.test(prevPrev);
+    if (markerPrefix || /\d/.test(next)) return false;
+  }
+
+  return true;
+}
+
+function trimRangeWhitespace(text: string, start: number, end: number) {
+  let nextStart = start;
+  let nextEnd = end;
+  while (nextStart < nextEnd && /\s/.test(text[nextStart])) nextStart += 1;
+  while (nextEnd > nextStart && /\s/.test(text[nextEnd - 1])) nextEnd -= 1;
+  return { start: nextStart, end: nextEnd };
+}
+
+function expandRangeToSentence(text: string, range: { start: number; end: number }) {
+  let start = range.start;
+  let end = range.end;
+
+  for (let index = range.start - 1; index >= 0; index -= 1) {
+    if (isSentenceBoundary(text, index)) {
+      start = index + 1;
+      break;
+    }
+    start = index;
+  }
+
+  for (let index = range.end; index < text.length; index += 1) {
+    end = index + 1;
+    if (isSentenceBoundary(text, index)) break;
+  }
+
+  return trimRangeWhitespace(text, start, end);
+}
+
 function highlightRangeForToxic(text: string, toxic: Toxic, toxicIndex: number): HighlightRange | null {
   for (const candidate of meaningfulNeedleCandidates(toxic)) {
     if (normalizeText(candidate).length < 6) continue;
     const range = findTextRange(text, candidate);
-    if (range) return { ...range, toxic, toxicIndex };
+    if (range) return { ...expandRangeToSentence(text, range), toxic, toxicIndex };
   }
 
   const chunks = textChunks(toxic.clause || toxic.title || '', 18)
@@ -161,7 +220,7 @@ function highlightRangeForToxic(text: string, toxic: Toxic, toxicIndex: number):
 
   for (const chunk of chunks) {
     const range = findTextRange(text, chunk);
-    if (range) return { ...range, toxic, toxicIndex };
+    if (range) return { ...expandRangeToSentence(text, range), toxic, toxicIndex };
   }
 
   return null;
@@ -213,12 +272,6 @@ function filterMatches(filter: FilterKey, matches: ToxicMatch[]) {
   if (matches.length === 0) return false;
   if (filter === 'warning') return matches.some(({ toxic }) => (toxic.warnLevel || 0) >= 3);
   return matches.some(({ toxic }) => toxic.warnLevel === 2);
-}
-
-function shortText(value?: string, limit = 54) {
-  if (!value) return '';
-  const normalized = value.replace(/\s+/g, ' ').trim();
-  return normalized.length > limit ? `${normalized.slice(0, limit).trim()}...` : normalized;
 }
 
 function firstAdvice(value?: string) {
@@ -432,7 +485,7 @@ function AnalysisResultContent() {
                 </button>
                 <button type="button" onClick={exportAnalysisText} className="rd-btn">
                   <Sparkles size={15} />
-                  수정안 내보내기
+                  분석 리포트 내보내기
                 </button>
               </div>
             </div>
@@ -500,17 +553,9 @@ function AnalysisResultContent() {
         </div>
       </div>
       {mobileContextOpen && selected && (
-        <div className="rd-mobile-sheet-backdrop lg:hidden" onClick={() => setMobileContextOpen(false)}>
+        <div className="rd-mobile-sheet-backdrop lg:hidden" onClick={() => { setMobileContextOpen(false); setSelectedIndex(null); }}>
           <div className="rd-mobile-sheet" onClick={(event) => event.stopPropagation()}>
-            <button
-              type="button"
-              className="absolute right-5 top-5 rounded-full p-2 text-[var(--rd-ink-3)] hover:bg-[var(--rd-line-2)]"
-              onClick={() => setMobileContextOpen(false)}
-              aria-label="닫기"
-            >
-              <X size={18} />
-            </button>
-            <ClauseContext toxic={selected} advice={data.riskdetectorCommentary?.advice} onClear={() => setSelectedIndex(null)} />
+            <ClauseContext toxic={selected} advice={data.riskdetectorCommentary?.advice} onClear={() => { setSelectedIndex(null); setMobileContextOpen(false); }} />
           </div>
         </div>
       )}
@@ -540,7 +585,8 @@ function ClauseContext({ toxic, advice, onClear }: { toxic?: Toxic; advice?: str
     );
   }
 
-  const adviceText = toxic.suggestion || firstAdvice(advice) || '불리한 범위와 기준을 구체적으로 줄이고, 상호 협의 조항을 추가하는 방향으로 수정하는 것이 좋습니다.';
+  const parsedReference = splitReasonReference(toxic.reasonReference);
+  const adviceText = toxic.suggestion || parsedReference.suggestion;
 
   return (
     <div className="rd-context-detail">
@@ -569,39 +615,25 @@ function ClauseContext({ toxic, advice, onClear }: { toxic?: Toxic; advice?: str
       {toxic.clause && (
         <div className="mt-6 rounded-2xl bg-[var(--rd-risk-hi-bg)] p-4">
           <div className="text-[12px] font-extrabold tracking-[0.06em] text-[var(--rd-risk-hi)]">BEFORE</div>
-          <div className="mt-2 text-[14px] font-bold leading-7">{shortText(toxic.clause, 64)}</div>
+          <div className="mt-2 whitespace-pre-wrap text-[14px] font-bold leading-7">{toxic.clause}</div>
         </div>
       )}
 
       <div className="mt-3 rounded-2xl bg-[var(--rd-blue-soft)] p-4">
         <div className="text-[12px] font-extrabold tracking-[0.06em] text-[var(--rd-blue)]">AFTER</div>
-        <div className="mt-2 text-[14px] font-bold leading-7">{shortText(adviceText, 72)}</div>
+        <div className="mt-2 whitespace-pre-wrap text-[14px] font-bold leading-7">
+          {adviceText || '수정 제안이 준비되지 않았습니다.'}
+        </div>
       </div>
 
-      {toxic.reasonReference && (
+      {parsedReference.reference && (
         <div className="mt-6">
           <div className="text-[12px] font-extrabold text-[var(--rd-ink-3)]">관련 근거</div>
           <div className="mt-3 rounded-2xl border border-[var(--rd-line)] bg-white p-4">
-            <div className="text-[14px] font-extrabold leading-6">{shortText(toxic.reasonReference, 84)}</div>
+            <div className="whitespace-pre-wrap text-[14px] font-extrabold leading-6">{parsedReference.reference}</div>
           </div>
         </div>
       )}
-
-      <button
-        type="button"
-        className="rd-btn mt-5 w-full"
-        onClick={() => navigator.clipboard?.writeText(
-          [
-            toxic.title,
-            toxic.reason ? `위험 이유: ${toxic.reason}` : '',
-            toxic.reasonReference ? `근거: ${toxic.reasonReference}` : '',
-            adviceText ? `수정 방향: ${adviceText}` : '',
-          ].filter(Boolean).join('\n')
-        )}
-      >
-        <Sparkles size={15} />
-        상세 보기 · 전체 근거
-      </button>
     </div>
   );
 }

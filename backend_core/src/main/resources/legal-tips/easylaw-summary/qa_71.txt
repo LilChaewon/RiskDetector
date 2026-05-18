@@ -1,0 +1,9 @@
+질문: 인터넷을 통해 부동산등기신청을 하려고 합니다. 절차가 어떻게 되나요?
+
+요약: 인터넷을 통한 신청절차는 다음과 같습니다.
+<출처 : 인터넷등기소 홈페이지, 등기 신청, 신청관리, 전자신청 이용안내 및 절차보기>
+시중금융기관(증권 및 우체국 포함)을 통해 전자서명 인증서를 발급받아야 합니다.
+
+카테고리: 부동산/임대차
+
+원문URL: https://www.easylaw.go.kr/CSP/OnhunqueansInfoRetrieve.laf?onhunqnaAstSeq=84&onhunqueSeq=1950&curPage=9&sch=&pageType=20

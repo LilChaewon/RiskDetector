@@ -26,6 +26,9 @@ public class LegalTip {
     @Column(nullable = false, columnDefinition = "TEXT")
     private String question;
 
+    @Column(columnDefinition = "TEXT")
+    private String summary;
+
     @Column(nullable = false, columnDefinition = "TEXT")
     private String answer;
 
@@ -42,10 +45,11 @@ public class LegalTip {
     private LocalDateTime updatedAt;
 
     @Builder
-    public LegalTip(String sourceId, String category, String question, String answer, String sourceUrl, Long viewCount) {
+    public LegalTip(String sourceId, String category, String question, String summary, String answer, String sourceUrl, Long viewCount) {
         this.sourceId = sourceId;
         this.category = category;
         this.question = question;
+        this.summary = summary;
         this.answer = answer;
         this.sourceUrl = sourceUrl;
         this.viewCount = viewCount == null ? 0L : viewCount;
@@ -55,6 +59,15 @@ public class LegalTip {
 
     public void incrementViewCount() {
         this.viewCount = (this.viewCount == null ? 0L : this.viewCount) + 1L;
+        this.updatedAt = LocalDateTime.now();
+    }
+
+    public void updateFromSummaryDocument(String category, String question, String summary, String sourceUrl) {
+        this.category = category;
+        this.question = question;
+        this.summary = summary;
+        this.answer = summary;
+        this.sourceUrl = sourceUrl;
         this.updatedAt = LocalDateTime.now();
     }
 }
