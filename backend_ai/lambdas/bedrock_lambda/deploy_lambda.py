@@ -17,6 +17,7 @@ REGION = "ap-northeast-2"
 ENV_PATH = Path(__file__).with_name(".env")
 DEFAULT_FUNCTION_NAME = "detector_bedrock_lambda"
 DEFAULT_REFERENCE_FUNCTION_NAME = "detector_ocr_lambda"
+DEFAULT_RESULT_QUEUE_NAME = "detector-analysis-result-queue"
 
 
 def load_env_file() -> dict[str, str]:
@@ -69,6 +70,39 @@ def wait_until_function_ready(function_name: str, env: dict[str, str]) -> None:
     client = session.client("lambda")
     waiter = client.get_waiter("function_updated_v2")
     waiter.wait(FunctionName=function_name)
+
+
+def resolve_result_destination_arn(env: dict[str, str], values: dict[str, str]) -> str:
+    explicit_arn = values.get("ANALYSIS_RESULT_DESTINATION_ARN", "").strip()
+    if explicit_arn:
+        return explicit_arn
+
+    queue_name = values.get("ANALYSIS_RESULT_QUEUE_NAME", "").strip() or DEFAULT_RESULT_QUEUE_NAME
+    session = build_boto3_session(env)
+    sts = session.client("sts")
+    account_id = sts.get_caller_identity()["Account"]
+    region = env.get("AWS_REGION") or env.get("AWS_DEFAULT_REGION") or REGION
+    return f"arn:aws:sqs:{region}:{account_id}:{queue_name}"
+
+
+def configure_async_destination(function_name: str, env: dict[str, str], values: dict[str, str]) -> None:
+    mode = values.get("ANALYSIS_RESULT_LOADER_MODE", "").strip().lower()
+    if mode not in {"sqs", "destination"}:
+        return
+
+    destination_arn = resolve_result_destination_arn(env, values)
+    session = build_boto3_session(env)
+    client = session.client("lambda")
+    print(f"Configuring async destination for {function_name} -> {destination_arn}...")
+    client.put_function_event_invoke_config(
+        FunctionName=function_name,
+        MaximumRetryAttempts=0,
+        DestinationConfig={
+            "OnSuccess": {
+                "Destination": destination_arn,
+            }
+        },
+    )
 
 
 def ensure_function_exists(
@@ -148,6 +182,7 @@ def deploy() -> None:
         Environment=env_vars
     )
     wait_until_function_ready(function_name=function_name, env=env)
+    configure_async_destination(function_name=function_name, env=env, values=values)
 
     print(f"Deployment finished for {function_name} in {REGION}")
 
