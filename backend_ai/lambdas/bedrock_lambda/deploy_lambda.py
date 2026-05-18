@@ -108,10 +108,6 @@ def ensure_function_exists(
 
 
 def deploy() -> None:
-    aws_bin = shutil.which("aws")
-    if not aws_bin:
-        raise RuntimeError("AWS CLI is required to deploy this Lambda.")
-
     values = load_env_file()
     function_name = values.get("LAMBDA_FUNCTION_NAME", "").strip() or DEFAULT_FUNCTION_NAME
     zip_path = build_package()
@@ -122,7 +118,7 @@ def deploy() -> None:
             "LLM_PROVIDER": values.get("LLM_PROVIDER", "bedrock"),
             "BEDROCK_MODEL_ID": values.get("BEDROCK_MODEL_ID", ""),
             "BEDROCK_INFERENCE_PROFILE_ID": values.get("BEDROCK_INFERENCE_PROFILE_ID", ""),
-            "BEDROCK_RETRIEVAL_RESULT_COUNT": values.get("BEDROCK_RETRIEVAL_RESULT_COUNT", ""),
+            "BEDROCK_RETRIEVAL_RESULT_COUNT": str(values.get("BEDROCK_RETRIEVAL_RESULT_COUNT", "")),
             "GEMINI_API_KEY": values.get("GEMINI_API_KEY", ""),
             "GEMINI_MODEL_ID": values.get("GEMINI_MODEL_ID", ""),
             "GEMINI_FALLBACK_MODEL_ID": values.get("GEMINI_FALLBACK_MODEL_ID", ""),
@@ -134,37 +130,22 @@ def deploy() -> None:
 
     ensure_function_exists(function_name=function_name, zip_path=zip_path, env=env, env_vars=env_vars)
 
-    run(
-        [
-            aws_bin,
-            "lambda",
-            "update-function-code",
-            "--function-name",
-            function_name,
-            "--zip-file",
-            f"fileb://{zip_path}",
-            "--region",
-            REGION,
-        ],
-        env=env,
+    session = build_boto3_session(env)
+    client = session.client("lambda")
+
+    print(f"Updating function code for {function_name}...")
+    client.update_function_code(
+        FunctionName=function_name,
+        ZipFile=zip_path.read_bytes(),
+        Publish=True
     )
     wait_until_function_ready(function_name=function_name, env=env)
 
-    run(
-        [
-            aws_bin,
-            "lambda",
-            "update-function-configuration",
-            "--function-name",
-            function_name,
-            "--region",
-            REGION,
-            "--handler",
-            "lambdas.bedrock_lambda.handler.lambda_handler",
-            "--environment",
-            json.dumps(env_vars, ensure_ascii=False),
-        ],
-        env=env,
+    print(f"Updating function configuration for {function_name}...")
+    client.update_function_configuration(
+        FunctionName=function_name,
+        Handler="lambdas.bedrock_lambda.handler.lambda_handler",
+        Environment=env_vars
     )
     wait_until_function_ready(function_name=function_name, env=env)
 

@@ -15,7 +15,7 @@ import boto3
 
 
 ENV_PATH = Path(__file__).with_name(".env")
-DEFAULT_MODEL_ID = "anthropic.claude-3-5-sonnet-20241022-v2:0"
+DEFAULT_MODEL_ID = "anthropic.claude-sonnet-4-5-20250929-v1:0"
 DEFAULT_RETRIEVAL_RESULTS = 5
 DEFAULT_GEMINI_MODEL_ID = "gemini-1.5-pro"
 DEFAULT_GEMINI_RETRIES = 3
