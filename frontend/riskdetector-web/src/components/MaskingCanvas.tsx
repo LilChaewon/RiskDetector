@@ -36,6 +36,7 @@ export default function MaskingCanvas({ imageFile, onMaskingComplete }: Props) {
 
     // 1. 이미지 로드 및 캔버스 초기화 (이미지가 화면에 보임)
     useEffect(() => {
+        setMasks([]); // 새 이미지로 전환할 때 이전 마스크 좌표 초기화
         const img = new Image();
         const url = URL.createObjectURL(imageFile);
         img.src = url;
