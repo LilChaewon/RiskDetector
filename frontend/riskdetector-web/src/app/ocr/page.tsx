@@ -3,7 +3,7 @@
 import { Suspense, useEffect, useRef, useState } from 'react';
 import { useSearchParams, useRouter } from 'next/navigation';
 import DOMPurify from 'dompurify';
-import { Check, Edit3, EyeOff, FileText, Loader2, X } from 'lucide-react';
+import { Check, Edit3, EyeOff, FileText, Loader2, RotateCcw, X } from 'lucide-react';
 import AppShell from '@/components/AppShell';
 import { getOcrResult, startAnalysis, updateOcrBlock } from '@/api/contract';
 import type { ContractOcrHtml } from '@/types/api';
@@ -21,6 +21,7 @@ function OcrContent() {
   const [starting, setStarting] = useState(false);
   const [maskingMode, setMaskingMode] = useState(false);
   const [maskEditTexts, setMaskEditTexts] = useState<Record<string, string>>({});
+  const [maskOriginalTexts, setMaskOriginalTexts] = useState<Record<string, string>>({});
   const [maskingAll, setMaskingAll] = useState(false);
   const textareaRefs = useRef<Record<string, HTMLTextAreaElement>>({});
 
@@ -64,8 +65,13 @@ function OcrContent() {
       texts[item.id] = item.content.replace(/<[^>]+>/g, '');
     });
     setMaskEditTexts(texts);
+    setMaskOriginalTexts(texts);
     setEditingId(null);
     setMaskingMode(true);
+  }
+
+  function resetBlockMask(id: string) {
+    setMaskEditTexts((prev) => ({ ...prev, [id]: maskOriginalTexts[id] ?? '' }));
   }
 
   function applyMaskToSelection(id: string) {
@@ -97,6 +103,7 @@ function OcrContent() {
   function cancelMasking() {
     setMaskingMode(false);
     setMaskEditTexts({});
+    setMaskOriginalTexts({});
   }
 
   return (
@@ -150,7 +157,16 @@ function OcrContent() {
                         }
                         className="min-h-24 w-full rounded-xl border border-[var(--rd-line)] bg-white px-4 py-3 text-[14px] leading-6 outline-none focus:border-[var(--rd-blue)]"
                       />
-                      <div className="flex justify-end">
+                      <div className="flex justify-end gap-2">
+                        <button
+                          type="button"
+                          onClick={() => resetBlockMask(item.id)}
+                          disabled={maskEditTexts[item.id] === maskOriginalTexts[item.id]}
+                          className="rd-btn rd-btn-ghost text-[13px]"
+                        >
+                          <RotateCcw size={14} />
+                          되돌리기
+                        </button>
                         <button
                           type="button"
                           onClick={() => applyMaskToSelection(item.id)}
