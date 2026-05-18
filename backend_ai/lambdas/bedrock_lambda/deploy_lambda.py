@@ -17,6 +17,7 @@ REGION = "ap-northeast-2"
 ENV_PATH = Path(__file__).with_name(".env")
 DEFAULT_FUNCTION_NAME = "detector_bedrock_lambda"
 DEFAULT_REFERENCE_FUNCTION_NAME = "detector_ocr_lambda"
+DEFAULT_RESULT_QUEUE_NAME = "detector-analysis-result-queue"
 
 
 def load_env_file() -> dict[str, str]:
@@ -71,6 +72,39 @@ def wait_until_function_ready(function_name: str, env: dict[str, str]) -> None:
     waiter.wait(FunctionName=function_name)
 
 
+def resolve_result_destination_arn(env: dict[str, str], values: dict[str, str]) -> str:
+    explicit_arn = values.get("ANALYSIS_RESULT_DESTINATION_ARN", "").strip()
+    if explicit_arn:
+        return explicit_arn
+
+    queue_name = values.get("ANALYSIS_RESULT_QUEUE_NAME", "").strip() or DEFAULT_RESULT_QUEUE_NAME
+    session = build_boto3_session(env)
+    sts = session.client("sts")
+    account_id = sts.get_caller_identity()["Account"]
+    region = env.get("AWS_REGION") or env.get("AWS_DEFAULT_REGION") or REGION
+    return f"arn:aws:sqs:{region}:{account_id}:{queue_name}"
+
+
+def configure_async_destination(function_name: str, env: dict[str, str], values: dict[str, str]) -> None:
+    mode = values.get("ANALYSIS_RESULT_LOADER_MODE", "").strip().lower()
+    if mode not in {"sqs", "destination"}:
+        return
+
+    destination_arn = resolve_result_destination_arn(env, values)
+    session = build_boto3_session(env)
+    client = session.client("lambda")
+    print(f"Configuring async destination for {function_name} -> {destination_arn}...")
+    client.put_function_event_invoke_config(
+        FunctionName=function_name,
+        MaximumRetryAttempts=0,
+        DestinationConfig={
+            "OnSuccess": {
+                "Destination": destination_arn,
+            }
+        },
+    )
+
+
 def ensure_function_exists(
     function_name: str,
     zip_path: Path,
@@ -108,10 +142,6 @@ def ensure_function_exists(
 
 
 def deploy() -> None:
-    aws_bin = shutil.which("aws")
-    if not aws_bin:
-        raise RuntimeError("AWS CLI is required to deploy this Lambda.")
-
     values = load_env_file()
     function_name = values.get("LAMBDA_FUNCTION_NAME", "").strip() or DEFAULT_FUNCTION_NAME
     zip_path = build_package()
@@ -122,7 +152,7 @@ def deploy() -> None:
             "LLM_PROVIDER": values.get("LLM_PROVIDER", "bedrock"),
             "BEDROCK_MODEL_ID": values.get("BEDROCK_MODEL_ID", ""),
             "BEDROCK_INFERENCE_PROFILE_ID": values.get("BEDROCK_INFERENCE_PROFILE_ID", ""),
-            "BEDROCK_RETRIEVAL_RESULT_COUNT": values.get("BEDROCK_RETRIEVAL_RESULT_COUNT", ""),
+            "BEDROCK_RETRIEVAL_RESULT_COUNT": str(values.get("BEDROCK_RETRIEVAL_RESULT_COUNT", "")),
             "GEMINI_API_KEY": values.get("GEMINI_API_KEY", ""),
             "GEMINI_MODEL_ID": values.get("GEMINI_MODEL_ID", ""),
             "GEMINI_FALLBACK_MODEL_ID": values.get("GEMINI_FALLBACK_MODEL_ID", ""),
@@ -134,39 +164,25 @@ def deploy() -> None:
 
     ensure_function_exists(function_name=function_name, zip_path=zip_path, env=env, env_vars=env_vars)
 
-    run(
-        [
-            aws_bin,
-            "lambda",
-            "update-function-code",
-            "--function-name",
-            function_name,
-            "--zip-file",
-            f"fileb://{zip_path}",
-            "--region",
-            REGION,
-        ],
-        env=env,
+    session = build_boto3_session(env)
+    client = session.client("lambda")
+
+    print(f"Updating function code for {function_name}...")
+    client.update_function_code(
+        FunctionName=function_name,
+        ZipFile=zip_path.read_bytes(),
+        Publish=True
     )
     wait_until_function_ready(function_name=function_name, env=env)
 
-    run(
-        [
-            aws_bin,
-            "lambda",
-            "update-function-configuration",
-            "--function-name",
-            function_name,
-            "--region",
-            REGION,
-            "--handler",
-            "lambdas.bedrock_lambda.handler.lambda_handler",
-            "--environment",
-            json.dumps(env_vars, ensure_ascii=False),
-        ],
-        env=env,
+    print(f"Updating function configuration for {function_name}...")
+    client.update_function_configuration(
+        FunctionName=function_name,
+        Handler="lambdas.bedrock_lambda.handler.lambda_handler",
+        Environment=env_vars
     )
     wait_until_function_ready(function_name=function_name, env=env)
+    configure_async_destination(function_name=function_name, env=env, values=values)
 
     print(f"Deployment finished for {function_name} in {REGION}")
 
