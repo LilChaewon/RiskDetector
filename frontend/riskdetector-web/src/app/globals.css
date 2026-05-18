@@ -508,6 +508,438 @@ button {
   padding-bottom: 28px;
 }
 
+/* =====================================================================
+   Ardi Chatbot
+   ===================================================================== */
+
+/* FAB */
+.ardi-fab {
+  position: fixed;
+  right: 24px;
+  bottom: 32px;
+  z-index: 60;
+  display: flex;
+  flex-direction: column;
+  align-items: flex-end;
+  gap: 0;
+  pointer-events: none;
+}
+
+.ardi-fab-mascot {
+  position: relative;
+  margin-right: 8px;
+  margin-bottom: -10px;
+  z-index: 1;
+  pointer-events: auto;
+}
+
+.ardi-fab-badge {
+  position: absolute;
+  top: 0;
+  right: -2px;
+  width: 18px;
+  height: 18px;
+  border-radius: 999px;
+  background: var(--rd-risk-hi);
+  color: #fff;
+  font-size: 10px;
+  font-weight: 800;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  box-shadow: 0 0 0 2px #fff;
+}
+
+.ardi-fab-pill {
+  pointer-events: auto;
+  padding: 11px 18px 11px 16px;
+  border-radius: 999px;
+  background: #0d1524;
+  color: #fff;
+  border: none;
+  font-size: 13px;
+  font-weight: 700;
+  letter-spacing: -0.01em;
+  white-space: nowrap;
+  box-shadow: 0 8px 24px rgba(13,21,36,0.28), 0 1px 2px rgba(0,0,0,0.1);
+  transition: transform 140ms ease, box-shadow 140ms ease;
+}
+
+.ardi-fab-pill:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 12px 28px rgba(13,21,36,0.34);
+}
+
+/* Full-screen overlay */
+.ardi-overlay {
+  position: fixed;
+  inset: 0;
+  z-index: 70;
+  background: var(--rd-bg);
+  display: flex;
+  flex-direction: column;
+  font-family: -apple-system, BlinkMacSystemFont, "Apple SD Gothic Neo", "Pretendard", system-ui, sans-serif;
+  letter-spacing: -0.01em;
+  word-break: keep-all;
+}
+
+/* Header */
+.ardi-header {
+  background: var(--rd-paper);
+  border-bottom: 1px solid var(--rd-line);
+  padding: 12px 16px 14px;
+  flex-shrink: 0;
+}
+
+.ardi-header-row {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+
+.ardi-header-name {
+  display: flex;
+  align-items: center;
+  gap: 7px;
+  font-size: 13px;
+  font-weight: 700;
+}
+
+.ardi-online {
+  width: 7px;
+  height: 7px;
+  border-radius: 999px;
+  background: var(--rd-risk-lo);
+  margin-left: 2px;
+}
+
+.ardi-icon-btn {
+  width: 34px;
+  height: 34px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 999px;
+  background: transparent;
+  border: none;
+  color: var(--rd-ink);
+  transition: background 140ms ease;
+}
+
+.ardi-icon-btn:hover {
+  background: var(--rd-line-2);
+}
+
+/* Pinned clause */
+.ardi-pinned {
+  margin-top: 10px;
+  padding: 10px 12px;
+  background: var(--rd-line-2);
+  border-radius: 12px;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.ardi-pin-icon {
+  color: var(--rd-ink-3);
+  flex-shrink: 0;
+}
+
+.ardi-pinned-label {
+  font-size: 11px;
+  font-family: ui-monospace, monospace;
+  color: var(--rd-ink-3);
+  letter-spacing: 0.04em;
+}
+
+.ardi-pinned-clause {
+  font-size: 12px;
+  font-weight: 600;
+  margin-top: 2px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+/* Messages area */
+.ardi-messages {
+  flex: 1;
+  overflow-y: auto;
+  padding: 16px 16px 8px;
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+}
+
+/* Avatars */
+.ardi-avatar-sm {
+  width: 32px;
+  height: 32px;
+  border-radius: 999px;
+  background: var(--rd-blue-soft);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  overflow: hidden;
+  flex-shrink: 0;
+}
+
+/* AI message */
+.ardi-ai {
+  display: flex;
+  align-items: flex-end;
+  gap: 8px;
+}
+
+.ardi-ai-bubble {
+  background: var(--rd-paper);
+  border: 1px solid var(--rd-line);
+  padding: 10px 13px;
+  border-radius: 4px 14px 14px 14px;
+  font-size: 13px;
+  line-height: 1.6;
+  max-width: 82%;
+}
+
+/* User message */
+.ardi-me {
+  display: flex;
+  justify-content: flex-end;
+}
+
+.ardi-me-bubble {
+  background: var(--rd-blue);
+  color: #fff;
+  padding: 10px 13px;
+  border-radius: 14px 14px 4px 14px;
+  font-size: 13px;
+  line-height: 1.6;
+  max-width: 82%;
+}
+
+/* Citation card */
+.ardi-citation {
+  margin-top: 8px;
+  padding: 8px 10px;
+  background: var(--rd-blue-soft);
+  border-radius: 10px;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.ardi-citation-icon {
+  color: var(--rd-blue);
+  flex-shrink: 0;
+}
+
+.ardi-citation-title {
+  font-size: 11px;
+  font-weight: 700;
+  color: var(--rd-blue);
+}
+
+.ardi-citation-sub {
+  font-size: 11px;
+  color: var(--rd-ink-2);
+}
+
+/* Typing dots */
+.ardi-typing {
+  display: flex;
+  gap: 5px;
+  align-items: center;
+  padding: 14px 16px;
+}
+
+.ardi-typing span {
+  width: 6px;
+  height: 6px;
+  border-radius: 999px;
+  background: var(--rd-ink-3);
+  animation: ardiDot 1.2s ease-in-out infinite;
+}
+
+.ardi-typing span:nth-child(2) { animation-delay: 0.2s; }
+.ardi-typing span:nth-child(3) { animation-delay: 0.4s; }
+
+@keyframes ardiDot {
+  0%, 60%, 100% { opacity: 0.3; transform: scale(1); }
+  30% { opacity: 1; transform: scale(1.3); }
+}
+
+/* Empty state */
+.ardi-empty {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  padding: 20px 16px 8px;
+}
+
+.ardi-empty-hero {
+  width: 160px;
+  height: 160px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: radial-gradient(circle at 50% 60%, var(--rd-blue-soft) 0%, transparent 65%);
+}
+
+.ardi-empty-title {
+  font-size: 18px;
+  font-weight: 800;
+  letter-spacing: -0.02em;
+  text-align: center;
+  line-height: 1.4;
+  margin: 8px 0 0;
+}
+
+.ardi-empty-sub {
+  font-size: 12.5px;
+  color: var(--rd-ink-2);
+  text-align: center;
+  line-height: 1.6;
+  margin: 8px 0 0;
+  max-width: 280px;
+}
+
+.ardi-suggestions {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  margin-top: 20px;
+  width: 100%;
+  max-width: 420px;
+}
+
+.ardi-suggestion {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 12px 14px;
+  border-radius: 12px;
+  background: var(--rd-paper);
+  border: 1px solid var(--rd-line);
+  font-family: inherit;
+  text-align: left;
+  transition: transform 120ms ease, box-shadow 120ms ease;
+}
+
+.ardi-suggestion:hover {
+  transform: translateY(-1px);
+  box-shadow: var(--rd-shadow);
+}
+
+.ardi-suggestion-q {
+  font-size: 13px;
+  font-weight: 700;
+  color: var(--rd-ink);
+}
+
+.ardi-suggestion-sub {
+  font-size: 11px;
+  color: var(--rd-ink-3);
+  margin-top: 2px;
+}
+
+/* Composer */
+.ardi-composer-wrap {
+  background: var(--rd-paper);
+  border-top: 1px solid var(--rd-line);
+  padding: 10px 16px calc(14px + env(safe-area-inset-bottom));
+  flex-shrink: 0;
+}
+
+.ardi-chips {
+  display: flex;
+  gap: 6px;
+  overflow-x: auto;
+  padding-bottom: 8px;
+  scrollbar-width: none;
+}
+
+.ardi-chips::-webkit-scrollbar { display: none; }
+
+.ardi-chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  padding: 6px 11px;
+  border-radius: 999px;
+  background: var(--rd-line-2);
+  border: 1px solid var(--rd-line);
+  font-size: 12px;
+  font-weight: 500;
+  color: var(--rd-ink);
+  white-space: nowrap;
+  font-family: inherit;
+  transition: background 140ms ease;
+}
+
+.ardi-chip:hover {
+  background: var(--rd-blue-soft);
+  color: var(--rd-blue);
+}
+
+.ardi-composer {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  background: var(--rd-line-2);
+  border-radius: 999px;
+  padding: 6px 6px 6px 16px;
+}
+
+.ardi-composer-input {
+  flex: 1;
+  background: transparent;
+  border: none;
+  outline: none;
+  font-size: 13px;
+  color: var(--rd-ink);
+  font-family: inherit;
+}
+
+.ardi-composer-input::placeholder { color: var(--rd-ink-3); }
+
+.ardi-send {
+  width: 34px;
+  height: 34px;
+  border-radius: 999px;
+  background: var(--rd-blue);
+  border: none;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+  transition: background 140ms ease, opacity 140ms ease;
+}
+
+.ardi-send:disabled {
+  opacity: 0.45;
+}
+
+.ardi-send:not(:disabled):hover {
+  background: var(--rd-navy);
+}
+
+/* Desktop: constrain overlay to right panel */
+@media (min-width: 901px) {
+  .ardi-overlay {
+    left: auto;
+    right: 0;
+    width: min(440px, 100vw);
+    border-left: 1px solid var(--rd-line);
+    box-shadow: -8px 0 40px rgba(0, 0, 0, 0.08);
+  }
+
+  .ardi-fab {
+    right: 40px;
+    bottom: 40px;
+  }
+}
+
 @media (max-width: 900px) {
   .rd-shell {
     display: block;

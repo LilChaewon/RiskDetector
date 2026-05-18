@@ -6,6 +6,7 @@ import { useRouter, useSearchParams } from 'next/navigation';
 import { Lightbulb, Loader2, Share2, Sparkles, X } from 'lucide-react';
 import AppShell from '@/components/AppShell';
 import RiskTag, { riskMeta } from '@/components/RiskTag';
+import ArdiChatbot from '@/components/ArdiChatbot';
 import { fetchAnalysis } from '@/api/contract';
 import type { ContractAnalysisDTO } from '@/types/api';
 
@@ -559,6 +560,15 @@ function AnalysisResultContent() {
           </div>
         </div>
       )}
+      <ArdiChatbot
+        selectedToxic={selected}
+        warningCount={warningCount}
+        analysisData={{
+          title: data.title,
+          toxics: data.toxics,
+          overallComment: data.riskdetectorCommentary?.overallComment,
+        }}
+      />
     </AppShell>
   );
 }
