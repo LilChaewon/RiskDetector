@@ -79,8 +79,7 @@ export default function UploadPage() {
   }
 
   function handleMaskingComplete(maskedFile: File) {
-    const updated = [...preparedFiles];
-    updated[currentMaskingIdx] = maskedFile;
+    const updated = preparedFiles.map((f, i) => (i === currentMaskingIdx ? maskedFile : f));
     setPreparedFiles(updated);
 
     const nextIndex = nextImageIndex(currentMaskingIdx);
