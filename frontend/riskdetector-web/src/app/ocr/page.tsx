@@ -1,9 +1,9 @@
 'use client';
 
-import { Suspense, useEffect, useState } from 'react';
+import { Suspense, useEffect, useRef, useState } from 'react';
 import { useSearchParams, useRouter } from 'next/navigation';
 import DOMPurify from 'dompurify';
-import { Check, Edit3, FileText, Loader2 } from 'lucide-react';
+import { Check, Edit3, EyeOff, FileText, Loader2, X } from 'lucide-react';
 import AppShell from '@/components/AppShell';
 import { getOcrResult, startAnalysis, updateOcrBlock } from '@/api/contract';
 import type { ContractOcrHtml } from '@/types/api';
@@ -19,6 +19,10 @@ function OcrContent() {
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
   const [starting, setStarting] = useState(false);
+  const [maskingMode, setMaskingMode] = useState(false);
+  const [maskEditTexts, setMaskEditTexts] = useState<Record<string, string>>({});
+  const [maskingAll, setMaskingAll] = useState(false);
+  const textareaRefs = useRef<Record<string, HTMLTextAreaElement>>({});
 
   useEffect(() => {
     if (!contractId) return;
@@ -54,13 +58,56 @@ function OcrContent() {
     }
   }
 
+  function enterMaskingMode() {
+    const texts: Record<string, string> = {};
+    ocrResult?.htmlArray.forEach((item) => {
+      texts[item.id] = item.content.replace(/<[^>]+>/g, '');
+    });
+    setMaskEditTexts(texts);
+    setEditingId(null);
+    setMaskingMode(true);
+  }
+
+  function applyMaskToSelection(id: string) {
+    const ta = textareaRefs.current[id];
+    if (!ta) return;
+    const start = ta.selectionStart;
+    const end = ta.selectionEnd;
+    if (start === end) return;
+    const text = maskEditTexts[id] ?? '';
+    const masked = text.slice(0, start) + '█'.repeat(end - start) + text.slice(end);
+    setMaskEditTexts((prev) => ({ ...prev, [id]: masked }));
+  }
+
+  async function saveMasking() {
+    setMaskingAll(true);
+    try {
+      await Promise.all(
+        Object.entries(maskEditTexts).map(([id, text]) =>
+          updateOcrBlock(contractId, id, text)
+        )
+      );
+      setOcrResult(await getOcrResult(contractId));
+      setMaskingMode(false);
+    } finally {
+      setMaskingAll(false);
+    }
+  }
+
+  function cancelMasking() {
+    setMaskingMode(false);
+    setMaskEditTexts({});
+  }
+
   return (
     <AppShell>
       <div className="rd-narrow">
         <div className="rd-section-label">OCR 확인</div>
         <h1 className="mt-1 text-[29px] font-extrabold tracking-tight">계약서 내용을 확인해주세요</h1>
         <p className="mt-2 text-[14px] font-medium leading-6 text-[var(--rd-ink-2)]">
-          잘못 읽힌 문장은 클릭해서 수정할 수 있어요. 확인이 끝나면 AI 분석을 시작합니다.
+          {maskingMode
+            ? '텍스트를 드래그해서 선택한 뒤 마스킹 버튼을 누르면 개인정보를 가릴 수 있어요.'
+            : '잘못 읽힌 문장은 클릭해서 수정할 수 있어요. 확인이 끝나면 AI 분석을 시작합니다.'}
         </p>
 
         {loading ? (
@@ -80,14 +127,41 @@ function OcrContent() {
               </div>
             </div>
 
+            {maskingMode && (
+              <div className="mt-3 rounded-xl border border-amber-200 bg-amber-50 px-4 py-3 text-[13px] font-semibold text-amber-700">
+                마스킹 모드 — 이름, 주민번호, 주소 등 민감한 정보를 드래그 후 아래 마스킹 버튼으로 가리세요.
+              </div>
+            )}
+
             <div className="mt-4 space-y-3">
               {ocrResult?.htmlArray.map((item) => (
                 <article
                   key={item.id}
-                  className="rd-card rd-card-hover p-4"
-                  onClick={() => handleEdit(item.id, item.content)}
+                  className={`rd-card p-4 ${maskingMode ? '' : 'rd-card-hover'}`}
+                  onClick={maskingMode ? undefined : () => handleEdit(item.id, item.content)}
                 >
-                  {editingId === item.id ? (
+                  {maskingMode ? (
+                    <div className="flex flex-col gap-2">
+                      <textarea
+                        ref={(el) => { if (el) textareaRefs.current[item.id] = el; }}
+                        value={maskEditTexts[item.id] ?? ''}
+                        onChange={(e) =>
+                          setMaskEditTexts((prev) => ({ ...prev, [item.id]: e.target.value }))
+                        }
+                        className="min-h-24 w-full rounded-xl border border-[var(--rd-line)] bg-white px-4 py-3 text-[14px] leading-6 outline-none focus:border-[var(--rd-blue)]"
+                      />
+                      <div className="flex justify-end">
+                        <button
+                          type="button"
+                          onClick={() => applyMaskToSelection(item.id)}
+                          className="rd-btn rd-btn-ghost text-[13px]"
+                        >
+                          <EyeOff size={14} />
+                          선택 영역 마스킹
+                        </button>
+                      </div>
+                    </div>
+                  ) : editingId === item.id ? (
                     <div className="flex flex-col gap-3" onClick={(e) => e.stopPropagation()}>
                       <textarea
                         value={editText}
@@ -118,15 +192,49 @@ function OcrContent() {
               ))}
             </div>
 
-            <button
-              type="button"
-              onClick={handleStartAnalysis}
-              disabled={starting || !ocrResult}
-              className="rd-btn mt-6 min-h-14 w-full text-[16px]"
-            >
-              {starting ? <Loader2 size={18} className="animate-spin" /> : <Check size={18} />}
-              AI 독소조항 분석 시작
-            </button>
+            {maskingMode ? (
+              <div className="mt-6 flex gap-3">
+                <button
+                  type="button"
+                  onClick={cancelMasking}
+                  disabled={maskingAll}
+                  className="rd-btn rd-btn-ghost flex-1 min-h-14 text-[15px]"
+                >
+                  <X size={17} />
+                  취소
+                </button>
+                <button
+                  type="button"
+                  onClick={saveMasking}
+                  disabled={maskingAll}
+                  className="rd-btn flex-1 min-h-14 text-[15px]"
+                >
+                  {maskingAll ? <Loader2 size={17} className="animate-spin" /> : <Check size={17} />}
+                  마스킹 저장
+                </button>
+              </div>
+            ) : (
+              <div className="mt-6 flex gap-3">
+                <button
+                  type="button"
+                  onClick={enterMaskingMode}
+                  disabled={!ocrResult}
+                  className="rd-btn rd-btn-ghost min-h-14 px-5 text-[15px]"
+                >
+                  <EyeOff size={17} />
+                  마스킹
+                </button>
+                <button
+                  type="button"
+                  onClick={handleStartAnalysis}
+                  disabled={starting || !ocrResult}
+                  className="rd-btn flex-1 min-h-14 text-[16px]"
+                >
+                  {starting ? <Loader2 size={18} className="animate-spin" /> : <Check size={18} />}
+                  AI 독소조항 분석 시작
+                </button>
+              </div>
+            )}
           </>
         )}
       </div>

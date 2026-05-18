@@ -127,12 +127,6 @@ export default function AppShell({ children }: { children: React.ReactNode }) {
       <main className="rd-main">
         <div className="rd-mobile-top">
           <Link href="/" className="text-[20px] font-extrabold tracking-tight">RD</Link>
-          {!pathname.startsWith('/analysis') && !pathname.startsWith('/upload') && (
-            <Link href="/upload" className="rd-btn min-h-9 px-3 text-[12px]">
-              <Plus size={14} />
-              분석
-            </Link>
-          )}
         </div>
         {children}
       </main>
