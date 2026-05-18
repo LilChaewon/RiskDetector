@@ -23,6 +23,7 @@ function OcrContent() {
   const [maskEditTexts, setMaskEditTexts] = useState<Record<string, string>>({});
   const [maskOriginalTexts, setMaskOriginalTexts] = useState<Record<string, string>>({});
   const [maskingAll, setMaskingAll] = useState(false);
+  const [lastMaskCount, setLastMaskCount] = useState<number | null>(null);
   const textareaRefs = useRef<Record<string, HTMLTextAreaElement>>({});
 
   useEffect(() => {
@@ -80,9 +81,24 @@ function OcrContent() {
     const start = ta.selectionStart;
     const end = ta.selectionEnd;
     if (start === end) return;
-    const text = maskEditTexts[id] ?? '';
-    const masked = text.slice(0, start) + '█'.repeat(end - start) + text.slice(end);
-    setMaskEditTexts((prev) => ({ ...prev, [id]: masked }));
+
+    const selectedText = (maskEditTexts[id] ?? '').slice(start, end);
+    if (!selectedText.trim()) return;
+
+    const replacement = '█'.repeat(selectedText.length);
+
+    // 선택한 단어를 모든 블록에서 일괄 치환
+    let totalCount = 0;
+    setMaskEditTexts((prev) => {
+      const updated: Record<string, string> = {};
+      for (const [blockId, text] of Object.entries(prev)) {
+        const count = text.split(selectedText).length - 1;
+        totalCount += count;
+        updated[blockId] = text.split(selectedText).join(replacement);
+      }
+      return updated;
+    });
+    setLastMaskCount(totalCount);
   }
 
   async function saveMasking() {
@@ -104,6 +120,7 @@ function OcrContent() {
     setMaskingMode(false);
     setMaskEditTexts({});
     setMaskOriginalTexts({});
+    setLastMaskCount(null);
   }
 
   return (
@@ -136,7 +153,9 @@ function OcrContent() {
 
             {maskingMode && (
               <div className="mt-3 rounded-xl border border-amber-200 bg-amber-50 px-4 py-3 text-[13px] font-semibold text-amber-700">
-                마스킹 모드 — 이름, 주민번호, 주소 등 민감한 정보를 드래그 후 아래 마스킹 버튼으로 가리세요.
+                {lastMaskCount !== null
+                  ? `전체 ${lastMaskCount}곳에서 마스킹됐어요. 추가로 가릴 정보가 있으면 계속 선택하세요.`
+                  : '마스킹 모드 — 텍스트를 드래그하면 계약서 전체에서 같은 단어가 한 번에 가려져요.'}
               </div>
             )}
 
