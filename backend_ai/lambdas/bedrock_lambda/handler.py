@@ -481,11 +481,11 @@ def build_analysis_prompt(
     output_constraints = (
         "출력은 간결하게 유지하세요.\n"
         "- 모든 설명은 반드시 한국어로 작성하세요.\n"
-        "- summary: 1문장, 120자 이내\n"
-        "- clauses: 최대 3개\n"
-        "- reason: 1~2문장, 180자 이내\n"
-        "- suggestion: 1문장, 120자 이내\n"
-        "- sourceIds: 실제로 사용한 근거 문서명 또는 사건번호 기반 라벨만 넣으세요\n"
+        "- summary: 1~2문장, 180자 이내\n"
+        "- clauses: 최대 4개\n"
+        "- reason: 2~3문장, 320자 이내\n"
+        "- suggestion: 1~2문장, 220자 이내\n"
+        "- sourceIds: 실제로 사용한 근거 문서명 또는 사건번호 기반 라벨만 1~2개 넣으세요\n"
         "- JSON 문자열 값 안에는 줄바꿈을 넣지 마세요\n"
         if provider == "gemini"
         else ""
@@ -507,8 +507,11 @@ def build_analysis_prompt(
         "- 크로스 체크 및 Self-Correction: 결과를 출력하기 전에 스스로 한 번 더 검토(Cross-check)하세요. 추출한 조항이 정말로 법적으로 불공정한지 다시 평가하고, 과장되거나 잘못 해석된 경우 수정(Self-Correction)하세요.\n"
         "- 검색된 법률/판례/생활법령 컨텍스트가 있으면 이를 우선 근거로 사용하세요.\n"
         "- reason에는 왜 문제가 되는지 구체적으로 설명하고, 최소 1개의 법률 근거나 판례 키워드를 포함하세요.\n"
+        "- reason은 가능하면 '문제점 -> 법적 근거 또는 판례 취지 -> 이 조항에 적용되는 이유' 순서로 쓰세요.\n"
         "- 단, reason 필드 작성 시 'precedent_145', 'Source 1' 같은 내부 라벨이나 식별자를 그대로 출력하지 마세요. 반드시 자연스러운 문장으로 풀어서 작성하세요.\n"
         "- suggestion에는 **각 문제 조항(clauseText)의 특성과 맥락에 맞춰서** 구체적이고 실무적인 계약서 수정 방향을 제안하세요.\n"
+        "- suggestion은 가능하면 '무엇을 삭제/완화할지 + 어떤 예외/기준/절차를 넣을지'까지 포함해, 실제 계약 문구를 고칠 수 있을 정도로 작성하세요.\n"
+        "- suggestion에서 '협의하세요', '검토하세요'처럼 추상적인 표현만으로 끝내지 말고, 부담 범위, 예외, 통지 기간, 산정 기준, 증빙 의무 중 최소 하나 이상을 제안하세요.\n"
         "- [절대 금지 1] 여러 조항에 동일한 suggestion을 복사/붙여넣기 하지 마세요. 반드시 조항별로 다르게 작성하세요.\n"
         "- [절대 금지 2] clauses 배열 내의 어떤 항목에서도 suggestion 필드를 누락하거나 빈 문자열로 남겨두지 마세요. 모든 문제 조항은 반드시 개별적인 해결책(suggestion)을 가져야 합니다.\n"
         "- 근거를 사용했다면 sourceIds에 해당 문서명 또는 사건번호 기반 라벨을 넣으세요.\n"
@@ -668,12 +671,55 @@ def build_basis_text(source_ids: list[str], source_lookup: dict[str, dict[str, A
     return "검색된 법률 자료"
 
 
+def build_basis_summary(source_ids: list[str], source_lookup: dict[str, dict[str, Any]]) -> str:
+    labels: list[str] = []
+    for source_id in source_ids:
+        item = source_lookup.get(source_id)
+        if not item:
+            continue
+        label = str(item.get("sourceLabel") or item.get("basisPhrase") or "").strip()
+        if label and label not in labels:
+            labels.append(label)
+        if len(labels) >= 2:
+            break
+    if labels:
+        return ", ".join(labels)
+    return build_basis_text(source_ids, source_lookup)
+
+
 def ensure_reason_with_basis(reason: str, source_ids: list[str], source_lookup: dict[str, dict[str, Any]]) -> str:
     normalized_reason = reason.strip() or "위험 가능성이 있어 검토가 필요합니다."
-    if reason_has_legal_basis(normalized_reason):
+    if reason_has_legal_basis(normalized_reason) and len(normalized_reason) >= 60:
         return normalized_reason
-    basis_text = build_basis_text(source_ids, source_lookup)
-    return f"근거: {basis_text}. {normalized_reason}"
+    basis_text = build_basis_summary(source_ids, source_lookup)
+    return f"{normalized_reason} 관련 근거로는 {basis_text} 등이 확인됩니다."
+
+
+def build_suggestion_detail(clause_text: str, risk_type: str) -> str:
+    joined = f"{clause_text} {risk_type}"
+    if any(keyword in joined for keyword in ("원상복구", "수리", "손모", "훼손")):
+        return "통상 손모는 제외하고, 임차인의 고의 또는 과실로 인한 훼손에 한해 부담 범위와 산정 기준을 명시하세요."
+    if any(keyword in joined for keyword in ("관리비", "비용", "부담", "공제")):
+        return "부담 항목, 산정 기준, 증빙 제공 의무, 공제 가능한 범위를 조항에 구체적으로 적으세요."
+    if any(keyword in joined for keyword in ("해지", "위약금", "손해배상")):
+        return "해지 사유, 통지 기간, 손해 산정 기준을 함께 규정해 일방성을 줄이세요."
+    if any(keyword in joined for keyword in ("보증금", "반환")):
+        return "반환 시기, 공제 가능 항목, 지연 시 책임 범위를 분리해 적으세요."
+    return "의무 범위, 예외 사유, 절차, 금액 또는 기간 기준을 조항에 명시해 일방적 해석 가능성을 줄이세요."
+
+
+def ensure_suggestion_with_detail(suggestion: str, clause_text: str, risk_type: str) -> str:
+    normalized = suggestion.strip()
+    detail = build_suggestion_detail(clause_text, risk_type)
+    if not normalized:
+        return detail
+    if len(normalized) >= 80 and any(
+        keyword in normalized for keyword in ("명시", "구체적", "한정", "제외", "기준", "절차", "통지", "산정")
+    ):
+        return normalized
+    if detail in normalized:
+        return normalized
+    return f"{normalized} {detail}"
 
 
 def build_analysis_result(
@@ -694,7 +740,11 @@ def build_analysis_result(
         source_ids = normalize_clause_source_ids(clause.get("sourceIds", []) or [], source_lookup)
         reason = ensure_reason_with_basis(str(clause.get("reason") or ""), source_ids, source_lookup)
         
-        suggestion = str(clause.get("suggestion", "")).strip()
+        suggestion = ensure_suggestion_with_detail(
+            str(clause.get("suggestion", "")).strip(),
+            str(clause.get("clauseText", "") or ""),
+            str(clause.get("riskType", "") or ""),
+        )
         
         # Claude 프롬프트를 강화([절대 금지 2])했으므로, AI가 스스로 올바른 suggestion을 내어줄 것으로 기대합니다.
         # 단, 만약에라도 빈 문자열이 나올 경우를 대비해 프론트엔드 폴백 방지용으로 최소한의 공백만 넣어서 넘깁니다.
