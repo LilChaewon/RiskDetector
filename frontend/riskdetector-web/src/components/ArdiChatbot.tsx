@@ -149,12 +149,35 @@ export default function ArdiChatbot({ selectedToxic, warningCount = 0, analysisD
     <>
       {/* FAB */}
       {!open && (
-        <div className="ardi-fab">
-          <div className="ardi-fab-mascot">
-            <Image src="/ardi/ardi-waving.png" alt="아르디" width={56} height={56} style={{ objectFit: 'contain' }} unoptimized />
-            {warningCount > 0 && <div className="ardi-fab-badge">{warningCount}</div>}
+        <div style={{
+          position: 'fixed', right: 24, bottom: 32, zIndex: 60,
+          display: 'flex', flexDirection: 'column', alignItems: 'flex-end',
+        }}>
+          <div style={{ position: 'relative', marginRight: 8, marginBottom: -10, zIndex: 1 }}>
+            {/* eslint-disable-next-line @next/next/no-img-element */}
+            <img src="/ardi/ardi-waving.png" alt="아르디" width={56} height={56} style={{ objectFit: 'contain', display: 'block' }} />
+            {warningCount > 0 && (
+              <div style={{
+                position: 'absolute', top: 0, right: -2,
+                width: 18, height: 18, borderRadius: 999,
+                background: '#d93a3a', color: '#fff',
+                fontSize: 10, fontWeight: 800,
+                display: 'flex', alignItems: 'center', justifyContent: 'center',
+                boxShadow: '0 0 0 2px #fff',
+              }}>{warningCount}</div>
+            )}
           </div>
-          <button className="ardi-fab-pill" onClick={() => setOpen(true)}>
+          <button
+            onClick={() => setOpen(true)}
+            style={{
+              padding: '11px 18px', borderRadius: 999,
+              background: '#0d1524', color: '#fff',
+              border: 'none', fontSize: 13, fontWeight: 700,
+              whiteSpace: 'nowrap', cursor: 'pointer',
+              boxShadow: '0 8px 24px rgba(13,21,36,0.28)',
+              fontFamily: 'inherit',
+            }}
+          >
             아르디에게 물어보기
           </button>
         </div>
