@@ -1,6 +1,7 @@
 'use client';
 
 import { useState, useRef, useEffect } from 'react';
+import { createPortal } from 'react-dom';
 import Image from 'next/image';
 import { X, Send, Mic, Pin, BookOpen, ChevronRight, Sparkles } from 'lucide-react';
 import RiskTag from './RiskTag';
@@ -57,8 +58,14 @@ export default function ArdiChatbot({ selectedToxic, warningCount = 0, analysisD
   const [messages, setMessages] = useState<Message[]>([]);
   const [input, setInput] = useState('');
   const [streaming, setStreaming] = useState(false);
+  const [mounted, setMounted] = useState(false);
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const abortRef = useRef<AbortController | null>(null);
+
+  // SSR 이후 클라이언트에서만 portal 마운트
+  useEffect(() => {
+    setMounted(true);
+  }, []);
 
   useEffect(() => {
     messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
@@ -145,166 +152,172 @@ export default function ArdiChatbot({ selectedToxic, warningCount = 0, analysisD
 
   const hasMessages = messages.length > 0;
 
-  return (
-    <>
-      {/* FAB */}
-      {!open && (
-        <div style={{
-          position: 'fixed', right: 24, bottom: 32, zIndex: 60,
-          display: 'flex', flexDirection: 'column', alignItems: 'flex-end',
-        }}>
-          <div style={{ position: 'relative', marginRight: 8, marginBottom: -10, zIndex: 1 }}>
-            {/* eslint-disable-next-line @next/next/no-img-element */}
-            <img src="/ardi/ardi-waving.png" alt="아르디" width={56} height={56} style={{ objectFit: 'contain', display: 'block' }} />
-            {warningCount > 0 && (
-              <div style={{
-                position: 'absolute', top: 0, right: -2,
-                width: 18, height: 18, borderRadius: 999,
-                background: '#d93a3a', color: '#fff',
-                fontSize: 10, fontWeight: 800,
-                display: 'flex', alignItems: 'center', justifyContent: 'center',
-                boxShadow: '0 0 0 2px #fff',
-              }}>{warningCount}</div>
-            )}
-          </div>
-          <button
-            onClick={() => setOpen(true)}
-            style={{
-              padding: '11px 18px', borderRadius: 999,
-              background: '#0d1524', color: '#fff',
-              border: 'none', fontSize: 13, fontWeight: 700,
-              whiteSpace: 'nowrap', cursor: 'pointer',
-              boxShadow: '0 8px 24px rgba(13,21,36,0.28)',
-              fontFamily: 'inherit',
-            }}
-          >
-            아르디에게 물어보기
+  // SSR에서는 렌더링하지 않음 (portal은 document.body 필요)
+  if (!mounted) return null;
+
+  const fab = !open && (
+    <div style={{
+      position: 'fixed', right: 24, bottom: 32, zIndex: 9999,
+      display: 'flex', flexDirection: 'column', alignItems: 'flex-end',
+    }}>
+      <div style={{ position: 'relative', marginRight: 8, marginBottom: -10, zIndex: 1 }}>
+        {/* eslint-disable-next-line @next/next/no-img-element */}
+        <img src="/ardi/ardi-waving.png" alt="아르디" width={56} height={56} style={{ objectFit: 'contain', display: 'block' }} />
+        {warningCount > 0 && (
+          <div style={{
+            position: 'absolute', top: 0, right: -2,
+            width: 18, height: 18, borderRadius: 999,
+            background: '#d93a3a', color: '#fff',
+            fontSize: 10, fontWeight: 800,
+            display: 'flex', alignItems: 'center', justifyContent: 'center',
+            boxShadow: '0 0 0 2px #fff',
+          }}>{warningCount}</div>
+        )}
+      </div>
+      <button
+        onClick={() => setOpen(true)}
+        style={{
+          padding: '11px 18px', borderRadius: 999,
+          background: '#0d1524', color: '#fff',
+          border: 'none', fontSize: 13, fontWeight: 700,
+          whiteSpace: 'nowrap', cursor: 'pointer',
+          boxShadow: '0 8px 24px rgba(13,21,36,0.28)',
+          fontFamily: 'inherit',
+        }}
+      >
+        아르디에게 물어보기
+      </button>
+    </div>
+  );
+
+  const overlay = open && (
+    <div className="ardi-overlay" style={{ zIndex: 9999 }}>
+      {/* Header */}
+      <div className="ardi-header">
+        <div className="ardi-header-row">
+          <button className="ardi-icon-btn" onClick={handleClose} aria-label="닫기">
+            <X size={18} />
           </button>
-        </div>
-      )}
-
-      {/* Chat overlay */}
-      {open && (
-        <div className="ardi-overlay">
-          {/* Header */}
-          <div className="ardi-header">
-            <div className="ardi-header-row">
-              <button className="ardi-icon-btn" onClick={handleClose} aria-label="닫기">
-                <X size={18} />
-              </button>
-              <div className="ardi-header-name">
-                <div className="ardi-avatar-sm">
-                  <Image src="/ardi/ardi-friendly.png" alt="아르디" width={36} height={36} style={{ objectFit: 'contain' }} unoptimized />
-                </div>
-                <span>아르디</span>
-                <span className="ardi-online" />
-              </div>
-              <div style={{ width: 34 }} />
+          <div className="ardi-header-name">
+            <div className="ardi-avatar-sm">
+              <Image src="/ardi/ardi-friendly.png" alt="아르디" width={36} height={36} style={{ objectFit: 'contain' }} unoptimized />
             </div>
-
-            {selectedToxic && (
-              <div className="ardi-pinned">
-                <Pin size={11} className="ardi-pin-icon" />
-                <div style={{ flex: 1, minWidth: 0 }}>
-                  <div className="ardi-pinned-label">{selectedToxic.title ?? '선택된 조항'}</div>
-                  {selectedToxic.clause && (
-                    <div className="ardi-pinned-clause">
-                      &ldquo;{selectedToxic.clause.slice(0, 45)}{selectedToxic.clause.length > 45 ? '…' : ''}&rdquo;
-                    </div>
-                  )}
-                </div>
-                <RiskTag level={selectedToxic.warnLevel} />
-              </div>
-            )}
+            <span>아르디</span>
+            <span className="ardi-online" />
           </div>
+          <div style={{ width: 34 }} />
+        </div>
 
-          {/* Messages */}
-          <div className="ardi-messages">
-            {!hasMessages ? (
-              <EmptyState pinnedToxic={selectedToxic} onSelect={sendMessage} />
-            ) : (
-              <>
-                {messages.map((msg) =>
-                  msg.role === 'user' ? (
-                    <div key={msg.id} className="ardi-me">
-                      <div className="ardi-me-bubble">{msg.content}</div>
+        {selectedToxic && (
+          <div className="ardi-pinned">
+            <Pin size={11} className="ardi-pin-icon" />
+            <div style={{ flex: 1, minWidth: 0 }}>
+              <div className="ardi-pinned-label">{selectedToxic.title ?? '선택된 조항'}</div>
+              {selectedToxic.clause && (
+                <div className="ardi-pinned-clause">
+                  &ldquo;{selectedToxic.clause.slice(0, 45)}{selectedToxic.clause.length > 45 ? '…' : ''}&rdquo;
+                </div>
+              )}
+            </div>
+            <RiskTag level={selectedToxic.warnLevel} />
+          </div>
+        )}
+      </div>
+
+      {/* Messages */}
+      <div className="ardi-messages">
+        {!hasMessages ? (
+          <EmptyState pinnedToxic={selectedToxic} onSelect={sendMessage} />
+        ) : (
+          <>
+            {messages.map((msg) =>
+              msg.role === 'user' ? (
+                <div key={msg.id} className="ardi-me">
+                  <div className="ardi-me-bubble">{msg.content}</div>
+                </div>
+              ) : (
+                <div key={msg.id} className="ardi-ai">
+                  <div className="ardi-avatar-sm">
+                    <Image
+                      src={`/ardi/ardi-${msg.variant ?? 'friendly'}.png`}
+                      alt="아르디"
+                      width={36}
+                      height={36}
+                      style={{ objectFit: 'contain' }}
+                      unoptimized
+                    />
+                  </div>
+                  {msg.streaming && !msg.content ? (
+                    <div className="ardi-ai-bubble ardi-typing">
+                      <span /><span /><span />
                     </div>
                   ) : (
-                    <div key={msg.id} className="ardi-ai">
-                      <div className="ardi-avatar-sm">
-                        <Image
-                          src={`/ardi/ardi-${msg.variant ?? 'friendly'}.png`}
-                          alt="아르디"
-                          width={36}
-                          height={36}
-                          style={{ objectFit: 'contain' }}
-                          unoptimized
-                        />
-                      </div>
-                      {msg.streaming && !msg.content ? (
-                        <div className="ardi-ai-bubble ardi-typing">
-                          <span /><span /><span />
-                        </div>
-                      ) : (
-                        <div className="ardi-ai-bubble">
-                          <span style={{ whiteSpace: 'pre-wrap' }}>{msg.content}</span>
-                          {!msg.streaming && shouldShowCitation(msg.content) && (
-                            <div className="ardi-citation">
-                              <BookOpen size={11} className="ardi-citation-icon" />
-                              <div style={{ flex: 1 }}>
-                                <div className="ardi-citation-title">민법 제623조</div>
-                                <div className="ardi-citation-sub">임대인의 의무</div>
-                              </div>
-                              <ChevronRight size={10} className="ardi-citation-icon" />
-                            </div>
-                          )}
+                    <div className="ardi-ai-bubble">
+                      <span style={{ whiteSpace: 'pre-wrap' }}>{msg.content}</span>
+                      {!msg.streaming && shouldShowCitation(msg.content) && (
+                        <div className="ardi-citation">
+                          <BookOpen size={11} className="ardi-citation-icon" />
+                          <div style={{ flex: 1 }}>
+                            <div className="ardi-citation-title">민법 제623조</div>
+                            <div className="ardi-citation-sub">임대인의 의무</div>
+                          </div>
+                          <ChevronRight size={10} className="ardi-citation-icon" />
                         </div>
                       )}
                     </div>
-                  )
-                )}
-                <div ref={messagesEndRef} />
-              </>
+                  )}
+                </div>
+              )
             )}
-          </div>
+            <div ref={messagesEndRef} />
+          </>
+        )}
+      </div>
 
-          {/* Composer */}
-          <div className="ardi-composer-wrap">
-            {hasMessages && (
-              <div className="ardi-chips">
-                {['복사하기', '집주인에게 메시지', '비슷한 판례'].map((chip) => (
-                  <button key={chip} className="ardi-chip" onClick={() => sendMessage(chip)} disabled={streaming}>
-                    <Sparkles size={10} style={{ color: 'var(--rd-blue)' }} />
-                    {chip}
-                  </button>
-                ))}
-              </div>
-            )}
-            <div className="ardi-composer">
-              <input
-                className="ardi-composer-input"
-                placeholder="아르디에게 물어보세요"
-                value={input}
-                onChange={(e) => setInput(e.target.value)}
-                onKeyDown={(e) => {
-                  if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); sendMessage(input); }
-                }}
-                disabled={streaming}
-              />
-              <Mic size={15} style={{ color: 'var(--rd-ink-3)' }} />
-              <button
-                className="ardi-send"
-                onClick={() => sendMessage(input)}
-                disabled={!input.trim() || streaming}
-                aria-label="전송"
-              >
-                <Send size={13} color="#fff" />
+      {/* Composer */}
+      <div className="ardi-composer-wrap">
+        {hasMessages && (
+          <div className="ardi-chips">
+            {['복사하기', '집주인에게 메시지', '비슷한 판례'].map((chip) => (
+              <button key={chip} className="ardi-chip" onClick={() => sendMessage(chip)} disabled={streaming}>
+                <Sparkles size={10} style={{ color: 'var(--rd-blue)' }} />
+                {chip}
               </button>
-            </div>
+            ))}
           </div>
+        )}
+        <div className="ardi-composer">
+          <input
+            className="ardi-composer-input"
+            placeholder="아르디에게 물어보세요"
+            value={input}
+            onChange={(e) => setInput(e.target.value)}
+            onKeyDown={(e) => {
+              if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); sendMessage(input); }
+            }}
+            disabled={streaming}
+          />
+          <Mic size={15} style={{ color: 'var(--rd-ink-3)' }} />
+          <button
+            className="ardi-send"
+            onClick={() => sendMessage(input)}
+            disabled={!input.trim() || streaming}
+            aria-label="전송"
+          >
+            <Send size={13} color="#fff" />
+          </button>
         </div>
-      )}
-    </>
+      </div>
+    </div>
+  );
+
+  // createPortal로 document.body에 직접 마운트 → 부모 stacking context 완전 우회
+  return createPortal(
+    <>
+      {fab}
+      {overlay}
+    </>,
+    document.body
   );
 }
 
