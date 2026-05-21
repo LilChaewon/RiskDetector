@@ -157,16 +157,16 @@ export default function ArdiChatbot({ selectedToxic, warningCount = 0, analysisD
 
   const fab = !open && (
     <div style={{
-      position: 'fixed', right: 24, bottom: 32, zIndex: 9999,
+      position: 'fixed', right: 16, bottom: `calc(24px + env(safe-area-inset-bottom))`, zIndex: 9999,
       display: 'flex', flexDirection: 'column', alignItems: 'flex-end',
     }}>
-      <div style={{ position: 'relative', marginRight: 8, marginBottom: -10, zIndex: 1 }}>
+      <div style={{ position: 'relative', marginRight: 6, marginBottom: -10, zIndex: 1 }}>
         {/* eslint-disable-next-line @next/next/no-img-element */}
-        <img src="/ardi/ardi-waving.png" alt="아르디" width={56} height={56} style={{ objectFit: 'contain', display: 'block' }} />
+        <img src="/ardi/ardi-waving.png" alt="아르디" width={48} height={48} style={{ objectFit: 'contain', display: 'block' }} />
         {warningCount > 0 && (
           <div style={{
-            position: 'absolute', top: 0, right: -2,
-            width: 18, height: 18, borderRadius: 999,
+            position: 'absolute', top: 2, right: -2,
+            width: 16, height: 16, borderRadius: 999,
             background: '#d93a3a', color: '#fff',
             fontSize: 10, fontWeight: 800,
             display: 'flex', alignItems: 'center', justifyContent: 'center',
@@ -177,11 +177,11 @@ export default function ArdiChatbot({ selectedToxic, warningCount = 0, analysisD
       <button
         onClick={() => setOpen(true)}
         style={{
-          padding: '11px 18px', borderRadius: 999,
+          padding: '10px 16px 10px 14px', borderRadius: 999,
           background: '#0d1524', color: '#fff',
-          border: 'none', fontSize: 13, fontWeight: 700,
-          whiteSpace: 'nowrap', cursor: 'pointer',
-          boxShadow: '0 8px 24px rgba(13,21,36,0.28)',
+          border: 'none', fontSize: 12.5, fontWeight: 700,
+          letterSpacing: '-0.01em', whiteSpace: 'nowrap', cursor: 'pointer',
+          boxShadow: '0 8px 20px rgba(13,21,36,0.32), 0 1px 2px rgba(0,0,0,0.12)',
           fontFamily: 'inherit',
         }}
       >
@@ -331,7 +331,11 @@ function EmptyState({ pinnedToxic, onSelect }: { pinnedToxic?: Toxic; onSelect: 
         <Image src="/ardi/ardi-hero.png" alt="아르디" width={160} height={160} style={{ objectFit: 'contain' }} unoptimized />
       </div>
       <p className="ardi-empty-title">안녕하세요!<br />{greeting}</p>
-      <p className="ardi-empty-sub">궁금한 점을 편하게 물어보세요.</p>
+      <p className="ardi-empty-sub">
+        {pinnedToxic
+          ? '이 조항이 왜 위험한지, 어떻게 바꿔야 할지 — 무엇이든 편하게 물어보세요.'
+          : '궁금한 점을 편하게 물어보세요.'}
+      </p>
       <div className="ardi-suggestions">
         {SUGGESTED_QUESTIONS.map(({ q, sub }) => (
           <button key={q} className="ardi-suggestion" onClick={() => onSelect(q)}>
