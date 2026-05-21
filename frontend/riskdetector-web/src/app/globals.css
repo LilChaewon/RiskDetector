@@ -510,6 +510,185 @@ button {
   padding-bottom: 28px;
 }
 
+.rd-draft-workspace {
+  width: calc(100% + 80px);
+  min-height: 100vh;
+  margin: -28px -40px -48px;
+  display: grid;
+  grid-template-columns: 430px minmax(0, 1fr);
+  align-items: start;
+  background: #d0d2d5;
+}
+
+.rd-draft-tools {
+  min-width: 0;
+  height: 100vh;
+  overflow-y: auto;
+  border-right: 1px solid var(--rd-line);
+  background: var(--rd-bg);
+  padding: 14px;
+}
+
+.rd-draft-grid {
+  display: grid;
+  grid-template-columns: minmax(320px, 430px) minmax(0, 1fr);
+  gap: 20px;
+  align-items: start;
+}
+
+.rd-draft-preview-wrap {
+  min-width: 0;
+  height: 100vh;
+  max-height: none;
+  overflow-y: auto;
+  border-radius: 0;
+  background: #d0d2d5;
+  padding: 42px min(6vw, 88px);
+}
+
+.rd-draft-final-editor {
+  width: 100%;
+  min-height: 280px;
+  resize: vertical;
+  border: 1px solid var(--rd-line);
+  border-radius: 14px;
+  background: #fff;
+  color: var(--rd-ink);
+  padding: 14px;
+  font-size: 13px;
+  font-weight: 650;
+  line-height: 1.75;
+  outline: none;
+  white-space: pre-wrap;
+}
+
+.rd-draft-final-editor:focus {
+  border-color: var(--rd-blue);
+  box-shadow: 0 0 0 3px rgba(27, 100, 218, 0.12);
+}
+
+.rd-draft-paper {
+  width: min(920px, 100%);
+  min-height: 980px;
+  margin: 0 auto;
+  background: #fff;
+  color: #1f2933;
+  padding: 72px 76px;
+  box-shadow: 0 1px 2px rgba(0,0,0,0.04), 0 10px 28px rgba(0,0,0,0.08);
+  font-family: "Times New Roman", "Apple SD Gothic Neo", serif;
+}
+
+.rd-draft-notice {
+  grid-column: 1 / -1;
+  margin: 0 14px 14px;
+}
+
+.rd-draft-paper h2 {
+  margin-bottom: 42px;
+  text-align: center;
+  font-size: 28px;
+  font-weight: 900;
+  line-height: 1.5;
+}
+
+.rd-draft-paper h3 {
+  margin: 34px 0 18px;
+  text-align: center;
+  font-size: 23px;
+  font-weight: 900;
+  line-height: 1.6;
+  letter-spacing: 0.04em;
+}
+
+.rd-draft-paper p {
+  margin: 0 0 10px;
+  font-size: 16px;
+  font-weight: 500;
+  line-height: 1.95;
+  white-space: pre-wrap;
+}
+
+.rd-draft-paper .rd-draft-date-line {
+  margin: 34px 0 28px;
+  text-align: center;
+  font-weight: 800;
+}
+
+.rd-draft-paper .rd-draft-closing-line {
+  margin: 34px 0 22px;
+  text-align: center;
+  font-weight: 800;
+}
+
+.rd-draft-paper .rd-draft-sign-line {
+  margin: 14px 0;
+  text-align: center;
+  font-weight: 800;
+}
+
+.rd-draft-paper .rd-draft-date-line + .rd-draft-sign-line {
+  margin-top: 36px;
+}
+
+.rd-draft-example {
+  color: #9aa3ad;
+  font-weight: 750;
+}
+
+.rd-draft-tools input::placeholder,
+.rd-draft-tools textarea::placeholder {
+  color: var(--rd-ink-3);
+  opacity: 1;
+}
+
+.rd-draft-tools input:focus::placeholder,
+.rd-draft-tools textarea:focus::placeholder {
+  color: transparent;
+}
+
+.rd-draft-attachments {
+  margin-top: 48px;
+  padding-top: 28px;
+  border-top: 1px solid #d5dbe3;
+}
+
+.rd-draft-attachments h3 {
+  margin-bottom: 24px;
+  text-align: center;
+  font-size: 22px;
+  font-weight: 900;
+}
+
+.rd-draft-attachment {
+  break-inside: avoid;
+  page-break-inside: avoid;
+  margin-top: 28px;
+}
+
+.rd-draft-attachment-title {
+  margin-bottom: 10px !important;
+  font-family: -apple-system, BlinkMacSystemFont, "Apple SD Gothic Neo", "Pretendard", sans-serif;
+  font-size: 14px !important;
+  font-weight: 800 !important;
+  line-height: 1.5 !important;
+}
+
+.rd-draft-attachment img {
+  max-width: 100%;
+  max-height: 720px;
+  object-fit: contain;
+  border: 1px solid #d5dbe3;
+}
+
+.rd-draft-attachment-note {
+  border: 1px dashed #b8c0cc;
+  border-radius: 10px;
+  padding: 12px;
+  color: var(--rd-ink-2);
+  font-family: -apple-system, BlinkMacSystemFont, "Apple SD Gothic Neo", "Pretendard", sans-serif;
+  font-size: 13px !important;
+}
+
 @media (max-width: 900px) {
   .rd-shell {
     display: block;
@@ -538,7 +717,7 @@ button {
     bottom: 0;
     z-index: 50;
     display: grid;
-    grid-template-columns: repeat(4, 1fr);
+    grid-template-columns: repeat(5, 1fr);
     gap: 2px;
     padding: 8px 8px calc(8px + env(safe-area-inset-bottom));
     border-top: 1px solid var(--rd-line);
@@ -584,6 +763,81 @@ button {
     display: none;
   }
 
+  .rd-draft-workspace {
+    width: 100%;
+    min-height: 0;
+    margin: 0;
+    display: block;
+    background: transparent;
+  }
+
+  .rd-draft-tools {
+    height: auto;
+    overflow-y: visible;
+    border-right: 0;
+    background: transparent;
+    padding: 0;
+  }
+
+  .rd-draft-grid {
+    display: block;
+  }
+
+  .rd-draft-preview-wrap {
+    position: static;
+    height: auto;
+    max-height: none;
+    overflow-y: visible;
+    margin-top: 16px;
+    border-radius: 16px;
+    padding: 12px;
+  }
+
+  .rd-draft-notice {
+    margin: 16px 0 0;
+  }
+
+  .rd-draft-paper {
+    min-height: 620px;
+    padding: 38px 24px;
+  }
+
+  .rd-draft-paper h2 {
+    margin-bottom: 28px;
+    font-size: 23px;
+  }
+
+  .rd-draft-paper h3 {
+    margin: 28px 0 14px;
+    font-size: 19px;
+  }
+
+  .rd-draft-paper p {
+    font-size: 14px;
+    line-height: 1.85;
+  }
+
+  .rd-draft-paper .rd-draft-date-line {
+    margin: 28px 0 22px;
+  }
+
+  .rd-draft-paper .rd-draft-closing-line {
+    margin: 28px 0 18px;
+  }
+
+  .rd-draft-paper .rd-draft-sign-line {
+    margin: 12px 0;
+  }
+
+  .rd-draft-attachments {
+    margin-top: 34px;
+    padding-top: 20px;
+  }
+
+  .rd-draft-attachment img {
+    max-height: 520px;
+  }
+
   .rd-stat-card {
     min-height: 86px;
     padding: 16px;
@@ -610,5 +864,47 @@ button {
   .rd-document-block p {
     font-size: 15px;
     line-height: 1.9;
+  }
+}
+
+@media print {
+  body * {
+    visibility: hidden !important;
+  }
+
+  #draft-print-area,
+  #draft-print-area * {
+    visibility: visible !important;
+  }
+
+  #draft-print-area {
+    position: absolute;
+    left: 0;
+    top: 0;
+    width: 210mm;
+    min-height: 297mm;
+    height: auto;
+    margin: 0;
+    padding: 24mm;
+    box-shadow: none;
+  }
+
+  .rd-draft-attachments {
+    break-before: page;
+    page-break-before: always;
+  }
+
+  .rd-draft-attachment {
+    break-inside: avoid;
+    page-break-inside: avoid;
+  }
+
+  .rd-draft-attachment img {
+    max-height: 210mm;
+  }
+
+  @page {
+    size: A4;
+    margin: 0;
   }
 }
