@@ -1695,7 +1695,7 @@ export default function DraftPage() {
         <section className="rd-card rd-draft-notice flex gap-3 p-4 text-[13px] font-semibold leading-6 text-[var(--rd-ink-2)]">
           <AlertCircle className="mt-0.5 shrink-0 text-[var(--rd-blue)]" size={18} />
           <div>
-            작성된 문서는 참고용이며, 중요한 분쟁은 전문가 상담을 권장합니다. 내용증명은 우체국 또는 인터넷우체국에서 발송하고, 지급명령은 대한민국 법원 전자소송 또는 관할 법원에 제출합니다.
+            작성된 문서는 증거자료가 되거나 법적 효력을 가질 수 있지만, 분쟁이 크거나 복잡한 경우 전문가 상담을 권장합니다.
           </div>
         </section>
         </div>
