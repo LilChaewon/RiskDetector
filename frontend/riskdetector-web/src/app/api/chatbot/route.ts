@@ -21,6 +21,26 @@ interface ChatRequest {
   clauseSwitched?: boolean;
 }
 
+interface RetrievedItem {
+  rank?: number;
+  score?: number;
+  text?: string;
+  sourceLabel?: string;
+  basisPhrase?: string;
+  location?: string;
+}
+
+interface ChatbotRetrieveResponse {
+  success?: boolean;
+  error?: string;
+  results?: RetrievedItem[];
+}
+
+const BACKEND_URL = process.env.BACKEND_API_URL || process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8080';
+const RETRIEVE_ENDPOINT = `${BACKEND_URL.replace(/\/$/, '')}/api/chatbot/retrieve`;
+const RETRIEVE_TIMEOUT_MS = 4000;
+const RETRIEVE_TOP_K = 4;
+
 const EASY_MODE_PATTERN = /(쉽게|쉬운\s*말|쉬운말|풀어서|풀어\s*서|초딩|초등학생|이해\s*안)/;
 
 function isEasyMode(messages: { role: string; content: string }[]): boolean {
@@ -38,11 +58,13 @@ function warnLabel(level?: number) {
   return '안전';
 }
 
-function collectAllowedCitations(req: ChatRequest): string[] {
+const CITATION_REGEX = /(민법|상법|형법|근로기준법|저작권법|주택임대차보호법|상가건물\s*임대차보호법)\s*제\s*\d+\s*조(?:\s*제\s*\d+\s*항)?|\d{4}\s*[다가나허누]\s*\d+/g;
+
+function collectAllowedCitations(req: ChatRequest, retrieved: RetrievedItem[]): string[] {
   const refs = new Set<string>();
   const add = (s?: string) => {
     if (!s) return;
-    const matches = s.match(/(민법|상법|형법|근로기준법|저작권법|주택임대차보호법|상가건물\s*임대차보호법)\s*제\s*\d+\s*조(?:\s*제\s*\d+\s*항)?|\d{4}\s*[다가나허누]\s*\d+/g);
+    const matches = s.match(CITATION_REGEX);
     if (matches) matches.forEach((m) => refs.add(m.replace(/\s+/g, ' ').trim()));
   };
   add(req.selectedToxic?.reasonReference);
@@ -51,13 +73,74 @@ function collectAllowedCitations(req: ChatRequest): string[] {
     add(t.reasonReference);
     add(t.reason);
   });
+  retrieved.forEach((item) => {
+    add(item.sourceLabel);
+    add(item.basisPhrase);
+    add(item.text);
+  });
   return Array.from(refs);
 }
 
-function buildSystemPrompt(req: ChatRequest, easyMode: boolean): string {
+function inferContractType(req: ChatRequest): string {
+  const haystack = `${req.contractTitle ?? ''} ${req.overallComment ?? ''} ${
+    req.selectedToxic?.clause ?? ''
+  } ${(req.allToxics ?? []).map((t) => t.clause ?? '').join(' ')}`;
+  if (/(전속계약|매니지먼트|엔터테인먼트|대중문화예술인|연예)/.test(haystack)) return 'entertainment';
+  if (/(근로계약|연봉계약|취업규칙|임금|해고|퇴직)/.test(haystack)) return 'labor';
+  if (/(임대차|전세|월세|보증금|임대인|임차인)/.test(haystack)) return 'lease';
+  return 'unknown';
+}
+
+function buildRetrievalQuery(req: ChatRequest, lastUserMessage: string): string {
+  const parts: string[] = [];
+  if (req.selectedToxic?.clause) parts.push(req.selectedToxic.clause);
+  if (req.selectedToxic?.title) parts.push(req.selectedToxic.title);
+  if (req.selectedToxic?.reason) parts.push(req.selectedToxic.reason);
+  if (lastUserMessage) parts.push(lastUserMessage);
+  parts.push('관련 판례 및 법률 조항');
+  return parts.join(' ').slice(0, 1400);
+}
+
+async function fetchRetrievedContext(
+  query: string,
+  contractType: string
+): Promise<RetrievedItem[]> {
+  if (!query.trim()) return [];
+  const controller = new AbortController();
+  const timer = setTimeout(() => controller.abort(), RETRIEVE_TIMEOUT_MS);
+  try {
+    const res = await fetch(RETRIEVE_ENDPOINT, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ query, contractType, topK: RETRIEVE_TOP_K }),
+      signal: controller.signal,
+    });
+    if (!res.ok) return [];
+    const data: ChatbotRetrieveResponse = await res.json();
+    if (!data.success || !Array.isArray(data.results)) return [];
+    return data.results.filter((r) => r && (r.text ?? '').trim().length > 0);
+  } catch {
+    return [];
+  } finally {
+    clearTimeout(timer);
+  }
+}
+
+function buildRetrievedContextBlock(retrieved: RetrievedItem[]): string {
+  if (retrieved.length === 0) return '';
+  const lines = retrieved.slice(0, RETRIEVE_TOP_K).map((item, i) => {
+    const label = item.sourceLabel?.trim() || `Source ${i + 1}`;
+    const text = (item.text ?? '').replace(/\s+/g, ' ').slice(0, 600);
+    return `[${label}]\n${text}`;
+  });
+  return `\n\n## 🔎 Knowledge Base 검색 결과 (이 발췌문을 우선 근거로 사용)\n사용자의 질문과 관련해 법령·판례·생활법령 DB에서 자동 검색한 결과입니다. 답변에 인용하거나 근거로 사용할 때 반드시 이 발췌문에 명시된 내용만 사용하세요. 발췌문에 없는 사실은 추측하지 마세요.\n\n${lines.join('\n\n')}`;
+}
+
+function buildSystemPrompt(req: ChatRequest, easyMode: boolean, retrieved: RetrievedItem[]): string {
   const { selectedToxic, allToxics = [], contractTitle, overallComment, clauseSwitched } = req;
 
-  const allowedCitations = collectAllowedCitations(req);
+  const allowedCitations = collectAllowedCitations(req, retrieved);
+  const retrievedBlock = buildRetrievedContextBlock(retrieved);
   const citationBlock =
     allowedCitations.length > 0
       ? `\n\n## 인용 가능한 법령·판례 (이 목록 외 인용 금지)\n${allowedCitations.map((c) => `- ${c}`).join('\n')}`
@@ -119,7 +202,7 @@ function buildSystemPrompt(req: ChatRequest, easyMode: boolean): string {
 
 ## 발견된 독소조항 전체 목록
 ${toxicsList || '없음'}
-${selectedSection}${citationBlock}${switchNotice}${easyModeBlock}`;
+${selectedSection}${retrievedBlock}${citationBlock}${switchNotice}${easyModeBlock}`;
 }
 
 export async function POST(req: NextRequest) {
@@ -132,7 +215,12 @@ export async function POST(req: NextRequest) {
 
   const openai = new OpenAI({ apiKey });
   const easyMode = isEasyMode(body.messages);
-  const systemPrompt = buildSystemPrompt(body, easyMode);
+  const lastUserMessage =
+    [...body.messages].reverse().find((m) => m.role === 'user')?.content ?? '';
+  const retrievalQuery = buildRetrievalQuery(body, lastUserMessage);
+  const contractType = inferContractType(body);
+  const retrieved = await fetchRetrievedContext(retrievalQuery, contractType);
+  const systemPrompt = buildSystemPrompt(body, easyMode, retrieved);
   const messages: OpenAI.Chat.ChatCompletionMessageParam[] = [
     { role: 'system', content: systemPrompt },
     ...body.messages.map((m) => ({
