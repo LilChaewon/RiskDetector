@@ -53,6 +53,11 @@ function variantFromQuestion(q: string): ArdiVariant {
   return 'friendly';
 }
 
+function toxicKey(t?: Toxic): string {
+  if (!t) return '';
+  return `${t.title ?? ''}::${(t.clause ?? '').slice(0, 30)}`;
+}
+
 export default function ArdiChatbot({ selectedToxic, warningCount = 0, analysisData }: ArdiChatbotProps) {
   const [open, setOpen] = useState(false);
   const [messages, setMessages] = useState<Message[]>([]);
@@ -61,6 +66,7 @@ export default function ArdiChatbot({ selectedToxic, warningCount = 0, analysisD
   const [mounted, setMounted] = useState(false);
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const abortRef = useRef<AbortController | null>(null);
+  const lastSentToxicKeyRef = useRef<string>('');
 
   // SSR 이후 클라이언트에서만 portal 마운트
   useEffect(() => {
@@ -96,6 +102,12 @@ export default function ArdiChatbot({ selectedToxic, warningCount = 0, analysisD
     abortRef.current = controller;
 
     try {
+      const currentKey = toxicKey(selectedToxic);
+      const clauseSwitched =
+        !!selectedToxic &&
+        lastSentToxicKeyRef.current !== '' &&
+        lastSentToxicKeyRef.current !== currentKey;
+
       const history = [
         ...messages.map((m) => ({ role: m.role, content: m.content })),
         { role: 'user' as const, content: text },
@@ -111,8 +123,11 @@ export default function ArdiChatbot({ selectedToxic, warningCount = 0, analysisD
           allToxics: analysisData?.toxics ?? [],
           contractTitle: analysisData?.title,
           overallComment: analysisData?.overallComment,
+          clauseSwitched,
         }),
       });
+
+      lastSentToxicKeyRef.current = currentKey;
 
       if (!res.ok || !res.body) {
         throw new Error(`API error ${res.status}`);
@@ -254,16 +269,19 @@ export default function ArdiChatbot({ selectedToxic, warningCount = 0, analysisD
                   ) : (
                     <div className="ardi-ai-bubble">
                       <span style={{ whiteSpace: 'pre-wrap' }}>{msg.content}</span>
-                      {!msg.streaming && shouldShowCitation(msg.content) && (
-                        <div className="ardi-citation">
-                          <BookOpen size={11} className="ardi-citation-icon" />
-                          <div style={{ flex: 1 }}>
-                            <div className="ardi-citation-title">민법 제623조</div>
-                            <div className="ardi-citation-sub">임대인의 의무</div>
+                      {!msg.streaming && (() => {
+                        const cite = extractCitation(msg.content, selectedToxic?.reasonReference);
+                        return cite ? (
+                          <div className="ardi-citation">
+                            <BookOpen size={11} className="ardi-citation-icon" />
+                            <div style={{ flex: 1 }}>
+                              <div className="ardi-citation-title">{cite.title}</div>
+                              {cite.sub && <div className="ardi-citation-sub">{cite.sub}</div>}
+                            </div>
+                            <ChevronRight size={10} className="ardi-citation-icon" />
                           </div>
-                          <ChevronRight size={10} className="ardi-citation-icon" />
-                        </div>
-                      )}
+                        ) : null;
+                      })()}
                     </div>
                   )}
                 </div>
@@ -352,6 +370,30 @@ function EmptyState({ pinnedToxic, onSelect }: { pinnedToxic?: Toxic; onSelect: 
   );
 }
 
-function shouldShowCitation(text: string): boolean {
-  return /민법|법원|조문|판례|제\d+조/.test(text);
+const LAW_TITLE_MAP: Record<string, string> = {
+  '민법 제623조': '임대인의 의무',
+  '민법 제398조': '손해배상액의 예정',
+  '민법 제103조': '반사회질서의 법률행위',
+  '민법 제104조': '불공정한 법률행위',
+  '근로기준법 제17조': '근로조건의 명시',
+  '저작권법 제45조': '저작재산권의 양도',
+  '주택임대차보호법 제7조': '차임 등의 증감청구권',
+};
+
+function extractCitation(text: string, fallbackRef?: string): { title: string; sub?: string } | null {
+  // 1) 응답 본문에서 법령 조문 패턴 추출
+  const lawMatch = text.match(/(민법|상법|형법|근로기준법|저작권법|주택임대차보호법|상가건물\s*임대차보호법)\s*제\s*(\d+)\s*조(?:\s*제\s*(\d+)\s*항)?/);
+  if (lawMatch) {
+    const title = `${lawMatch[1].replace(/\s+/g, '')} 제${lawMatch[2]}조${lawMatch[3] ? ` 제${lawMatch[3]}항` : ''}`;
+    return { title, sub: LAW_TITLE_MAP[title.replace(/\s제\d+항$/, '')] };
+  }
+  // 2) 본문에 없으면 선택 조항의 reasonReference 사용
+  if (fallbackRef) {
+    const refMatch = fallbackRef.match(/(민법|상법|형법|근로기준법|저작권법|주택임대차보호법|상가건물\s*임대차보호법)\s*제\s*(\d+)\s*조(?:\s*제\s*(\d+)\s*항)?/);
+    if (refMatch) {
+      const title = `${refMatch[1].replace(/\s+/g, '')} 제${refMatch[2]}조${refMatch[3] ? ` 제${refMatch[3]}항` : ''}`;
+      return { title, sub: LAW_TITLE_MAP[title.replace(/\s제\d+항$/, '')] };
+    }
+  }
+  return null;
 }
