@@ -1,0 +1,142 @@
+{
+  "success": true,
+  "data": {
+    "contractId": "test-123",
+    "analysisId": "test-456",
+    "analysisResult": {
+      "title": "계약서 분석 결과",
+      "summary": "연예인 전속계약서상 계약기간, 저작권 양도, 손해배상 조항에서 심각한 불공정성이 발견됩니다. 특히 과도한 계약기간, 포괄적 권리양도, 과다한 손해배상 약정이 주요 문제입니다.",
+      "riskLevel": "high",
+      "groundingStatus": "grounded",
+      "toxicCount": 3,
+      "toxics": [
+        {
+          "clauseText": "본 계약기간은 최초 계약일부터 시작하여, '을'의 연예활동의 데뷔일로부터 13년째 되는 날 종료하기로 한다",
+          "riskType": "과도한 계약기간",
+          "riskLevel": "high",
+          "reason": "대법원은 연예인 전속계약의 기간이 7년을 초과하는 경우 공서양속에 반하여 무효라고 판시했습니다(대법원 2002다51953). 13년의 계약기간은 연예인의 직업선택의 자유를 과도하게 제한합니다.",
+          "suggestion": "계약기간을 최대 7년 이내로 제한하고, 갱신 옵션을 포함하되 상호 합의하에 갱신하도록 수정해야 합니다. 예: '본 계약기간은 데뷔일로부터 5년으로 하며, 양 당사자의 합의 하에 2년 단위로 갱신할 수 있다'",
+          "sourceIds": [
+            "대법원 2002다51953"
+          ]
+        },
+        {
+          "clauseText": "'을'은 저작물에 대한 복제권, 음반권, 배포권, 2차적 저작물 작성권 등 모든 권리를 '갑'에게 영구히 양도한다",
+          "riskType": "과도한 권리양도",
+          "riskLevel": "high",
+          "reason": "근거: 관련 대법원 판례. 저작권법 제45조 제2항에 따르면 저작재산권의 전부를 양도하는 경우에도 특약이 없는 한 2차적저작물작성권은 포함되지 않습니다. 또한 '영구히' 양도하는 것은 저작자의 권리를 과도하게 제한합니다.",
+          "suggestion": "저작재산권의 양도 범위와 기간을 명확히 한정하고, 2차적저작물작성권은 별도 협의하도록 수정해야 합니다. 예: '을의 저작물에 대한 복제권, 배포권은 계약기간 동안 갑에게 귀속되며, 2차적저작물작성권은 별도 계약으로 정한다'",
+          "sourceIds": [
+            "저작권법 제45조"
+          ]
+        },
+        {
+          "clauseText": "손해배상액은 총 투자액의 3배와 잔여 계약기간 동안의 일실이익의 2배를 합산한 금액으로 한다",
+          "riskType": "과다한 손해배상",
+          "riskLevel": "high",
+          "reason": "대법원은 실제 손해액을 초과하는 과도한 손해배상 예정은 공서양속에 반한다고 판시했습니다. 투자액의 3배와 일실이익의 2배를 합산하는 것은 명백히 과도한 배상액입니다.",
+          "suggestion": "손해배상액을 실제 발생한 손해에 상응하는 합리적인 수준으로 조정해야 합니다. 예: '손해배상액은 실제 투자액과 이에 대한 통상적인 이율을 합산한 금액을 초과할 수 없으며, 구체적인 금액은 양측이 협의하여 정한다'",
+          "sourceIds": [
+            "대법원 2004다20093"
+          ]
+        }
+      ]
+    },
+    "knowledgeBaseId": "UXAFF3UKTQ",
+    "retrievalQuery": "본 계약기간은 최초 계약일부터 시작하여, '을'의 연예활동의 데뷔일로부터 13년째 되는 날 종료하기로 한다 '을'은 저작물에 대한 복제권, 음반권, 배포권, 2차적 저작물 작성권 등 모든 권리를 '갑'에게 영구히 양도한다 손해배상액은 총 투자액의 3배와 잔여 계약기간 동안의 일실이익의 2배를 합산한 금액으로 한다 관련 판례 및 법률 조항",
+    "retrievalResults": [
+      {
+        "rank": 1,
+        "score": 0.48786931772745445,
+        "text": "관련한 주의의무를 다하여야 한다.제2항 위와 같은 주의의무를 다하기 위하여, 갑과 을은 병에게 직원관리 및 거래처 관리에 대하여 모든 대외적 권한을 부여한다.제9조[계약의 존속기간]제1항 본 계약은 특별한 사정이 없는 한 영업개시일로부터 2년간 존속하며, 계약기간이 만료되면, 갑에게 식당의 운영과 수익과 관련한 모든 권리가 있는 것으로 한다.",
+        "location": "s3://risk-detector-myongji/kb/law_open_api/precedent/curated/precedent_145.txt",
+        "metadata": {
+          "contract_type": "lease",
+          "source_file": "precedent_145.txt",
+          "x-amz-bedrock-kb-chunk-id": "8691f4d7-2e9f-4065-b608-f99771f409b3",
+          "x-amz-bedrock-kb-data-source-id": "M4IGPQFSL3"
+        },
+        "sourceLabel": "관련 대법원 판례",
+        "basisPhrase": "관련 대법원 판례"
+      },
+      {
+        "rank": 2,
+        "score": 0.48786931772745445,
+        "text": "관련한 주의의무를 다하여야 한다.제2항 위와 같은 주의의무를 다하기 위하여, 갑과 을은 병에게 직원관리 및 거래처 관리에 대하여 모든 대외적 권한을 부여한다.제9조[계약의 존속기간]제1항 본 계약은 특별한 사정이 없는 한 영업개시일로부터 2년간 존속하며, 계약기간이 만료되면, 갑에게 식당의 운영과 수익과 관련한 모든 권리가 있는 것으로 한다.",
+        "location": "s3://risk-detector-myongji/kb/law_open_api/precedent/precedent_373.txt",
+        "metadata": {
+          "x-amz-bedrock-kb-source-file-modality": "TEXT",
+          "contract_type": "lease",
+          "source_file": "precedent_373.txt",
+          "x-amz-bedrock-kb-chunk-id": "9fd06f99-a688-4fbd-9891-b4cbbaaf711c",
+          "x-amz-bedrock-kb-data-source-id": "M4IGPQFSL3"
+        },
+        "sourceLabel": "관련 대법원 판례",
+        "basisPhrase": "관련 대법원 판례"
+      },
+      {
+        "rank": 3,
+        "score": 0.4726928647709533,
+        "text": "임대료를 합당한 사유 없이 1개월 이상 연체하였을 때④ 당사자 중 일방이 법령의 개폐, 도시계획, 화재, 홍수, 폭동 등 불가항력적인 사유로 90일 이상 영업을 계속할 수 없을 경우, 상대방에 대해 30일 전에 서면통지를 한 후 본 계약을 해제 또는 해지할 수 있다.제14조(손해배상)본 계약 체결 후 영업개시 이전에 이후 갑과 을 중 일방의 사정으로 인해 계약해제 또는 해지 시, 상대방에게 각호에 따라 손해배상금을 지급하기로 한다.1.",
+        "location": "s3://risk-detector-myongji/kb/law_open_api/precedent/curated/precedent_146.txt",
+        "metadata": {
+          "contract_type": "lease",
+          "source_file": "precedent_146.txt",
+          "x-amz-bedrock-kb-chunk-id": "8b19a993-bb28-4996-a8d6-8177d2d3cc5f",
+          "x-amz-bedrock-kb-data-source-id": "M4IGPQFSL3"
+        },
+        "sourceLabel": "관련 대법원 판례",
+        "basisPhrase": "관련 대법원 판례"
+      }
+    ],
+    "analysis": {
+      "summary": "연예인 전속계약서상 계약기간, 저작권 양도, 손해배상 조항에서 심각한 불공정성이 발견됩니다. 특히 과도한 계약기간, 포괄적 권리양도, 과다한 손해배상 약정이 주요 문제입니다.",
+      "riskLevel": "high",
+      "groundingStatus": "grounded",
+      "clauses": [
+        {
+          "clauseText": "본 계약기간은 최초 계약일부터 시작하여, '을'의 연예활동의 데뷔일로부터 13년째 되는 날 종료하기로 한다",
+          "riskType": "과도한 계약기간",
+          "riskLevel": "high",
+          "reason": "대법원은 연예인 전속계약의 기간이 7년을 초과하는 경우 공서양속에 반하여 무효라고 판시했습니다(대법원 2002다51953). 13년의 계약기간은 연예인의 직업선택의 자유를 과도하게 제한합니다.",
+          "suggestion": "계약기간을 최대 7년 이내로 제한하고, 갱신 옵션을 포함하되 상호 합의하에 갱신하도록 수정해야 합니다. 예: '본 계약기간은 데뷔일로부터 5년으로 하며, 양 당사자의 합의 하에 2년 단위로 갱신할 수 있다'",
+          "sourceIds": [
+            "대법원 2002다51953"
+          ]
+        },
+        {
+          "clauseText": "'을'은 저작물에 대한 복제권, 음반권, 배포권, 2차적 저작물 작성권 등 모든 권리를 '갑'에게 영구히 양도한다",
+          "riskType": "과도한 권리양도",
+          "riskLevel": "high",
+          "reason": "저작권법 제45조 제2항에 따르면 저작재산권의 전부를 양도하는 경우에도 특약이 없는 한 2차적저작물작성권은 포함되지 않습니다. 또한 '영구히' 양도하는 것은 저작자의 권리를 과도하게 제한합니다.",
+          "suggestion": "저작재산권의 양도 범위와 기간을 명확히 한정하고, 2차적저작물작성권은 별도 협의하도록 수정해야 합니다. 예: '을의 저작물에 대한 복제권, 배포권은 계약기간 동안 갑에게 귀속되며, 2차적저작물작성권은 별도 계약으로 정한다'",
+          "sourceIds": [
+            "저작권법 제45조"
+          ]
+        },
+        {
+          "clauseText": "손해배상액은 총 투자액의 3배와 잔여 계약기간 동안의 일실이익의 2배를 합산한 금액으로 한다",
+          "riskType": "과다한 손해배상",
+          "riskLevel": "high",
+          "reason": "대법원은 실제 손해액을 초과하는 과도한 손해배상 예정은 공서양속에 반한다고 판시했습니다. 투자액의 3배와 일실이익의 2배를 합산하는 것은 명백히 과도한 배상액입니다.",
+          "suggestion": "손해배상액을 실제 발생한 손해에 상응하는 합리적인 수준으로 조정해야 합니다. 예: '손해배상액은 실제 투자액과 이에 대한 통상적인 이율을 합산한 금액을 초과할 수 없으며, 구체적인 금액은 양측이 협의하여 정한다'",
+          "sourceIds": [
+            "대법원 2004다20093"
+          ]
+        }
+      ]
+    },
+    "usage": {
+      "inputTokens": 2312,
+      "outputTokens": 1192,
+      "totalTokens": 3504
+    },
+    "provider": "bedrock",
+    "modelId": "apac.anthropic.claude-3-5-sonnet-20241022-v2:0",
+    "resultLoader": {
+      "mode": "sqs",
+      "success": true,
+      "message": "analysis_result_loader direct invoke skipped; relying on Lambda Destination / SQS pipeline."
+    }
+  }
+}

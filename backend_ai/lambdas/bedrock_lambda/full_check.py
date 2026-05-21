@@ -78,8 +78,9 @@ try:
     else:
         warn(f"MemorySize {cfg.get('MemorySize')}MB < 512MB → OOM 위험")
 
-    # Destination 확인
-    dst = cfg.get("DestinationConfig", {})
+    # Destination 확인 (비동기 invoke 설정은 별도 API에서 조회해야 함)
+    invoke_cfg = lambda_client.get_function_event_invoke_config(FunctionName=BEDROCK_LAMBDA)
+    dst = invoke_cfg.get("DestinationConfig", {})
     on_success = dst.get("OnSuccess", {}).get("Destination", "")
     if SQS_ARN in on_success:
         ok(f"Destination → SQS: {on_success}")

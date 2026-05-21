@@ -20,6 +20,20 @@ export default function Home() {
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
+    const cachedName = localStorage.getItem('userName');
+    const isLoggedIn = localStorage.getItem('isLoggedIn') === 'true';
+    if (cachedName && isLoggedIn) {
+      setDashboard((prev) => ({
+        ...prev,
+        user: {
+          name: cachedName,
+          email: localStorage.getItem('userEmail'),
+          picture: localStorage.getItem('userPicture'),
+          guest: false,
+        },
+      }));
+    }
+
     getDashboard()
       .then(setDashboard)
       .catch((err) => console.error('dashboard load failed:', err))

@@ -6,6 +6,7 @@ import { useRouter, useSearchParams } from 'next/navigation';
 import { Lightbulb, Loader2, Share2, Sparkles, X } from 'lucide-react';
 import AppShell from '@/components/AppShell';
 import RiskTag, { riskMeta } from '@/components/RiskTag';
+import ArdiChatbot from '@/components/ArdiChatbot';
 import { fetchAnalysis } from '@/api/contract';
 import type { ContractAnalysisDTO } from '@/types/api';
 
@@ -440,133 +441,132 @@ function AnalysisResultContent() {
     );
   }
 
-  if (loading) {
-    return (
-      <AppShell>
+  return (
+    <AppShell>
+      {/* 로딩 상태 */}
+      {loading && (
         <div className="rd-narrow flex min-h-[60vh] flex-col items-center justify-center">
           <Loader2 className="animate-spin text-[var(--rd-blue)]" size={34} />
           <p className="mt-4 text-[14px] font-bold text-[var(--rd-ink-2)]">결과 불러오는 중...</p>
         </div>
-      </AppShell>
-    );
-  }
-
-  if (error || !data) {
-    return (
-      <AppShell>
+      )}
+      {/* 에러 상태 */}
+      {!loading && (error || !data) && (
         <div className="rd-narrow rounded-2xl bg-white p-8 text-center">
           <p className="text-[16px] font-extrabold">{error || '결과가 없습니다.'}</p>
           <button type="button" onClick={() => router.push('/upload')} className="rd-btn mt-6">
             다시 업로드하기
           </button>
         </div>
-      </AppShell>
-    );
-  }
-
-  return (
-    <AppShell>
-      <div className="rd-result-shell">
-        <div className="rd-result-grid">
-          <div className="min-w-0">
-            <div className="flex flex-wrap items-start justify-between gap-4">
-              <div>
-                <div className="rd-section-label">
-                  IMO.PDF · {new Date(data.createdAt).toLocaleDateString('ko-KR')} · {statusText(data.analysisStatus)}
-                </div>
-                <h1 className="mt-2 text-[34px] font-extrabold tracking-tight sm:text-[40px]">
-                  {data.title || '업로드된 계약서'}
-                </h1>
-              </div>
-              <div className="flex gap-2">
-                <button type="button" onClick={handleShare} className="rd-btn rd-btn-ghost">
-                  <Share2 size={15} />
-                  공유
-                </button>
-                <button type="button" onClick={exportAnalysisText} className="rd-btn">
-                  <Sparkles size={15} />
-                  분석 리포트 내보내기
-                </button>
-              </div>
-            </div>
-
-            <section className="mt-8 grid gap-4 sm:grid-cols-4">
-              {[
-                ['총 조항', originBlocks.length || data.toxicCount, 0],
-                ['주의 필요', warningCount, 3],
-                ['확인 권장', reviewCount, 2],
-                ['안전', safeCount, 1],
-              ].map(([label, value, risk]) => (
-                <div key={label} className="rd-stat-card">
-                  <div className="text-[12px] font-semibold text-[var(--rd-ink-3)]">{label}</div>
-                  <div
-                    className="mt-2 text-[31px] font-extrabold"
-                    style={{ color: risk === 3 ? 'var(--rd-risk-hi)' : risk === 2 ? 'var(--rd-risk-md)' : risk === 1 ? 'var(--rd-risk-lo)' : 'var(--rd-ink)' }}
-                  >
-                    {String(value)}
+      )}
+      {/* 성공 상태 */}
+      {!loading && data && (
+        <>
+          <div className="rd-result-shell">
+            <div className="rd-result-grid">
+              <div className="min-w-0">
+                <div className="flex flex-wrap items-start justify-between gap-4">
+                  <div>
+                    <div className="rd-section-label">
+                      IMO.PDF · {new Date(data.createdAt).toLocaleDateString('ko-KR')} · {statusText(data.analysisStatus)}
+                    </div>
+                    <h1 className="mt-2 text-[34px] font-extrabold tracking-tight sm:text-[40px]">
+                      {data.title || '업로드된 계약서'}
+                    </h1>
+                  </div>
+                  <div className="flex gap-2">
+                    <button type="button" onClick={handleShare} className="rd-btn rd-btn-ghost">
+                      <Share2 size={15} />
+                      공유
+                    </button>
+                    <button type="button" onClick={exportAnalysisText} className="rd-btn">
+                      <Sparkles size={15} />
+                      분석 리포트 내보내기
+                    </button>
                   </div>
                 </div>
-              ))}
-            </section>
 
-            <div className="mt-6 flex flex-wrap gap-3">
-              {[
-                ['all', `전체 ${originBlocks.length || data.toxicCount}`],
-                ['warning', `주의 ${warningCount}`],
-                ['review', `확인 ${reviewCount}`],
-                ['safe', `안전 ${safeCount}`],
-              ].map(([key, label]) => (
-                <button
-                  key={key}
-                  type="button"
-                  onClick={() => setFilter(key as FilterKey)}
-                  className={`rd-filter-tab ${filter === key ? 'is-active' : ''}`}
-                >
-                  {label}
-                </button>
-              ))}
+                <section className="mt-8 grid gap-4 sm:grid-cols-4">
+                  {[
+                    ['총 조항', originBlocks.length || data.toxicCount, 0],
+                    ['주의 필요', warningCount, 3],
+                    ['확인 권장', reviewCount, 2],
+                    ['안전', safeCount, 1],
+                  ].map(([label, value, risk]) => (
+                    <div key={label} className="rd-stat-card">
+                      <div className="text-[12px] font-semibold text-[var(--rd-ink-3)]">{label}</div>
+                      <div
+                        className="mt-2 text-[31px] font-extrabold"
+                        style={{ color: risk === 3 ? 'var(--rd-risk-hi)' : risk === 2 ? 'var(--rd-risk-md)' : risk === 1 ? 'var(--rd-risk-lo)' : 'var(--rd-ink)' }}
+                      >
+                        {String(value)}
+                      </div>
+                    </div>
+                  ))}
+                </section>
+
+                <div className="mt-6 flex flex-wrap gap-3">
+                  {[
+                    ['all', `전체 ${originBlocks.length || data.toxicCount}`],
+                    ['warning', `주의 ${warningCount}`],
+                    ['review', `확인 ${reviewCount}`],
+                    ['safe', `안전 ${safeCount}`],
+                  ].map(([key, label]) => (
+                    <button
+                      key={key}
+                      type="button"
+                      onClick={() => setFilter(key as FilterKey)}
+                      className={`rd-filter-tab ${filter === key ? 'is-active' : ''}`}
+                    >
+                      {label}
+                    </button>
+                  ))}
+                </div>
+
+                {data.riskdetectorCommentary?.overallComment && (
+                  <section className="rd-summary-strip">
+                    <Sparkles size={16} className="text-[var(--rd-blue)]" />
+                    <p>{data.riskdetectorCommentary.overallComment}</p>
+                  </section>
+                )}
+
+                <section className="rd-document-card">
+                  {filteredBlocks.map(({ block, matches }) => (
+                    <DocumentBlock
+                      key={block.id || block.tagIdx}
+                      block={block}
+                      matches={matches}
+                      selectedIndex={selectedIndex}
+                      onSelect={(toxicIndex) => selectToxic(toxicIndex, true)}
+                    />
+                  ))}
+                </section>
+              </div>
+
+              <aside className="rd-context-panel rd-result-context-panel">
+                <ClauseContext toxic={selected} advice={data.riskdetectorCommentary?.advice} onClear={() => setSelectedIndex(null)} />
+              </aside>
             </div>
-
-            {data.riskdetectorCommentary?.overallComment && (
-              <section className="rd-summary-strip">
-                <Sparkles size={16} className="text-[var(--rd-blue)]" />
-                <p>{data.riskdetectorCommentary.overallComment}</p>
-              </section>
-            )}
-
-            <section className="rd-document-card">
-              {filteredBlocks.map(({ block, matches }) => (
-                <DocumentBlock
-                  key={block.id || block.tagIdx}
-                  block={block}
-                  matches={matches}
-                  selectedIndex={selectedIndex}
-                  onSelect={(toxicIndex) => selectToxic(toxicIndex, true)}
-                />
-              ))}
-            </section>
           </div>
-
-          <aside className="rd-context-panel rd-result-context-panel">
-            <ClauseContext toxic={selected} advice={data.riskdetectorCommentary?.advice} onClear={() => setSelectedIndex(null)} />
-          </aside>
-        </div>
-      </div>
-      {mobileContextOpen && selected && (
-        <div className="rd-mobile-sheet-backdrop lg:hidden" onClick={() => setMobileContextOpen(false)}>
-          <div className="rd-mobile-sheet" onClick={(event) => event.stopPropagation()}>
-            <button
-              type="button"
-              className="absolute right-5 top-5 rounded-full p-2 text-[var(--rd-ink-3)] hover:bg-[var(--rd-line-2)]"
-              onClick={() => setMobileContextOpen(false)}
-              aria-label="닫기"
-            >
-              <X size={18} />
-            </button>
-            <ClauseContext toxic={selected} advice={data.riskdetectorCommentary?.advice} onClear={() => setSelectedIndex(null)} />
-          </div>
-        </div>
+          {mobileContextOpen && selected && (
+            <div className="rd-mobile-sheet-backdrop lg:hidden" onClick={() => { setMobileContextOpen(false); setSelectedIndex(null); }}>
+              <div className="rd-mobile-sheet" onClick={(event) => event.stopPropagation()}>
+                <ClauseContext toxic={selected} advice={data.riskdetectorCommentary?.advice} onClear={() => { setSelectedIndex(null); setMobileContextOpen(false); }} />
+              </div>
+            </div>
+          )}
+        </>
       )}
+      {/* 아르디 챗봇 — loading/error/success 모든 상태에서 항상 표시 */}
+      <ArdiChatbot
+        selectedToxic={selected}
+        warningCount={warningCount}
+        analysisData={data ? {
+          title: data.title,
+          toxics: data.toxics,
+          overallComment: data.riskdetectorCommentary?.overallComment,
+        } : undefined}
+      />
     </AppShell>
   );
 }
@@ -594,7 +594,7 @@ function ClauseContext({ toxic, advice, onClear }: { toxic?: Toxic; advice?: str
   }
 
   const parsedReference = splitReasonReference(toxic.reasonReference);
-  const adviceText = toxic.suggestion || parsedReference.suggestion || firstAdvice(advice) || '불리한 범위와 기준을 구체적으로 줄이고, 상호 협의 조항을 추가하는 방향으로 수정하는 것이 좋습니다.';
+  const adviceText = toxic.suggestion || parsedReference.suggestion;
 
   return (
     <div className="rd-context-detail">
@@ -629,7 +629,9 @@ function ClauseContext({ toxic, advice, onClear }: { toxic?: Toxic; advice?: str
 
       <div className="mt-3 rounded-2xl bg-[var(--rd-blue-soft)] p-4">
         <div className="text-[12px] font-extrabold tracking-[0.06em] text-[var(--rd-blue)]">AFTER</div>
-        <div className="mt-2 whitespace-pre-wrap text-[14px] font-bold leading-7">{adviceText}</div>
+        <div className="mt-2 whitespace-pre-wrap text-[14px] font-bold leading-7">
+          {adviceText || '수정 제안이 준비되지 않았습니다.'}
+        </div>
       </div>
 
       {parsedReference.reference && (

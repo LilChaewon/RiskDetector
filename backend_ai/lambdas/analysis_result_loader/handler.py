@@ -90,10 +90,17 @@ def ensure_backend_core_tables(conn: Any) -> None:
                 clause TEXT,
                 reason TEXT,
                 reason_reference TEXT,
+                suggestion TEXT,
                 source_contract_tag_idx INTEGER,
                 warn_level INTEGER,
                 created_at TIMESTAMP DEFAULT NOW()
             )
+            """
+        )
+        cur.execute(
+            f"""
+            ALTER TABLE {TOXICS_TABLE}
+            ADD COLUMN IF NOT EXISTS suggestion TEXT
             """
         )
 
@@ -321,9 +328,10 @@ def replace_toxic_clauses(conn: Any, payload: dict[str, Any]) -> dict[str, Any]:
                     clause,
                     reason,
                     reason_reference,
+                    suggestion,
                     source_contract_tag_idx,
                     warn_level
-                ) VALUES (%s, %s, %s, %s, %s, %s, %s, %s)
+                ) VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s)
                 """,
                 (
                     str(uuid4()),
@@ -332,6 +340,7 @@ def replace_toxic_clauses(conn: Any, payload: dict[str, Any]) -> dict[str, Any]:
                     str(item.get("clauseText", "") or item.get("clause", "")),
                     str(item.get("reason", "")),
                     build_reason_reference(item),
+                    str(item.get("suggestion", "") or item.get("after", "") or "").strip(),
                     item.get("sourceContractTagIdx"),
                     map_warn_level(str(item.get("riskLevel", "") or payload["risk_level"])),
                 ),

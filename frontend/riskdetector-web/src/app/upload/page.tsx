@@ -78,9 +78,22 @@ export default function UploadPage() {
     return -1;
   }
 
+  function handleMaskingSkip() {
+    const updated = preparedFiles.map((f, i) => (i === currentMaskingIdx ? files[currentMaskingIdx] : f));
+    setPreparedFiles(updated);
+
+    const nextIndex = nextImageIndex(currentMaskingIdx);
+    if (nextIndex >= 0) {
+      setCurrentMaskingIdx(nextIndex);
+      return;
+    }
+
+    const uploadTargets = updated.filter((file): file is File => Boolean(file));
+    handleUpload(uploadTargets);
+  }
+
   function handleMaskingComplete(maskedFile: File) {
-    const updated = [...preparedFiles];
-    updated[currentMaskingIdx] = maskedFile;
+    const updated = preparedFiles.map((f, i) => (i === currentMaskingIdx ? maskedFile : f));
     setPreparedFiles(updated);
 
     const nextIndex = nextImageIndex(currentMaskingIdx);
@@ -118,25 +131,39 @@ export default function UploadPage() {
   }
 
   if (step === 'masking') {
+    const totalImages = files.filter(isImageFile).length;
+    const currentImageNum = files.slice(0, currentMaskingIdx + 1).filter(isImageFile).length;
+
     return (
       <main className="min-h-screen bg-[#0d1524] p-4 text-white sm:p-6">
         <div className="mx-auto flex min-h-[calc(100vh-32px)] w-full max-w-[680px] flex-col">
+          {/* 헤더 */}
           <div className="flex items-center justify-between py-2">
-            <button type="button" onClick={() => setStep('upload')} className="text-[15px] font-bold text-white/90">
-              이전으로
+            <button type="button" onClick={() => setStep('upload')} className="text-[15px] font-bold text-white/70 hover:text-white transition">
+              ← 이전
             </button>
-            <div className="rounded-full bg-white/10 px-4 py-1.5 text-[13px] font-extrabold">
-              {files.slice(0, currentMaskingIdx + 1).filter(isImageFile).length}
-              <span className="text-white/45"> / {files.filter(isImageFile).length}</span>
-            </div>
+            {totalImages > 1 && (
+              <div className="rounded-full bg-white/10 px-4 py-1.5 text-[13px] font-extrabold">
+                {currentImageNum}
+                <span className="text-white/45"> / {totalImages}</span>
+              </div>
+            )}
+            <button type="button" onClick={handleMaskingSkip} className="text-[15px] font-bold text-white/50 hover:text-white/90 transition">
+              건너뛰기
+            </button>
           </div>
-          <div className="mt-8">
-            <h1 className="text-[27px] font-extrabold tracking-tight">개인정보 지우기</h1>
-            <p className="mt-2 text-[15px] font-medium text-white/55">
-              주민번호 등 민감한 정보를 손가락이나 마우스로 가려주세요.
+
+          {/* 타이틀 */}
+          <div className="mt-6">
+            <h1 className="text-[27px] font-extrabold tracking-tight">개인정보 가리기</h1>
+            <p className="mt-2 text-[14px] font-medium leading-6 text-white/50">
+              이름·주민번호·주소 등 민감한 정보를 드래그해서 가리세요.
+              <br />가릴 게 없으면 <span className="text-white/80 font-bold">건너뛰기</span>를 눌러도 됩니다.
             </p>
           </div>
-          <div className="mt-8 flex min-h-[420px] flex-1 items-center justify-center overflow-hidden rounded-[28px] border border-white/10 bg-black/40 shadow-2xl">
+
+          {/* 캔버스 영역 */}
+          <div className="mt-6 flex-1 overflow-hidden rounded-[24px] border border-white/10 bg-black/30 shadow-2xl">
             <MaskingCanvas
               imageFile={files[currentMaskingIdx]}
               onMaskingComplete={handleMaskingComplete}
