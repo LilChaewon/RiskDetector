@@ -10,6 +10,7 @@ import {
   Lightbulb,
   LogIn,
   LogOut,
+  PencilLine,
   Plus,
   User,
 } from 'lucide-react';
@@ -18,6 +19,7 @@ import AuthChoiceDialog from '@/components/AuthChoiceDialog';
 const navItems = [
   { href: '/', label: '홈', icon: Home },
   { href: '/upload', label: '분석', icon: FileText },
+  { href: '/draft', label: '문서작성', icon: PencilLine },
   { href: '/feed', label: '법률팁', icon: Lightbulb },
   { href: '/my', label: '내 정보', icon: User },
 ];

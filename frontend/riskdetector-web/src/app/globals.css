@@ -508,436 +508,183 @@ button {
   padding-bottom: 28px;
 }
 
-/* =====================================================================
-   Ardi Chatbot
-   ===================================================================== */
-
-/* FAB */
-.ardi-fab {
-  position: fixed;
-  right: 24px;
-  bottom: 32px;
-  z-index: 60;
-  display: flex;
-  flex-direction: column;
-  align-items: flex-end;
-  gap: 0;
-  pointer-events: none;
+.rd-draft-workspace {
+  width: calc(100% + 80px);
+  min-height: 100vh;
+  margin: -28px -40px -48px;
+  display: grid;
+  grid-template-columns: 430px minmax(0, 1fr);
+  align-items: start;
+  background: #d0d2d5;
 }
 
-.ardi-fab-mascot {
-  position: relative;
-  margin-right: 8px;
-  margin-bottom: -10px;
-  z-index: 1;
-  pointer-events: auto;
-}
-
-.ardi-fab-badge {
-  position: absolute;
-  top: 0;
-  right: -2px;
-  width: 18px;
-  height: 18px;
-  border-radius: 999px;
-  background: var(--rd-risk-hi);
-  color: #fff;
-  font-size: 10px;
-  font-weight: 800;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  box-shadow: 0 0 0 2px #fff;
-}
-
-.ardi-fab-pill {
-  pointer-events: auto;
-  padding: 11px 18px 11px 16px;
-  border-radius: 999px;
-  background: #0d1524;
-  color: #fff;
-  border: none;
-  font-size: 13px;
-  font-weight: 700;
-  letter-spacing: -0.01em;
-  white-space: nowrap;
-  box-shadow: 0 8px 24px rgba(13,21,36,0.28), 0 1px 2px rgba(0,0,0,0.1);
-  transition: transform 140ms ease, box-shadow 140ms ease;
-}
-
-.ardi-fab-pill:hover {
-  transform: translateY(-2px);
-  box-shadow: 0 12px 28px rgba(13,21,36,0.34);
-}
-
-/* Full-screen overlay */
-.ardi-overlay {
-  position: fixed;
-  inset: 0;
-  z-index: 70;
+.rd-draft-tools {
+  min-width: 0;
+  height: 100vh;
+  overflow-y: auto;
+  border-right: 1px solid var(--rd-line);
   background: var(--rd-bg);
-  display: flex;
-  flex-direction: column;
-  font-family: -apple-system, BlinkMacSystemFont, "Apple SD Gothic Neo", "Pretendard", system-ui, sans-serif;
-  letter-spacing: -0.01em;
-  word-break: keep-all;
+  padding: 14px;
 }
 
-/* Header */
-.ardi-header {
-  background: var(--rd-paper);
-  border-bottom: 1px solid var(--rd-line);
-  padding: 12px 16px 14px;
-  flex-shrink: 0;
+.rd-draft-grid {
+  display: grid;
+  grid-template-columns: minmax(320px, 430px) minmax(0, 1fr);
+  gap: 20px;
+  align-items: start;
 }
 
-.ardi-header-row {
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
+.rd-draft-preview-wrap {
+  min-width: 0;
+  height: 100vh;
+  max-height: none;
+  overflow-y: auto;
+  border-radius: 0;
+  background: #d0d2d5;
+  padding: 42px min(6vw, 88px);
 }
 
-.ardi-header-name {
-  display: flex;
-  align-items: center;
-  gap: 7px;
-  font-size: 13px;
-  font-weight: 700;
-}
-
-.ardi-online {
-  width: 7px;
-  height: 7px;
-  border-radius: 999px;
-  background: var(--rd-risk-lo);
-  margin-left: 2px;
-}
-
-.ardi-icon-btn {
-  width: 34px;
-  height: 34px;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  border-radius: 999px;
-  background: transparent;
-  border: none;
+.rd-draft-final-editor {
+  width: 100%;
+  min-height: 280px;
+  resize: vertical;
+  border: 1px solid var(--rd-line);
+  border-radius: 14px;
+  background: #fff;
   color: var(--rd-ink);
-  transition: background 140ms ease;
+  padding: 14px;
+  font-size: 13px;
+  font-weight: 650;
+  line-height: 1.75;
+  outline: none;
+  white-space: pre-wrap;
 }
 
-.ardi-icon-btn:hover {
-  background: var(--rd-line-2);
+.rd-draft-final-editor:focus {
+  border-color: var(--rd-blue);
+  box-shadow: 0 0 0 3px rgba(27, 100, 218, 0.12);
 }
 
-/* Pinned clause */
-.ardi-pinned {
-  margin-top: 10px;
-  padding: 10px 12px;
-  background: var(--rd-line-2);
-  border-radius: 12px;
-  display: flex;
-  align-items: center;
-  gap: 8px;
+.rd-draft-paper {
+  width: min(920px, 100%);
+  min-height: 980px;
+  margin: 0 auto;
+  background: #fff;
+  color: #1f2933;
+  padding: 72px 76px;
+  box-shadow: 0 1px 2px rgba(0,0,0,0.04), 0 10px 28px rgba(0,0,0,0.08);
+  font-family: "Times New Roman", "Apple SD Gothic Neo", serif;
 }
 
-.ardi-pin-icon {
-  color: var(--rd-ink-3);
-  flex-shrink: 0;
+.rd-draft-notice {
+  grid-column: 1 / -1;
+  margin: 0 14px 14px;
 }
 
-.ardi-pinned-label {
-  font-size: 11px;
-  font-family: ui-monospace, monospace;
-  color: var(--rd-ink-3);
+.rd-draft-paper h2 {
+  margin-bottom: 42px;
+  text-align: center;
+  font-size: 28px;
+  font-weight: 900;
+  line-height: 1.5;
+}
+
+.rd-draft-paper h3 {
+  margin: 34px 0 18px;
+  text-align: center;
+  font-size: 23px;
+  font-weight: 900;
+  line-height: 1.6;
   letter-spacing: 0.04em;
 }
 
-.ardi-pinned-clause {
-  font-size: 12px;
-  font-weight: 600;
-  margin-top: 2px;
-  overflow: hidden;
-  text-overflow: ellipsis;
-  white-space: nowrap;
-}
-
-/* Messages area */
-.ardi-messages {
-  flex: 1;
-  overflow-y: auto;
-  padding: 16px 16px 8px;
-  display: flex;
-  flex-direction: column;
-  gap: 14px;
-}
-
-/* Avatars */
-.ardi-avatar-sm {
-  width: 32px;
-  height: 32px;
-  border-radius: 999px;
-  background: var(--rd-blue-soft);
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  overflow: hidden;
-  flex-shrink: 0;
-}
-
-/* AI message */
-.ardi-ai {
-  display: flex;
-  align-items: flex-end;
-  gap: 8px;
-}
-
-.ardi-ai-bubble {
-  background: var(--rd-paper);
-  border: 1px solid var(--rd-line);
-  padding: 10px 13px;
-  border-radius: 4px 14px 14px 14px;
-  font-size: 13px;
-  line-height: 1.6;
-  max-width: 82%;
-}
-
-/* User message */
-.ardi-me {
-  display: flex;
-  justify-content: flex-end;
-}
-
-.ardi-me-bubble {
-  background: var(--rd-blue);
-  color: #fff;
-  padding: 10px 13px;
-  border-radius: 14px 14px 4px 14px;
-  font-size: 13px;
-  line-height: 1.6;
-  max-width: 82%;
-}
-
-/* Citation card */
-.ardi-citation {
-  margin-top: 8px;
-  padding: 8px 10px;
-  background: var(--rd-blue-soft);
-  border-radius: 10px;
-  display: flex;
-  align-items: center;
-  gap: 6px;
-}
-
-.ardi-citation-icon {
-  color: var(--rd-blue);
-  flex-shrink: 0;
-}
-
-.ardi-citation-title {
-  font-size: 11px;
-  font-weight: 700;
-  color: var(--rd-blue);
-}
-
-.ardi-citation-sub {
-  font-size: 11px;
-  color: var(--rd-ink-2);
-}
-
-/* Typing dots */
-.ardi-typing {
-  display: flex;
-  gap: 5px;
-  align-items: center;
-  padding: 14px 16px;
-}
-
-.ardi-typing span {
-  width: 6px;
-  height: 6px;
-  border-radius: 999px;
-  background: var(--rd-ink-3);
-  animation: ardiDot 1.2s ease-in-out infinite;
-}
-
-.ardi-typing span:nth-child(2) { animation-delay: 0.2s; }
-.ardi-typing span:nth-child(3) { animation-delay: 0.4s; }
-
-@keyframes ardiDot {
-  0%, 60%, 100% { opacity: 0.3; transform: scale(1); }
-  30% { opacity: 1; transform: scale(1.3); }
-}
-
-/* Empty state */
-.ardi-empty {
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  padding: 20px 16px 8px;
-}
-
-.ardi-empty-hero {
-  width: 160px;
-  height: 160px;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  background: radial-gradient(circle at 50% 60%, var(--rd-blue-soft) 0%, transparent 65%);
-}
-
-.ardi-empty-title {
-  font-size: 18px;
-  font-weight: 800;
-  letter-spacing: -0.02em;
-  text-align: center;
-  line-height: 1.4;
-  margin: 8px 0 0;
-}
-
-.ardi-empty-sub {
-  font-size: 12.5px;
-  color: var(--rd-ink-2);
-  text-align: center;
-  line-height: 1.6;
-  margin: 8px 0 0;
-  max-width: 280px;
-}
-
-.ardi-suggestions {
-  display: flex;
-  flex-direction: column;
-  gap: 8px;
-  margin-top: 20px;
-  width: 100%;
-  max-width: 420px;
-}
-
-.ardi-suggestion {
-  display: flex;
-  align-items: center;
-  gap: 10px;
-  padding: 12px 14px;
-  border-radius: 12px;
-  background: var(--rd-paper);
-  border: 1px solid var(--rd-line);
-  font-family: inherit;
-  text-align: left;
-  transition: transform 120ms ease, box-shadow 120ms ease;
-}
-
-.ardi-suggestion:hover {
-  transform: translateY(-1px);
-  box-shadow: var(--rd-shadow);
-}
-
-.ardi-suggestion-q {
-  font-size: 13px;
-  font-weight: 700;
-  color: var(--rd-ink);
-}
-
-.ardi-suggestion-sub {
-  font-size: 11px;
-  color: var(--rd-ink-3);
-  margin-top: 2px;
-}
-
-/* Composer */
-.ardi-composer-wrap {
-  background: var(--rd-paper);
-  border-top: 1px solid var(--rd-line);
-  padding: 10px 16px calc(14px + env(safe-area-inset-bottom));
-  flex-shrink: 0;
-}
-
-.ardi-chips {
-  display: flex;
-  gap: 6px;
-  overflow-x: auto;
-  padding-bottom: 8px;
-  scrollbar-width: none;
-}
-
-.ardi-chips::-webkit-scrollbar { display: none; }
-
-.ardi-chip {
-  display: inline-flex;
-  align-items: center;
-  gap: 4px;
-  padding: 6px 11px;
-  border-radius: 999px;
-  background: var(--rd-line-2);
-  border: 1px solid var(--rd-line);
-  font-size: 12px;
+.rd-draft-paper p {
+  margin: 0 0 10px;
+  font-size: 16px;
   font-weight: 500;
-  color: var(--rd-ink);
-  white-space: nowrap;
-  font-family: inherit;
-  transition: background 140ms ease;
+  line-height: 1.95;
+  white-space: pre-wrap;
 }
 
-.ardi-chip:hover {
-  background: var(--rd-blue-soft);
-  color: var(--rd-blue);
+.rd-draft-paper .rd-draft-date-line {
+  margin: 34px 0 28px;
+  text-align: center;
+  font-weight: 800;
 }
 
-.ardi-composer {
-  display: flex;
-  align-items: center;
-  gap: 8px;
-  background: var(--rd-line-2);
-  border-radius: 999px;
-  padding: 6px 6px 6px 16px;
+.rd-draft-paper .rd-draft-closing-line {
+  margin: 34px 0 22px;
+  text-align: center;
+  font-weight: 800;
 }
 
-.ardi-composer-input {
-  flex: 1;
-  background: transparent;
-  border: none;
-  outline: none;
-  font-size: 13px;
-  color: var(--rd-ink);
-  font-family: inherit;
+.rd-draft-paper .rd-draft-sign-line {
+  margin: 14px 0;
+  text-align: center;
+  font-weight: 800;
 }
 
-.ardi-composer-input::placeholder { color: var(--rd-ink-3); }
-
-.ardi-send {
-  width: 34px;
-  height: 34px;
-  border-radius: 999px;
-  background: var(--rd-blue);
-  border: none;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  flex-shrink: 0;
-  transition: background 140ms ease, opacity 140ms ease;
+.rd-draft-paper .rd-draft-date-line + .rd-draft-sign-line {
+  margin-top: 36px;
 }
 
-.ardi-send:disabled {
-  opacity: 0.45;
+.rd-draft-example {
+  color: #9aa3ad;
+  font-weight: 750;
 }
 
-.ardi-send:not(:disabled):hover {
-  background: var(--rd-navy);
+.rd-draft-tools input::placeholder,
+.rd-draft-tools textarea::placeholder {
+  color: var(--rd-ink-3);
+  opacity: 1;
 }
 
-/* Desktop: constrain overlay to right panel */
-@media (min-width: 901px) {
-  .ardi-overlay {
-    left: auto;
-    right: 0;
-    width: min(440px, 100vw);
-    border-left: 1px solid var(--rd-line);
-    box-shadow: -8px 0 40px rgba(0, 0, 0, 0.08);
-  }
+.rd-draft-tools input:focus::placeholder,
+.rd-draft-tools textarea:focus::placeholder {
+  color: transparent;
+}
 
-  .ardi-fab {
-    right: 40px;
-    bottom: 40px;
-  }
+.rd-draft-attachments {
+  margin-top: 48px;
+  padding-top: 28px;
+  border-top: 1px solid #d5dbe3;
+}
+
+.rd-draft-attachments h3 {
+  margin-bottom: 24px;
+  text-align: center;
+  font-size: 22px;
+  font-weight: 900;
+}
+
+.rd-draft-attachment {
+  break-inside: avoid;
+  page-break-inside: avoid;
+  margin-top: 28px;
+}
+
+.rd-draft-attachment-title {
+  margin-bottom: 10px !important;
+  font-family: -apple-system, BlinkMacSystemFont, "Apple SD Gothic Neo", "Pretendard", sans-serif;
+  font-size: 14px !important;
+  font-weight: 800 !important;
+  line-height: 1.5 !important;
+}
+
+.rd-draft-attachment img {
+  max-width: 100%;
+  max-height: 720px;
+  object-fit: contain;
+  border: 1px solid #d5dbe3;
+}
+
+.rd-draft-attachment-note {
+  border: 1px dashed #b8c0cc;
+  border-radius: 10px;
+  padding: 12px;
+  color: var(--rd-ink-2);
+  font-family: -apple-system, BlinkMacSystemFont, "Apple SD Gothic Neo", "Pretendard", sans-serif;
+  font-size: 13px !important;
 }
 
 @media (max-width: 900px) {
@@ -968,7 +715,7 @@ button {
     bottom: 0;
     z-index: 50;
     display: grid;
-    grid-template-columns: repeat(4, 1fr);
+    grid-template-columns: repeat(5, 1fr);
     gap: 2px;
     padding: 8px 8px calc(8px + env(safe-area-inset-bottom));
     border-top: 1px solid var(--rd-line);
@@ -1014,6 +761,81 @@ button {
     display: none;
   }
 
+  .rd-draft-workspace {
+    width: 100%;
+    min-height: 0;
+    margin: 0;
+    display: block;
+    background: transparent;
+  }
+
+  .rd-draft-tools {
+    height: auto;
+    overflow-y: visible;
+    border-right: 0;
+    background: transparent;
+    padding: 0;
+  }
+
+  .rd-draft-grid {
+    display: block;
+  }
+
+  .rd-draft-preview-wrap {
+    position: static;
+    height: auto;
+    max-height: none;
+    overflow-y: visible;
+    margin-top: 16px;
+    border-radius: 16px;
+    padding: 12px;
+  }
+
+  .rd-draft-notice {
+    margin: 16px 0 0;
+  }
+
+  .rd-draft-paper {
+    min-height: 620px;
+    padding: 38px 24px;
+  }
+
+  .rd-draft-paper h2 {
+    margin-bottom: 28px;
+    font-size: 23px;
+  }
+
+  .rd-draft-paper h3 {
+    margin: 28px 0 14px;
+    font-size: 19px;
+  }
+
+  .rd-draft-paper p {
+    font-size: 14px;
+    line-height: 1.85;
+  }
+
+  .rd-draft-paper .rd-draft-date-line {
+    margin: 28px 0 22px;
+  }
+
+  .rd-draft-paper .rd-draft-closing-line {
+    margin: 28px 0 18px;
+  }
+
+  .rd-draft-paper .rd-draft-sign-line {
+    margin: 12px 0;
+  }
+
+  .rd-draft-attachments {
+    margin-top: 34px;
+    padding-top: 20px;
+  }
+
+  .rd-draft-attachment img {
+    max-height: 520px;
+  }
+
   .rd-stat-card {
     min-height: 86px;
     padding: 16px;
@@ -1040,5 +862,47 @@ button {
   .rd-document-block p {
     font-size: 15px;
     line-height: 1.9;
+  }
+}
+
+@media print {
+  body * {
+    visibility: hidden !important;
+  }
+
+  #draft-print-area,
+  #draft-print-area * {
+    visibility: visible !important;
+  }
+
+  #draft-print-area {
+    position: absolute;
+    left: 0;
+    top: 0;
+    width: 210mm;
+    min-height: 297mm;
+    height: auto;
+    margin: 0;
+    padding: 24mm;
+    box-shadow: none;
+  }
+
+  .rd-draft-attachments {
+    break-before: page;
+    page-break-before: always;
+  }
+
+  .rd-draft-attachment {
+    break-inside: avoid;
+    page-break-inside: avoid;
+  }
+
+  .rd-draft-attachment img {
+    max-height: 210mm;
+  }
+
+  @page {
+    size: A4;
+    margin: 0;
   }
 }
