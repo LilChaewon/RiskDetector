@@ -1,8 +1,6 @@
 import OpenAI from 'openai';
 import { NextRequest } from 'next/server';
 
-const openai = new OpenAI({ apiKey: process.env.OPENAI_API_KEY });
-
 type WarnLevel = number;
 
 interface ToxicSlim {
@@ -70,10 +68,12 @@ ${selectedSection}`;
 export async function POST(req: NextRequest) {
   const body: ChatRequest = await req.json();
 
-  if (!process.env.OPENAI_API_KEY) {
+  const apiKey = process.env.OPENAI_API_KEY;
+  if (!apiKey) {
     return new Response('OPENAI_API_KEY가 설정되지 않았습니다.', { status: 500 });
   }
 
+  const openai = new OpenAI({ apiKey });
   const systemPrompt = buildSystemPrompt(body);
   const messages: OpenAI.Chat.ChatCompletionMessageParam[] = [
     { role: 'system', content: systemPrompt },
