@@ -185,7 +185,7 @@ export default function ArdiChatbot({ open, onClose, selectedToxic, warningCount
             <X size={18} />
           </button>
           <div className="ardi-header-name">
-            <div className="ardi-avatar-sm">
+            <div className="ardi-avatar-sm" style={{ borderRadius: 0, background: 'transparent', overflow: 'visible' }}>
               <Image src="/ardi/ardi-friendly.png" alt="아르디" width={36} height={36} style={{ objectFit: 'contain' }} unoptimized />
             </div>
             <span>아르디</span>
