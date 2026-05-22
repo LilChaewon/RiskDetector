@@ -83,6 +83,14 @@ export default function ArdiChatbot({ open, onClose, selectedToxic, warningCount
     messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
   }, [messages]);
 
+  // 조항이 바뀌면 채팅 히스토리 자동 리셋 — 이전 조항 Q&A가 새 조항 답변을 오염시키는 것 방지
+  // ("쉽게 설명해줄 수 있어?" 같은 anaphoric 질문이 직전 답을 가리키는 현상 차단)
+  useEffect(() => {
+    abortRef.current?.abort();
+    setMessages([]);
+    lastSentToxicKeyRef.current = '';
+  }, [selectedToxic?.title, selectedToxic?.clause]);
+
   // 챗 닫을 때 진행 중인 스트림 중단
   function handleClose() {
     abortRef.current?.abort();
