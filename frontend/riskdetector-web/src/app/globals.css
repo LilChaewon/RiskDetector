@@ -356,6 +356,42 @@ button {
   padding-left: 28px;
 }
 
+.rd-ask-ardi-cta {
+  margin-top: 16px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  width: 100%;
+  padding: 12px 16px;
+  border-radius: 14px;
+  background: #0d1524;
+  color: #fff;
+  font-size: 14px;
+  font-weight: 800;
+  letter-spacing: -0.01em;
+  border: none;
+  cursor: pointer;
+  transition: transform 120ms ease, box-shadow 120ms ease, background 120ms ease;
+  box-shadow: 0 6px 16px rgba(13, 21, 36, 0.18);
+}
+
+.rd-ask-ardi-cta:hover {
+  background: #1a2440;
+  transform: translateY(-1px);
+  box-shadow: 0 8px 20px rgba(13, 21, 36, 0.24);
+}
+
+.rd-ask-ardi-cta:active {
+  transform: translateY(0);
+  box-shadow: 0 4px 10px rgba(13, 21, 36, 0.2);
+}
+
+.rd-ask-ardi-cta img {
+  flex-shrink: 0;
+  object-fit: contain;
+}
+
 .rd-stat-card {
   min-height: 96px;
   border: 1px solid var(--rd-line);

@@ -34,15 +34,21 @@ interface AnalysisData {
 }
 
 interface ArdiChatbotProps {
+  open: boolean;
+  onClose: () => void;
   selectedToxic?: Toxic;
   warningCount?: number;
   analysisData?: AnalysisData;
 }
 
 const SUGGESTED_QUESTIONS = [
-  { q: '이 조항 무효인가요?', sub: '법적 효력부터 확인해드려요' },
-  { q: '수정안 만들어줘', sub: '집주인에게 보낼 새 문구' },
-  { q: '비슷한 판례 알려줘', sub: '관련 대법원 판결 모음' },
+  { q: '비슷한 판례는 뭐가 있어?', sub: '관련 법령·판례 검색해서 알려드려요' },
+  { q: '쉽게 설명해줄 수 있어?', sub: '법률 용어를 일상어로 풀어드려요' },
+];
+
+const COMPOSER_CHIPS = [
+  '비슷한 판례는 뭐가 있어?',
+  '쉽게 설명해줄 수 있어?',
 ];
 
 function variantFromQuestion(q: string): ArdiVariant {
@@ -58,8 +64,8 @@ function toxicKey(t?: Toxic): string {
   return `${t.title ?? ''}::${(t.clause ?? '').slice(0, 30)}`;
 }
 
-export default function ArdiChatbot({ selectedToxic, warningCount = 0, analysisData }: ArdiChatbotProps) {
-  const [open, setOpen] = useState(false);
+export default function ArdiChatbot({ open, onClose, selectedToxic, warningCount = 0, analysisData }: ArdiChatbotProps) {
+  void warningCount;
   const [messages, setMessages] = useState<Message[]>([]);
   const [input, setInput] = useState('');
   const [streaming, setStreaming] = useState(false);
@@ -80,7 +86,7 @@ export default function ArdiChatbot({ selectedToxic, warningCount = 0, analysisD
   // 챗 닫을 때 진행 중인 스트림 중단
   function handleClose() {
     abortRef.current?.abort();
-    setOpen(false);
+    onClose();
   }
 
   async function sendMessage(text: string) {
@@ -170,41 +176,6 @@ export default function ArdiChatbot({ selectedToxic, warningCount = 0, analysisD
   // SSR에서는 렌더링하지 않음 (portal은 document.body 필요)
   if (!mounted) return null;
 
-  const fab = !open && (
-    <div style={{
-      position: 'fixed', right: 16, bottom: `calc(24px + env(safe-area-inset-bottom))`, zIndex: 9999,
-      display: 'flex', flexDirection: 'column', alignItems: 'flex-end',
-    }}>
-      <div style={{ position: 'relative', marginRight: 6, marginBottom: -10, zIndex: 1 }}>
-        {/* eslint-disable-next-line @next/next/no-img-element */}
-        <img src="/ardi/ardi-waving.png" alt="아르디" width={48} height={48} style={{ objectFit: 'contain', display: 'block' }} />
-        {warningCount > 0 && (
-          <div style={{
-            position: 'absolute', top: 2, right: -2,
-            width: 16, height: 16, borderRadius: 999,
-            background: '#d93a3a', color: '#fff',
-            fontSize: 10, fontWeight: 800,
-            display: 'flex', alignItems: 'center', justifyContent: 'center',
-            boxShadow: '0 0 0 2px #fff',
-          }}>{warningCount}</div>
-        )}
-      </div>
-      <button
-        onClick={() => setOpen(true)}
-        style={{
-          padding: '10px 16px 10px 14px', borderRadius: 999,
-          background: '#0d1524', color: '#fff',
-          border: 'none', fontSize: 12.5, fontWeight: 700,
-          letterSpacing: '-0.01em', whiteSpace: 'nowrap', cursor: 'pointer',
-          boxShadow: '0 8px 20px rgba(13,21,36,0.32), 0 1px 2px rgba(0,0,0,0.12)',
-          fontFamily: 'inherit',
-        }}
-      >
-        아르디에게 물어보기
-      </button>
-    </div>
-  );
-
   const overlay = open && (
     <div className="ardi-overlay" style={{ zIndex: 9999 }}>
       {/* Header */}
@@ -252,7 +223,7 @@ export default function ArdiChatbot({ selectedToxic, warningCount = 0, analysisD
                 </div>
               ) : (
                 <div key={msg.id} className="ardi-ai">
-                  <div className="ardi-avatar-sm">
+                  <div className="ardi-avatar-sm" style={{ borderRadius: 0, background: 'transparent', overflow: 'visible' }}>
                     <Image
                       src={`/ardi/ardi-${msg.variant ?? 'friendly'}.png`}
                       alt="아르디"
@@ -296,7 +267,7 @@ export default function ArdiChatbot({ selectedToxic, warningCount = 0, analysisD
       <div className="ardi-composer-wrap">
         {hasMessages && (
           <div className="ardi-chips">
-            {['복사하기', '집주인에게 메시지', '비슷한 판례'].map((chip) => (
+            {COMPOSER_CHIPS.map((chip) => (
               <button key={chip} className="ardi-chip" onClick={() => sendMessage(chip)} disabled={streaming}>
                 <Sparkles size={10} style={{ color: 'var(--rd-blue)' }} />
                 {chip}
@@ -330,13 +301,7 @@ export default function ArdiChatbot({ selectedToxic, warningCount = 0, analysisD
   );
 
   // createPortal로 document.body에 직접 마운트 → 부모 stacking context 완전 우회
-  return createPortal(
-    <>
-      {fab}
-      {overlay}
-    </>,
-    document.body
-  );
+  return createPortal(overlay, document.body);
 }
 
 function EmptyState({ pinnedToxic, onSelect }: { pinnedToxic?: Toxic; onSelect: (q: string) => void }) {
