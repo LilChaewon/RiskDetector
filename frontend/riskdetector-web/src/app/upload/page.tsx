@@ -2,14 +2,12 @@
 
 import { useRef, useState } from 'react';
 import { useRouter } from 'next/navigation';
-import { Camera, ChevronRight, FileText, Shield, UploadCloud } from 'lucide-react';
+import { Camera, ChevronRight, FileText, UploadCloud } from 'lucide-react';
 import AppShell from '@/components/AppShell';
-import MaskingCanvas from '@/components/MaskingCanvas';
 import { uploadOCR } from '@/api/contract';
 
 type ContractType = 'RENTAL' | 'EMPLOYMENT';
-type Step = 'select-type' | 'upload' | 'masking' | 'uploading';
-type PreparedFile = File | null;
+type Step = 'select-type' | 'upload' | 'uploading';
 
 const contractTypes: Array<{
   type: ContractType;
@@ -26,9 +24,6 @@ export default function UploadPage() {
   const cameraInputRef = useRef<HTMLInputElement>(null);
   const [step, setStep] = useState<Step>('select-type');
   const [contractType, setContractType] = useState<ContractType>('RENTAL');
-  const [files, setFiles] = useState<File[]>([]);
-  const [preparedFiles, setPreparedFiles] = useState<PreparedFile[]>([]);
-  const [currentMaskingIdx, setCurrentMaskingIdx] = useState(0);
   const [isDragging, setIsDragging] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [preparing, setPreparing] = useState(false);
@@ -52,58 +47,13 @@ export default function UploadPage() {
 
     try {
       const uploadFiles = await expandPdfFiles(supported);
-      const firstMaskingIndex = uploadFiles.findIndex((file) => isImageFile(file) && !isPdfPageImage(file));
-      setFiles(uploadFiles);
-      setPreparedFiles(uploadFiles.map((file) => (isImageFile(file) && !isPdfPageImage(file) ? null : file)));
-      setCurrentMaskingIdx(firstMaskingIndex);
-
-      if (firstMaskingIndex === -1) {
-        handleUpload(uploadFiles);
-        return;
-      }
-
-      setStep('masking');
+      handleUpload(uploadFiles);
     } catch (err) {
       console.error('파일 준비 실패:', err);
       setError('PDF를 페이지별 이미지로 변환하지 못했습니다. 다른 파일로 다시 시도해주세요.');
     } finally {
       setPreparing(false);
     }
-  }
-
-  function nextImageIndex(fromIndex: number, list = files) {
-    for (let i = fromIndex + 1; i < list.length; i += 1) {
-      if (isImageFile(list[i]) && !isPdfPageImage(list[i])) return i;
-    }
-    return -1;
-  }
-
-  function handleMaskingSkip() {
-    const updated = preparedFiles.map((f, i) => (i === currentMaskingIdx ? files[currentMaskingIdx] : f));
-    setPreparedFiles(updated);
-
-    const nextIndex = nextImageIndex(currentMaskingIdx);
-    if (nextIndex >= 0) {
-      setCurrentMaskingIdx(nextIndex);
-      return;
-    }
-
-    const uploadTargets = updated.filter((file): file is File => Boolean(file));
-    handleUpload(uploadTargets);
-  }
-
-  function handleMaskingComplete(maskedFile: File) {
-    const updated = preparedFiles.map((f, i) => (i === currentMaskingIdx ? maskedFile : f));
-    setPreparedFiles(updated);
-
-    const nextIndex = nextImageIndex(currentMaskingIdx);
-    if (nextIndex >= 0) {
-      setCurrentMaskingIdx(nextIndex);
-      return;
-    }
-
-    const uploadTargets = updated.filter((file): file is File => Boolean(file));
-    handleUpload(uploadTargets);
   }
 
   async function handleUpload(uploadTargets: File[]) {
@@ -128,50 +78,6 @@ export default function UploadPage() {
       setError('업로드에 실패했습니다. 잠시 후 다시 시도해주세요.');
       setStep('upload');
     }
-  }
-
-  if (step === 'masking') {
-    const totalImages = files.filter(isImageFile).length;
-    const currentImageNum = files.slice(0, currentMaskingIdx + 1).filter(isImageFile).length;
-
-    return (
-      <main className="min-h-screen bg-[var(--rd-bg)] p-4 text-[var(--rd-ink)] sm:p-6">
-        <div className="mx-auto flex min-h-[calc(100vh-32px)] w-full max-w-[680px] flex-col">
-          {/* 헤더 */}
-          <div className="flex items-center justify-between py-2">
-            <button type="button" onClick={() => setStep('upload')} className="text-[15px] font-bold text-[var(--rd-ink-2)] hover:text-[var(--rd-ink)] transition">
-              ← 이전
-            </button>
-            {totalImages > 1 && (
-              <div className="rounded-full bg-[var(--rd-line-2)] px-4 py-1.5 text-[13px] font-extrabold">
-                {currentImageNum}
-                <span className="text-[var(--rd-ink-3)]"> / {totalImages}</span>
-              </div>
-            )}
-            <button type="button" onClick={handleMaskingSkip} className="text-[15px] font-bold text-[var(--rd-ink-3)] hover:text-[var(--rd-ink)] transition">
-              건너뛰기
-            </button>
-          </div>
-
-          {/* 타이틀 */}
-          <div className="mt-6">
-            <h1 className="text-[27px] font-extrabold tracking-tight">개인정보 가리기</h1>
-            <p className="mt-2 text-[14px] font-medium leading-6 text-[var(--rd-ink-2)]">
-              이름·주민번호·주소 등 민감한 정보를 드래그해서 가리세요.
-              <br />가릴 게 없으면 <span className="text-[var(--rd-ink)] font-bold">건너뛰기</span>를 눌러도 됩니다.
-            </p>
-          </div>
-
-          {/* 캔버스 영역 */}
-          <div className="mt-6 flex-1 overflow-hidden rounded-[24px] border border-[var(--rd-line)] bg-[var(--rd-paper-2)] shadow-[var(--rd-shadow)]">
-            <MaskingCanvas
-              imageFile={files[currentMaskingIdx]}
-              onMaskingComplete={handleMaskingComplete}
-            />
-          </div>
-        </div>
-      </main>
-    );
   }
 
   if (step === 'uploading') {
@@ -264,11 +170,11 @@ export default function UploadPage() {
               />
             </label>
 
-            <div className="mt-3 grid gap-3 sm:grid-cols-2">
+            <div className="mt-3 sm:hidden">
               <button
                 type="button"
                 onClick={() => cameraInputRef.current?.click()}
-                className="rd-card rd-card-hover flex items-center gap-3 p-4 text-left sm:hidden"
+                className="rd-card rd-card-hover flex w-full items-center gap-3 p-4 text-left"
               >
                 <div className="flex h-11 w-11 items-center justify-center rounded-xl bg-[var(--rd-blue-soft)] text-[var(--rd-blue)]">
                   <Camera size={20} />
@@ -286,15 +192,6 @@ export default function UploadPage() {
                 className="hidden"
                 onChange={(e) => acceptFiles(Array.from(e.target.files || []))}
               />
-              <div className="rd-card flex items-center gap-3 p-4">
-                <div className="flex h-11 w-11 items-center justify-center rounded-xl bg-[var(--rd-line-2)] text-[var(--rd-ink-2)]">
-                  <Shield size={20} />
-                </div>
-                <div>
-                  <div className="text-[14px] font-extrabold">마스킹 지원</div>
-                  <div className="text-[12px] font-semibold text-[var(--rd-ink-2)]">이미지는 업로드 전 개인정보 가리기</div>
-                </div>
-              </div>
             </div>
 
             {error && (
@@ -319,10 +216,6 @@ function isPdfFile(file: File) {
 
 function isSupportedFile(file: File) {
   return isImageFile(file) || isPdfFile(file);
-}
-
-function isPdfPageImage(file: File) {
-  return file.name.includes('__pdf_page_');
 }
 
 async function expandPdfFiles(files: File[]) {
