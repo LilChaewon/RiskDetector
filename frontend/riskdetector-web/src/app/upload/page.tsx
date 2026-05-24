@@ -135,20 +135,20 @@ export default function UploadPage() {
     const currentImageNum = files.slice(0, currentMaskingIdx + 1).filter(isImageFile).length;
 
     return (
-      <main className="min-h-screen bg-[#0d1524] p-4 text-white sm:p-6">
+      <main className="min-h-screen bg-[var(--rd-bg)] p-4 text-[var(--rd-ink)] sm:p-6">
         <div className="mx-auto flex min-h-[calc(100vh-32px)] w-full max-w-[680px] flex-col">
           {/* 헤더 */}
           <div className="flex items-center justify-between py-2">
-            <button type="button" onClick={() => setStep('upload')} className="text-[15px] font-bold text-white/70 hover:text-white transition">
+            <button type="button" onClick={() => setStep('upload')} className="text-[15px] font-bold text-[var(--rd-ink-2)] hover:text-[var(--rd-ink)] transition">
               ← 이전
             </button>
             {totalImages > 1 && (
-              <div className="rounded-full bg-white/10 px-4 py-1.5 text-[13px] font-extrabold">
+              <div className="rounded-full bg-[var(--rd-line-2)] px-4 py-1.5 text-[13px] font-extrabold">
                 {currentImageNum}
-                <span className="text-white/45"> / {totalImages}</span>
+                <span className="text-[var(--rd-ink-3)]"> / {totalImages}</span>
               </div>
             )}
-            <button type="button" onClick={handleMaskingSkip} className="text-[15px] font-bold text-white/50 hover:text-white/90 transition">
+            <button type="button" onClick={handleMaskingSkip} className="text-[15px] font-bold text-[var(--rd-ink-3)] hover:text-[var(--rd-ink)] transition">
               건너뛰기
             </button>
           </div>
@@ -156,14 +156,14 @@ export default function UploadPage() {
           {/* 타이틀 */}
           <div className="mt-6">
             <h1 className="text-[27px] font-extrabold tracking-tight">개인정보 가리기</h1>
-            <p className="mt-2 text-[14px] font-medium leading-6 text-white/50">
+            <p className="mt-2 text-[14px] font-medium leading-6 text-[var(--rd-ink-2)]">
               이름·주민번호·주소 등 민감한 정보를 드래그해서 가리세요.
-              <br />가릴 게 없으면 <span className="text-white/80 font-bold">건너뛰기</span>를 눌러도 됩니다.
+              <br />가릴 게 없으면 <span className="text-[var(--rd-ink)] font-bold">건너뛰기</span>를 눌러도 됩니다.
             </p>
           </div>
 
           {/* 캔버스 영역 */}
-          <div className="mt-6 flex-1 overflow-hidden rounded-[24px] border border-white/10 bg-black/30 shadow-2xl">
+          <div className="mt-6 flex-1 overflow-hidden rounded-[24px] border border-[var(--rd-line)] bg-[var(--rd-paper-2)] shadow-[var(--rd-shadow)]">
             <MaskingCanvas
               imageFile={files[currentMaskingIdx]}
               onMaskingComplete={handleMaskingComplete}
@@ -176,11 +176,11 @@ export default function UploadPage() {
 
   if (step === 'uploading') {
     return (
-      <main className="flex min-h-screen items-center justify-center bg-[#0d1524] p-6 text-white">
+      <main className="flex min-h-screen items-center justify-center bg-[var(--rd-bg)] p-6 text-[var(--rd-ink)]">
         <div className="w-full max-w-[460px] text-center">
-          <div className="mx-auto h-20 w-20 rounded-full border-4 border-white/10 border-t-[#3b7bf0] animate-spin" />
+          <div className="mx-auto h-20 w-20 rounded-full border-4 border-[var(--rd-line)] border-t-[var(--rd-blue)] animate-spin" />
           <h1 className="mt-8 text-[23px] font-extrabold tracking-tight">계약서를 읽고 있어요</h1>
-          <p className="mt-2 text-[14px] font-medium text-white/55">OCR 분석을 준비하는 중입니다.</p>
+          <p className="mt-2 text-[14px] font-medium text-[var(--rd-ink-2)]">OCR 분석을 준비하는 중입니다.</p>
         </div>
       </main>
     );
