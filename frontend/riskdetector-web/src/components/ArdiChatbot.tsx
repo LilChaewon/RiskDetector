@@ -42,14 +42,10 @@ interface ArdiChatbotProps {
 }
 
 const SUGGESTED_QUESTIONS = [
-  { q: '비슷한 판례는 뭐가 있어?', sub: '관련 법령·판례 검색해서 알려드려요' },
   { q: '쉽게 설명해줄 수 있어?', sub: '법률 용어를 일상어로 풀어드려요' },
 ];
 
-const COMPOSER_CHIPS = [
-  '비슷한 판례는 뭐가 있어?',
-  '쉽게 설명해줄 수 있어?',
-];
+const COMPOSER_CHIPS = ['쉽게 설명해줄 수 있어?'];
 
 function variantFromQuestion(q: string): ArdiVariant {
   const lower = q.toLowerCase();
@@ -82,14 +78,6 @@ export default function ArdiChatbot({ open, onClose, selectedToxic, warningCount
   useEffect(() => {
     messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
   }, [messages]);
-
-  // 조항이 바뀌면 채팅 히스토리 자동 리셋 — 이전 조항 Q&A가 새 조항 답변을 오염시키는 것 방지
-  // ("쉽게 설명해줄 수 있어?" 같은 anaphoric 질문이 직전 답을 가리키는 현상 차단)
-  useEffect(() => {
-    abortRef.current?.abort();
-    setMessages([]);
-    lastSentToxicKeyRef.current = '';
-  }, [selectedToxic?.title, selectedToxic?.clause]);
 
   // 챗 닫을 때 진행 중인 스트림 중단
   function handleClose() {
