@@ -123,11 +123,11 @@ function FeedContent() {
 
         <section className="rd-hero mt-5 grid gap-4 sm:grid-cols-[1fr_auto] sm:items-center">
           <div>
-            <div className="text-[11px] font-bold tracking-[0.08em] text-[#7ca4ec]">이번 주 추천</div>
+            <div className="rd-hero-eyebrow">이번 주 추천</div>
             <h2 className="mt-2 text-[21px] font-extrabold leading-tight">
               계약 전 5분만 투자해도 피할 수 있는 위험 조항
             </h2>
-            <p className="mt-2 text-[13px] font-medium text-[#aab7c7]">EasyLaw Q&A를 기반으로 상황별 핵심만 정리했어요.</p>
+            <p className="rd-hero-sub mt-2 text-[13px] font-medium">EasyLaw Q&A를 기반으로 상황별 핵심만 정리했어요.</p>
           </div>
           <button
             type="button"
@@ -135,7 +135,7 @@ function FeedContent() {
               const recommended = tips[0] || selected;
               if (recommended) selectTip(recommended, true);
             }}
-            className="rd-btn rd-btn-white"
+            className="rd-btn"
           >
             추천 질문 보기
           </button>

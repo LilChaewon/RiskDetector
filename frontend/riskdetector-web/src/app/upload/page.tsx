@@ -1,6 +1,7 @@
 'use client';
 
 import { useRef, useState } from 'react';
+import Image from 'next/image';
 import { useRouter } from 'next/navigation';
 import { Camera, ChevronRight, FileText, UploadCloud } from 'lucide-react';
 import AppShell from '@/components/AppShell';
@@ -84,8 +85,31 @@ export default function UploadPage() {
     return (
       <main className="flex min-h-screen items-center justify-center bg-[var(--rd-bg)] p-6 text-[var(--rd-ink)]">
         <div className="w-full max-w-[460px] text-center">
-          <div className="mx-auto h-20 w-20 rounded-full border-4 border-[var(--rd-line)] border-t-[var(--rd-blue)] animate-spin" />
-          <h1 className="mt-8 text-[23px] font-extrabold tracking-tight">계약서를 읽고 있어요</h1>
+          <div className="ardi-loader">
+            <div className="ardi-loader-halo" />
+            <span className="ardi-loader-spark s1" />
+            <span className="ardi-loader-spark s2" />
+            <span className="ardi-loader-spark s3" />
+            <span className="ardi-loader-spark s4" />
+            <span className="ardi-loader-spark s5" />
+            <span className="ardi-loader-spark s6" />
+            <div className="ardi-loader-mascot">
+              <Image
+                src="/ardi/ardi-working.png"
+                alt="아르디가 계약서를 읽고 있어요"
+                width={152}
+                height={152}
+                unoptimized
+                priority
+              />
+            </div>
+          </div>
+          <h1 className="mt-4 inline-flex items-center text-[23px] font-extrabold tracking-tight">
+            아르디가 계약서를 읽고 있어요
+            <span className="ardi-loader-dots" aria-hidden>
+              <span /><span /><span />
+            </span>
+          </h1>
           <p className="mt-2 text-[14px] font-medium text-[var(--rd-ink-2)]">OCR 분석을 준비하는 중입니다.</p>
         </div>
       </main>

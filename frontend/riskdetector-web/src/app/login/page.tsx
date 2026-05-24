@@ -35,9 +35,7 @@ export default function LoginPage() {
     <main className="flex min-h-screen items-center justify-center bg-[var(--rd-bg)] p-6">
       <section className="w-full max-w-[430px] rounded-[24px] border border-[var(--rd-line)] bg-white p-8 shadow-[var(--rd-shadow)]">
         <div className="text-center">
-          <div className="mx-auto flex h-12 w-12 items-center justify-center rounded-2xl bg-[#0d1524] text-white">
-            RD
-          </div>
+          <div className="rd-brand-badge mx-auto">RD</div>
           <h1 className="mt-4 text-[26px] font-extrabold tracking-tight">RiskDetector</h1>
           <p className="mt-2 text-[14px] font-semibold leading-6 text-[var(--rd-ink-2)]">
             계약서 속 위험 조항을 AI가 찾아드립니다.

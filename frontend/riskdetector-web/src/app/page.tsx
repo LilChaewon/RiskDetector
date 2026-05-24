@@ -55,28 +55,28 @@ export default function Home() {
 
         <section className="rd-hero mt-6 grid gap-6 lg:grid-cols-[1fr_auto] lg:items-center">
           <div>
-            <div className="text-[11px] font-bold tracking-[0.08em] text-[#7ca4ec]">
+            <div className="rd-hero-eyebrow">
               계약서, 이제 혼자 보지 마세요
             </div>
             <h2 className="mt-2 text-[24px] font-extrabold leading-tight tracking-tight sm:text-[28px]">
               PDF · 이미지 · 사진을 올리면<br className="hidden sm:block" />
               독소조항을 바로 찾아드려요
             </h2>
-            <p className="mt-3 text-[13px] font-medium leading-6 text-[#aab7c7]">
+            <p className="rd-hero-sub mt-3 text-[13px] font-medium leading-6">
               임대차 · 근로 · 용역 계약서를 OCR로 읽고, AI가 위험 조항과 수정 제안을 정리합니다.
             </p>
             <div className="mt-5 flex flex-wrap gap-2">
-              <Link href="/upload" className="rd-btn rd-btn-white min-h-12 px-5 text-[15px]">
+              <Link href="/upload" className="rd-btn min-h-12 px-5 text-[15px]">
                 <Upload size={17} />
                 계약서 불러오기
               </Link>
-              <Link href="/feed" className="rd-btn min-h-12 bg-white/10 px-5 text-[15px] hover:bg-white/15">
+              <Link href="/feed" className="rd-btn rd-btn-ghost min-h-12 px-5 text-[15px]">
                 법률 팁 보기
               </Link>
             </div>
           </div>
-          <div className="rounded-xl border border-white/10 bg-white/5 p-4 text-right font-mono text-[12px] text-[#aab7c7]">
-            <div>분석 {dashboard.stats.completedAnalyses}건 완료</div>
+          <div className="rd-hero-stat">
+            분석 {dashboard.stats.completedAnalyses}건 완료
           </div>
         </section>
 

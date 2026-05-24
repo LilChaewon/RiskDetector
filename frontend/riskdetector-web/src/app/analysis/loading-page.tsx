@@ -1,6 +1,7 @@
 'use client';
 
 import { useEffect, useState } from 'react';
+import Image from 'next/image';
 import { useRouter } from 'next/navigation';
 import { fetchAnalysis } from '@/api/contract';
 
@@ -67,14 +68,9 @@ function randomTipIndex(except?: number) {
 
 export default function AnalysisLoadingPage({ contractId, analysisId }: Props) {
   const router = useRouter();
-  const [dots, setDots] = useState('.');
   const [tipIndex, setTipIndex] = useState(() => randomTipIndex());
 
   useEffect(() => {
-    const dotInterval = setInterval(() => {
-      setDots((d) => (d.length >= 3 ? '.' : d + '.'));
-    }, 500);
-
     const tipInterval = setInterval(() => {
       setTipIndex((index) => randomTipIndex(index));
     }, 4500);
@@ -84,12 +80,10 @@ export default function AnalysisLoadingPage({ contractId, analysisId }: Props) {
         const result = await fetchAnalysis(contractId, analysisId);
         if (result.analysisStatus === 'completed') {
           clearInterval(pollInterval);
-          clearInterval(dotInterval);
           clearInterval(tipInterval);
           router.replace(`/analysis/result?contractId=${contractId}&analysisId=${analysisId}`);
         } else if (result.analysisStatus === 'failed') {
           clearInterval(pollInterval);
-          clearInterval(dotInterval);
           clearInterval(tipInterval);
           alert('분석에 실패했습니다. 다시 시도해주세요.');
           router.back();
@@ -101,7 +95,6 @@ export default function AnalysisLoadingPage({ contractId, analysisId }: Props) {
 
     return () => {
       clearInterval(pollInterval);
-      clearInterval(dotInterval);
       clearInterval(tipInterval);
     };
   }, [contractId, analysisId, router]);
@@ -111,15 +104,38 @@ export default function AnalysisLoadingPage({ contractId, analysisId }: Props) {
   return (
     <main className="flex min-h-screen items-center justify-center bg-[var(--rd-bg)] px-6 py-16 text-[var(--rd-ink)]">
       <div className="w-full max-w-[540px]">
-        <div className="mx-auto h-20 w-20 rounded-full border-[3px] border-[var(--rd-line)] border-t-[var(--rd-blue)] animate-spin" />
-        <div className="mt-8 text-center">
-          <h1 className="text-[24px] font-extrabold tracking-tight">조항을 읽고 있어요{dots}</h1>
+        <div className="ardi-loader">
+          <div className="ardi-loader-halo" />
+          <span className="ardi-loader-spark s1" />
+          <span className="ardi-loader-spark s2" />
+          <span className="ardi-loader-spark s3" />
+          <span className="ardi-loader-spark s4" />
+          <span className="ardi-loader-spark s5" />
+          <span className="ardi-loader-spark s6" />
+          <div className="ardi-loader-mascot">
+            <Image
+              src="/ardi/ardi-searching.png"
+              alt="아르디가 조항을 살펴보고 있어요"
+              width={152}
+              height={152}
+              unoptimized
+              priority
+            />
+          </div>
+        </div>
+        <div className="mt-4 text-center">
+          <h1 className="inline-flex items-center text-[24px] font-extrabold tracking-tight">
+            아르디가 조항을 읽고 있어요
+            <span className="ardi-loader-dots" aria-hidden>
+              <span /><span /><span />
+            </span>
+          </h1>
           <p className="mt-2 text-[14px] font-medium leading-6 text-[var(--rd-ink-2)]">
             계약서의 독소조항과 법률 근거를 꼼꼼히 찾고 있어요.
           </p>
         </div>
-        <div className="mt-10 rounded-2xl border border-[var(--rd-line)] bg-white p-6">
-          <div className="text-[11px] font-bold uppercase tracking-[0.1em] text-[var(--rd-blue)]">기다리는 동안</div>
+        <div className="ardi-tip mt-10">
+          <div className="text-[11px] font-bold uppercase tracking-[0.1em] text-[var(--rd-blue)]">아르디의 한마디</div>
           <div className="mt-2 text-[18px] font-extrabold leading-7 text-[var(--rd-ink)]">
             {tip.title}
           </div>
