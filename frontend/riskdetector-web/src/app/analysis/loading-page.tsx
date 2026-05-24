@@ -109,21 +109,21 @@ export default function AnalysisLoadingPage({ contractId, analysisId }: Props) {
   const tip = waitingTips[tipIndex];
 
   return (
-    <main className="flex min-h-screen items-center justify-center bg-[#0d1524] px-6 py-16 text-white">
+    <main className="flex min-h-screen items-center justify-center bg-[var(--rd-bg)] px-6 py-16 text-[var(--rd-ink)]">
       <div className="w-full max-w-[540px]">
-        <div className="mx-auto h-20 w-20 rounded-full border-[3px] border-white/10 border-t-[#3b7bf0] animate-spin" />
+        <div className="mx-auto h-20 w-20 rounded-full border-[3px] border-[var(--rd-line)] border-t-[var(--rd-blue)] animate-spin" />
         <div className="mt-8 text-center">
           <h1 className="text-[24px] font-extrabold tracking-tight">조항을 읽고 있어요{dots}</h1>
-          <p className="mt-2 text-[14px] font-medium leading-6 text-white/55">
+          <p className="mt-2 text-[14px] font-medium leading-6 text-[var(--rd-ink-2)]">
             계약서의 독소조항과 법률 근거를 꼼꼼히 찾고 있어요.
           </p>
         </div>
-        <div className="rd-hero mt-10 bg-white/5 p-6">
-          <div className="text-[11px] font-bold uppercase tracking-[0.1em] text-[#7ca4ec]">기다리는 동안</div>
-          <div className="mt-2 text-[18px] font-extrabold leading-7">
+        <div className="mt-10 rounded-2xl border border-[var(--rd-line)] bg-white p-6">
+          <div className="text-[11px] font-bold uppercase tracking-[0.1em] text-[var(--rd-blue)]">기다리는 동안</div>
+          <div className="mt-2 text-[18px] font-extrabold leading-7 text-[var(--rd-ink)]">
             {tip.title}
           </div>
-          <p className="mt-3 text-[13px] font-medium leading-7 text-[#c6d1df]">
+          <p className="mt-3 text-[13px] font-medium leading-7 text-[var(--rd-ink-2)]">
             {tip.body}
           </p>
         </div>
