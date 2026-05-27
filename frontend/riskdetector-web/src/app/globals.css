@@ -1042,10 +1042,13 @@ button {
   white-space: nowrap;
 }
 
-/* Avatar — head crop via background-position trick ------------------- */
+/* Avatar — head-only crop.
+   Source PNG is full-body (~190×242). We enlarge it so the head+antenna
+   (top ~41% of the image) fills the 36×36 circle, and pin `top: 0` so the
+   antenna tip is never clipped. */
 .ardi-avatar-sm {
-  width: 32px;
-  height: 32px;
+  width: 36px;
+  height: 36px;
   border-radius: 999px;
   background: var(--rd-blue-soft);
   overflow: hidden;
@@ -1054,12 +1057,12 @@ button {
 }
 
 .ardi-avatar-sm img {
-  width: 155% !important;
-  height: auto !important;
+  width: auto !important;
+  height: 88px !important;
   max-width: none !important;
   position: absolute;
   left: 50%;
-  top: 14%;
+  top: 0;
   transform: translateX(-50%);
 }
 
