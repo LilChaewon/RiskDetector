@@ -40,6 +40,7 @@ button {
 
 .rd-shell {
   min-height: 100vh;
+  min-height: 100dvh;
   display: grid;
   grid-template-columns: 240px minmax(0, 1fr);
   background: var(--rd-bg);
@@ -302,20 +303,23 @@ button {
 .rd-mobile-sheet-backdrop {
   position: fixed;
   inset: 0;
+  height: 100dvh;
   z-index: 80;
   display: flex;
   align-items: stretch;
   background: rgba(15, 23, 42, 0.28);
+  overflow: hidden;
 }
 
 .rd-mobile-sheet {
   position: relative;
   width: 100%;
-  height: 100%;
+  height: 100dvh;
   overflow: auto;
   border-radius: 0;
   background: #fff;
   padding: 18px 16px calc(18px + env(safe-area-inset-bottom));
+  -webkit-overflow-scrolling: touch;
 }
 
 .rd-mobile-top {
@@ -690,6 +694,11 @@ button {
 @media (max-width: 900px) {
   .rd-shell {
     display: block;
+    height: 100vh;
+    height: 100dvh;
+    min-height: 100vh;
+    min-height: 100dvh;
+    overflow: hidden;
   }
 
   .rd-sidebar {
@@ -697,6 +706,10 @@ button {
   }
 
   .rd-main {
+    height: 100%;
+    min-height: 0;
+    overflow-y: auto;
+    -webkit-overflow-scrolling: touch;
     padding: 16px 16px 92px;
   }
 
