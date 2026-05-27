@@ -181,8 +181,8 @@ export default function ArdiChatbot({ open, onClose, selectedToxic, warningCount
             <X size={18} />
           </button>
           <div className="ardi-header-name">
-            <div className="ardi-avatar-sm" style={{ borderRadius: 0, background: 'transparent' }}>
-              <Image src="/ardi/ardi-friendly.png" alt="아르디" width={36} height={36} style={{ objectFit: 'contain' }} unoptimized />
+            <div className="ardi-avatar-sm">
+              <Image src="/ardi/ardi-friendly.png" alt="아르디" width={88} height={88} unoptimized />
             </div>
             <span>아르디</span>
             <span className="ardi-online" />
@@ -219,13 +219,12 @@ export default function ArdiChatbot({ open, onClose, selectedToxic, warningCount
                 </div>
               ) : (
                 <div key={msg.id} className="ardi-ai">
-                  <div className="ardi-avatar-sm" style={{ borderRadius: 0, background: 'transparent', overflow: 'visible' }}>
+                  <div className="ardi-avatar-sm">
                     <Image
                       src={`/ardi/ardi-${msg.variant ?? 'friendly'}.png`}
                       alt="아르디"
-                      width={36}
-                      height={36}
-                      style={{ objectFit: 'contain' }}
+                      width={88}
+                      height={88}
                       unoptimized
                     />
                   </div>
