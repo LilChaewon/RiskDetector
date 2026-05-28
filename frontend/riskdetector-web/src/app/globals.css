@@ -947,20 +947,12 @@ button {
     background: transparent;
   }
 
-  .rd-main:has(.rd-draft-workspace.is-preview-open) {
-    padding-bottom: calc(30vh + 98px + env(safe-area-inset-bottom));
-  }
-
-  .rd-main:has(.rd-draft-workspace.is-preview-open.is-keyboard-open) {
-    padding-bottom: calc(18vh + 92px + env(safe-area-inset-bottom));
-  }
-
   .rd-draft-workspace.is-preview-open {
-    padding-bottom: calc(30vh + 20px);
+    padding-top: calc(28vh + 72px);
   }
 
   .rd-draft-workspace.is-preview-open.is-keyboard-open {
-    padding-bottom: calc(18vh + 18px);
+    padding-top: calc(18vh + 64px);
   }
 
   .rd-draft-tools {
@@ -1011,21 +1003,17 @@ button {
     position: fixed;
     left: 0;
     right: 0;
-    bottom: calc(76px + env(safe-area-inset-bottom) + var(--rd-keyboard-offset, 0px));
+    top: 0;
     z-index: 45;
     height: auto;
     max-height: none;
     overflow-y: visible;
     margin-top: 0;
-    border-top: 2px solid var(--rd-blue);
-    border-radius: 20px 20px 0 0;
+    border-bottom: 1px solid var(--rd-line);
+    border-radius: 0 0 20px 20px;
     padding: 0;
     background: #fff;
-    box-shadow: 0 -14px 34px rgba(17, 24, 39, 0.2);
-  }
-
-  .rd-draft-workspace.is-keyboard-open .rd-draft-preview-wrap {
-    bottom: calc(var(--rd-keyboard-offset, 0px) + 8px);
+    box-shadow: 0 10px 26px rgba(17, 24, 39, 0.16);
   }
 
   .rd-draft-preview-toggle {
@@ -1036,8 +1024,8 @@ button {
     justify-content: space-between;
     gap: 12px;
     border: 0;
-    border-bottom: 1px solid var(--rd-line);
-    border-radius: 20px 20px 0 0;
+    border-top: 1px solid var(--rd-line);
+    border-radius: 0 0 20px 20px;
     background: #fff;
     padding: 12px 18px;
     text-align: left;
@@ -1056,7 +1044,7 @@ button {
     content: "";
     position: absolute;
     left: 50%;
-    top: 6px;
+    bottom: 6px;
     width: 40px;
     height: 4px;
     transform: translateX(-50%);
