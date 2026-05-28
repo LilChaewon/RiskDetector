@@ -141,11 +141,13 @@ function OcrContent() {
           </div>
         ) : (
           <>
-            <div className="mt-6 flex items-center gap-3 rounded-2xl bg-[#0d1524] p-5 text-white">
-              <FileText size={22} className="text-[#7ca4ec]" />
+            <div className="mt-6 flex items-center gap-3 rounded-2xl border border-[var(--rd-line)] bg-white p-5">
+              <div className="flex h-11 w-11 items-center justify-center rounded-xl bg-[var(--rd-blue-soft)] text-[var(--rd-blue)]">
+                <FileText size={20} />
+              </div>
               <div>
-                <div className="text-[15px] font-extrabold">{ocrResult?.title || '업로드된 계약서'}</div>
-                <div className="mt-0.5 text-[12px] font-semibold text-white/55">
+                <div className="text-[15px] font-extrabold text-[var(--rd-ink)]">{ocrResult?.title || '업로드된 계약서'}</div>
+                <div className="mt-0.5 text-[12px] font-semibold text-[var(--rd-ink-3)]">
                   {ocrResult?.htmlArray.length || 0}개 블록 인식됨
                 </div>
               </div>

@@ -34,16 +34,18 @@ interface AnalysisData {
 }
 
 interface ArdiChatbotProps {
+  open: boolean;
+  onClose: () => void;
   selectedToxic?: Toxic;
   warningCount?: number;
   analysisData?: AnalysisData;
 }
 
 const SUGGESTED_QUESTIONS = [
-  { q: '이 조항 무효인가요?', sub: '법적 효력부터 확인해드려요' },
-  { q: '수정안 만들어줘', sub: '집주인에게 보낼 새 문구' },
-  { q: '비슷한 판례 알려줘', sub: '관련 대법원 판결 모음' },
+  { q: '쉽게 설명해줄 수 있어?', sub: '법률 용어를 일상어로 풀어드려요' },
 ];
+
+const COMPOSER_CHIPS = ['쉽게 설명해줄 수 있어?'];
 
 function variantFromQuestion(q: string): ArdiVariant {
   const lower = q.toLowerCase();
@@ -53,14 +55,20 @@ function variantFromQuestion(q: string): ArdiVariant {
   return 'friendly';
 }
 
-export default function ArdiChatbot({ selectedToxic, warningCount = 0, analysisData }: ArdiChatbotProps) {
-  const [open, setOpen] = useState(false);
+function toxicKey(t?: Toxic): string {
+  if (!t) return '';
+  return `${t.title ?? ''}::${(t.clause ?? '').slice(0, 30)}`;
+}
+
+export default function ArdiChatbot({ open, onClose, selectedToxic, warningCount = 0, analysisData }: ArdiChatbotProps) {
+  void warningCount;
   const [messages, setMessages] = useState<Message[]>([]);
   const [input, setInput] = useState('');
   const [streaming, setStreaming] = useState(false);
   const [mounted, setMounted] = useState(false);
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const abortRef = useRef<AbortController | null>(null);
+  const lastSentToxicKeyRef = useRef<string>('');
 
   // SSR 이후 클라이언트에서만 portal 마운트
   useEffect(() => {
@@ -74,7 +82,7 @@ export default function ArdiChatbot({ selectedToxic, warningCount = 0, analysisD
   // 챗 닫을 때 진행 중인 스트림 중단
   function handleClose() {
     abortRef.current?.abort();
-    setOpen(false);
+    onClose();
   }
 
   async function sendMessage(text: string) {
@@ -96,6 +104,12 @@ export default function ArdiChatbot({ selectedToxic, warningCount = 0, analysisD
     abortRef.current = controller;
 
     try {
+      const currentKey = toxicKey(selectedToxic);
+      const clauseSwitched =
+        !!selectedToxic &&
+        lastSentToxicKeyRef.current !== '' &&
+        lastSentToxicKeyRef.current !== currentKey;
+
       const history = [
         ...messages.map((m) => ({ role: m.role, content: m.content })),
         { role: 'user' as const, content: text },
@@ -111,8 +125,11 @@ export default function ArdiChatbot({ selectedToxic, warningCount = 0, analysisD
           allToxics: analysisData?.toxics ?? [],
           contractTitle: analysisData?.title,
           overallComment: analysisData?.overallComment,
+          clauseSwitched,
         }),
       });
+
+      lastSentToxicKeyRef.current = currentKey;
 
       if (!res.ok || !res.body) {
         throw new Error(`API error ${res.status}`);
@@ -155,41 +172,6 @@ export default function ArdiChatbot({ selectedToxic, warningCount = 0, analysisD
   // SSR에서는 렌더링하지 않음 (portal은 document.body 필요)
   if (!mounted) return null;
 
-  const fab = !open && (
-    <div style={{
-      position: 'fixed', right: 16, bottom: `calc(24px + env(safe-area-inset-bottom))`, zIndex: 9999,
-      display: 'flex', flexDirection: 'column', alignItems: 'flex-end',
-    }}>
-      <div style={{ position: 'relative', marginRight: 6, marginBottom: -10, zIndex: 1 }}>
-        {/* eslint-disable-next-line @next/next/no-img-element */}
-        <img src="/ardi/ardi-waving.png" alt="아르디" width={48} height={48} style={{ objectFit: 'contain', display: 'block' }} />
-        {warningCount > 0 && (
-          <div style={{
-            position: 'absolute', top: 2, right: -2,
-            width: 16, height: 16, borderRadius: 999,
-            background: '#d93a3a', color: '#fff',
-            fontSize: 10, fontWeight: 800,
-            display: 'flex', alignItems: 'center', justifyContent: 'center',
-            boxShadow: '0 0 0 2px #fff',
-          }}>{warningCount}</div>
-        )}
-      </div>
-      <button
-        onClick={() => setOpen(true)}
-        style={{
-          padding: '10px 16px 10px 14px', borderRadius: 999,
-          background: '#0d1524', color: '#fff',
-          border: 'none', fontSize: 12.5, fontWeight: 700,
-          letterSpacing: '-0.01em', whiteSpace: 'nowrap', cursor: 'pointer',
-          boxShadow: '0 8px 20px rgba(13,21,36,0.32), 0 1px 2px rgba(0,0,0,0.12)',
-          fontFamily: 'inherit',
-        }}
-      >
-        아르디에게 물어보기
-      </button>
-    </div>
-  );
-
   const overlay = open && (
     <div className="ardi-overlay" style={{ zIndex: 9999 }}>
       {/* Header */}
@@ -199,8 +181,8 @@ export default function ArdiChatbot({ selectedToxic, warningCount = 0, analysisD
             <X size={18} />
           </button>
           <div className="ardi-header-name">
-            <div className="ardi-avatar-sm">
-              <Image src="/ardi/ardi-friendly.png" alt="아르디" width={36} height={36} style={{ objectFit: 'contain' }} unoptimized />
+            <div className="ardi-header-avatar">
+              <Image src="/ardi/ardi-head.png" alt="아르디" width={512} height={512} unoptimized />
             </div>
             <span>아르디</span>
             <span className="ardi-online" />
@@ -241,9 +223,8 @@ export default function ArdiChatbot({ selectedToxic, warningCount = 0, analysisD
                     <Image
                       src={`/ardi/ardi-${msg.variant ?? 'friendly'}.png`}
                       alt="아르디"
-                      width={36}
-                      height={36}
-                      style={{ objectFit: 'contain' }}
+                      width={88}
+                      height={88}
                       unoptimized
                     />
                   </div>
@@ -254,16 +235,19 @@ export default function ArdiChatbot({ selectedToxic, warningCount = 0, analysisD
                   ) : (
                     <div className="ardi-ai-bubble">
                       <span style={{ whiteSpace: 'pre-wrap' }}>{msg.content}</span>
-                      {!msg.streaming && shouldShowCitation(msg.content) && (
-                        <div className="ardi-citation">
-                          <BookOpen size={11} className="ardi-citation-icon" />
-                          <div style={{ flex: 1 }}>
-                            <div className="ardi-citation-title">민법 제623조</div>
-                            <div className="ardi-citation-sub">임대인의 의무</div>
+                      {!msg.streaming && (() => {
+                        const cite = extractCitation(msg.content, selectedToxic?.reasonReference);
+                        return cite ? (
+                          <div className="ardi-citation">
+                            <BookOpen size={11} className="ardi-citation-icon" />
+                            <div style={{ flex: 1 }}>
+                              <div className="ardi-citation-title">{cite.title}</div>
+                              {cite.sub && <div className="ardi-citation-sub">{cite.sub}</div>}
+                            </div>
+                            <ChevronRight size={10} className="ardi-citation-icon" />
                           </div>
-                          <ChevronRight size={10} className="ardi-citation-icon" />
-                        </div>
-                      )}
+                        ) : null;
+                      })()}
                     </div>
                   )}
                 </div>
@@ -278,7 +262,7 @@ export default function ArdiChatbot({ selectedToxic, warningCount = 0, analysisD
       <div className="ardi-composer-wrap">
         {hasMessages && (
           <div className="ardi-chips">
-            {['복사하기', '집주인에게 메시지', '비슷한 판례'].map((chip) => (
+            {COMPOSER_CHIPS.map((chip) => (
               <button key={chip} className="ardi-chip" onClick={() => sendMessage(chip)} disabled={streaming}>
                 <Sparkles size={10} style={{ color: 'var(--rd-blue)' }} />
                 {chip}
@@ -312,13 +296,7 @@ export default function ArdiChatbot({ selectedToxic, warningCount = 0, analysisD
   );
 
   // createPortal로 document.body에 직접 마운트 → 부모 stacking context 완전 우회
-  return createPortal(
-    <>
-      {fab}
-      {overlay}
-    </>,
-    document.body
-  );
+  return createPortal(overlay, document.body);
 }
 
 function EmptyState({ pinnedToxic, onSelect }: { pinnedToxic?: Toxic; onSelect: (q: string) => void }) {
@@ -352,6 +330,30 @@ function EmptyState({ pinnedToxic, onSelect }: { pinnedToxic?: Toxic; onSelect: 
   );
 }
 
-function shouldShowCitation(text: string): boolean {
-  return /민법|법원|조문|판례|제\d+조/.test(text);
+const LAW_TITLE_MAP: Record<string, string> = {
+  '민법 제623조': '임대인의 의무',
+  '민법 제398조': '손해배상액의 예정',
+  '민법 제103조': '반사회질서의 법률행위',
+  '민법 제104조': '불공정한 법률행위',
+  '근로기준법 제17조': '근로조건의 명시',
+  '저작권법 제45조': '저작재산권의 양도',
+  '주택임대차보호법 제7조': '차임 등의 증감청구권',
+};
+
+function extractCitation(text: string, fallbackRef?: string): { title: string; sub?: string } | null {
+  // 1) 응답 본문에서 법령 조문 패턴 추출
+  const lawMatch = text.match(/(민법|상법|형법|근로기준법|저작권법|주택임대차보호법|상가건물\s*임대차보호법)\s*제\s*(\d+)\s*조(?:\s*제\s*(\d+)\s*항)?/);
+  if (lawMatch) {
+    const title = `${lawMatch[1].replace(/\s+/g, '')} 제${lawMatch[2]}조${lawMatch[3] ? ` 제${lawMatch[3]}항` : ''}`;
+    return { title, sub: LAW_TITLE_MAP[title.replace(/\s제\d+항$/, '')] };
+  }
+  // 2) 본문에 없으면 선택 조항의 reasonReference 사용
+  if (fallbackRef) {
+    const refMatch = fallbackRef.match(/(민법|상법|형법|근로기준법|저작권법|주택임대차보호법|상가건물\s*임대차보호법)\s*제\s*(\d+)\s*조(?:\s*제\s*(\d+)\s*항)?/);
+    if (refMatch) {
+      const title = `${refMatch[1].replace(/\s+/g, '')} 제${refMatch[2]}조${refMatch[3] ? ` 제${refMatch[3]}항` : ''}`;
+      return { title, sub: LAW_TITLE_MAP[title.replace(/\s제\d+항$/, '')] };
+    }
+  }
+  return null;
 }

@@ -135,10 +135,64 @@ button {
 }
 
 .rd-hero {
-  background: #0d1524;
-  color: #fff;
-  border-radius: 16px;
+  position: relative;
+  background: linear-gradient(135deg, #ffffff 0%, var(--rd-blue-soft) 100%);
+  color: var(--rd-ink);
+  border: 1px solid var(--rd-line);
+  border-radius: 20px;
   padding: 28px;
+  box-shadow: var(--rd-shadow);
+  overflow: hidden;
+}
+
+.rd-hero::after {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 4px;
+  height: 100%;
+  background: var(--rd-blue);
+}
+
+.rd-hero-eyebrow {
+  font-size: 11px;
+  font-weight: 800;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--rd-blue);
+}
+
+.rd-hero-sub {
+  color: var(--rd-ink-2);
+}
+
+.rd-hero-stat {
+  border: 1px solid var(--rd-line);
+  background: #ffffff;
+  color: var(--rd-ink-2);
+  border-radius: 12px;
+  padding: 14px 16px;
+  font-family: ui-monospace, "SF Mono", Menlo, monospace;
+  font-size: 12px;
+  font-weight: 700;
+  text-align: right;
+}
+
+/* Brand monogram badge — replaces hard-coded dark navy chips */
+.rd-brand-badge {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 48px;
+  height: 48px;
+  border-radius: 14px;
+  background: linear-gradient(135deg, #2274eb 0%, #1b64da 100%);
+  color: #ffffff;
+  font-size: 15px;
+  font-weight: 800;
+  letter-spacing: 0.02em;
+  box-shadow: 0 6px 16px rgba(27, 100, 218, 0.25);
 }
 
 .rd-btn {
@@ -166,11 +220,6 @@ button {
 
 .rd-btn-ghost {
   background: var(--rd-line-2);
-  color: var(--rd-ink);
-}
-
-.rd-btn-white {
-  background: #fff;
   color: var(--rd-ink);
 }
 
@@ -381,6 +430,42 @@ button {
   min-height: calc(100vh - 56px);
   border-left: 1px solid var(--rd-line);
   padding-left: 28px;
+}
+
+.rd-ask-ardi-cta {
+  margin-top: 16px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  width: 100%;
+  padding: 12px 16px;
+  border-radius: 14px;
+  background: linear-gradient(135deg, #2274eb 0%, var(--rd-blue) 100%);
+  color: #fff;
+  font-size: 14px;
+  font-weight: 800;
+  letter-spacing: -0.01em;
+  border: none;
+  cursor: pointer;
+  transition: transform 120ms ease, box-shadow 120ms ease, filter 120ms ease;
+  box-shadow: 0 6px 16px rgba(27, 100, 218, 0.28);
+}
+
+.rd-ask-ardi-cta:hover {
+  filter: brightness(1.05);
+  transform: translateY(-1px);
+  box-shadow: 0 10px 22px rgba(27, 100, 218, 0.32);
+}
+
+.rd-ask-ardi-cta:active {
+  transform: translateY(0);
+  box-shadow: 0 4px 10px rgba(13, 21, 36, 0.2);
+}
+
+.rd-ask-ardi-cta img {
+  flex-shrink: 0;
+  object-fit: contain;
 }
 
 .rd-stat-card {
@@ -1032,10 +1117,26 @@ button {
 .ardi-header-name {
   display: flex;
   align-items: center;
-  gap: 6px;
+  gap: 8px;
   font-size: 12.5px;
   font-weight: 700;
   white-space: nowrap;
+}
+
+.ardi-header-avatar {
+  width: 46px;
+  height: 46px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+}
+
+.ardi-header-avatar img {
+  width: 46px !important;
+  height: 46px !important;
+  object-fit: contain;
+  display: block;
 }
 
 .ardi-online {
@@ -1096,25 +1197,24 @@ button {
   white-space: nowrap;
 }
 
-/* Avatar — head crop via background-position trick ------------------- */
+/* Avatar ------------------------------------------------------------- */
 .ardi-avatar-sm {
-  width: 32px;
-  height: 32px;
+  width: 42px;
+  height: 42px;
   border-radius: 999px;
   background: var(--rd-blue-soft);
-  overflow: hidden;
+  overflow: visible;
   flex-shrink: 0;
-  position: relative;
+  display: flex;
+  align-items: center;
+  justify-content: center;
 }
 
 .ardi-avatar-sm img {
-  width: 155% !important;
-  height: auto !important;
-  max-width: none !important;
-  position: absolute;
-  left: 50%;
-  top: 14%;
-  transform: translateX(-50%);
+  width: 38px !important;
+  height: 38px !important;
+  object-fit: contain;
+  display: block;
 }
 
 /* Messages area ------------------------------------------------------ */
@@ -1209,6 +1309,110 @@ button {
 @keyframes ardiDot {
   0%, 60%, 100% { opacity: 0.3; transform: scale(1); }
   30%           { opacity: 1;   transform: scale(1.3); }
+}
+
+/* Loading mascot ------------------------------------------------------ */
+.ardi-loader {
+  position: relative;
+  width: 200px;
+  height: 200px;
+  margin: 0 auto;
+}
+
+.ardi-loader-halo {
+  position: absolute;
+  inset: 10px;
+  border-radius: 999px;
+  background: radial-gradient(circle at 50% 55%, var(--rd-blue-soft) 0%, rgba(234, 241, 253, 0) 70%);
+  animation: ardiHalo 2.4s ease-in-out infinite;
+}
+
+.ardi-loader-mascot {
+  position: absolute;
+  inset: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  animation: ardiFloat 2.8s ease-in-out infinite;
+}
+
+.ardi-loader-mascot img {
+  width: 152px;
+  height: 152px;
+  object-fit: contain;
+  filter: drop-shadow(0 10px 18px rgba(27, 100, 218, 0.22));
+}
+
+.ardi-loader-spark {
+  position: absolute;
+  border-radius: 999px;
+  background: var(--rd-blue);
+  opacity: 0;
+  animation: ardiSpark 2.4s ease-in-out infinite;
+}
+
+.ardi-loader-spark.s1 { top: 14%;    left: 8%;   width: 7px; height: 7px; animation-delay: 0s;    }
+.ardi-loader-spark.s2 { top: 22%;    right: 6%;  width: 9px; height: 9px; animation-delay: 0.4s;  background: #7ba9f5; }
+.ardi-loader-spark.s3 { bottom: 20%; left: 4%;   width: 6px; height: 6px; animation-delay: 0.8s;  background: #7ba9f5; }
+.ardi-loader-spark.s4 { bottom: 28%; right: 10%; width: 7px; height: 7px; animation-delay: 1.2s; }
+.ardi-loader-spark.s5 { top: 50%;    right: 2%;  width: 5px; height: 5px; animation-delay: 1.6s; background: #7ba9f5; }
+.ardi-loader-spark.s6 { top: 8%;     left: 46%;  width: 6px; height: 6px; animation-delay: 2.0s; }
+
+.ardi-loader-dots {
+  display: inline-flex;
+  margin-left: 6px;
+  gap: 4px;
+  vertical-align: middle;
+}
+
+.ardi-loader-dots span {
+  width: 6px;
+  height: 6px;
+  border-radius: 999px;
+  background: var(--rd-blue);
+  animation: ardiDot 1.2s ease-in-out infinite;
+}
+
+.ardi-loader-dots span:nth-child(2) { animation-delay: 0.2s; }
+.ardi-loader-dots span:nth-child(3) { animation-delay: 0.4s; }
+
+/* Speech bubble for tips */
+.ardi-tip {
+  position: relative;
+  border-radius: 22px;
+  background: #fff;
+  border: 1px solid var(--rd-line);
+  padding: 24px;
+  box-shadow: var(--rd-shadow);
+}
+
+.ardi-tip::before {
+  content: '';
+  position: absolute;
+  top: -9px;
+  left: 50%;
+  width: 16px;
+  height: 16px;
+  background: #fff;
+  border-left: 1px solid var(--rd-line);
+  border-top: 1px solid var(--rd-line);
+  border-top-left-radius: 4px;
+  transform: translateX(-50%) rotate(45deg);
+}
+
+@keyframes ardiFloat {
+  0%, 100% { transform: translateY(0)    rotate(-2deg); }
+  50%      { transform: translateY(-10px) rotate(2deg); }
+}
+
+@keyframes ardiHalo {
+  0%, 100% { transform: scale(0.9);  opacity: 0.5; }
+  50%      { transform: scale(1.06); opacity: 1;   }
+}
+
+@keyframes ardiSpark {
+  0%, 100% { transform: scale(0.3); opacity: 0;   }
+  50%      { transform: scale(1);   opacity: 0.9; }
 }
 
 /* Empty state -------------------------------------------------------- */

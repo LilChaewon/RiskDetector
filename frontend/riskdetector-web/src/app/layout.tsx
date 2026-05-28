@@ -13,12 +13,12 @@ export const metadata: Metadata = {
   appleWebApp: {
     capable: true,
     title: "RiskDetector",
-    statusBarStyle: "black-translucent",
+    statusBarStyle: "default",
   },
 };
 
 export const viewport: Viewport = {
-  themeColor: "#0d1524",
+  themeColor: "#ffffff",
 };
 
 export default function RootLayout({

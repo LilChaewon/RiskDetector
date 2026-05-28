@@ -349,6 +349,7 @@ function AnalysisResultContent() {
   const [selectedIndex, setSelectedIndex] = useState<number | null>(null);
   const [filter, setFilter] = useState<FilterKey>('all');
   const [mobileContextOpen, setMobileContextOpen] = useState(false);
+  const [chatbotOpen, setChatbotOpen] = useState(false);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const invalidAccess = !contractId || !analysisId;
@@ -544,7 +545,12 @@ function AnalysisResultContent() {
               </div>
 
               <aside className="rd-context-panel rd-result-context-panel">
-                <ClauseContext toxic={selected} advice={data.riskdetectorCommentary?.advice} onClear={() => setSelectedIndex(null)} />
+                <ClauseContext
+                  toxic={selected}
+                  advice={data.riskdetectorCommentary?.advice}
+                  onClear={() => setSelectedIndex(null)}
+                  onAskArdi={() => setChatbotOpen(true)}
+                />
               </aside>
             </div>
           </div>
@@ -557,8 +563,10 @@ function AnalysisResultContent() {
           )}
         </>
       )}
-      {/* 아르디 챗봇 — loading/error/success 모든 상태에서 항상 표시 */}
+      {/* 아르디 챗봇 — 조항 컨텍스트의 CTA로만 열림 */}
       <ArdiChatbot
+        open={chatbotOpen}
+        onClose={() => setChatbotOpen(false)}
         selectedToxic={selected}
         warningCount={warningCount}
         analysisData={data ? {
@@ -571,7 +579,7 @@ function AnalysisResultContent() {
   );
 }
 
-function ClauseContext({ toxic, advice, onClear }: { toxic?: Toxic; advice?: string; onClear?: () => void }) {
+function ClauseContext({ toxic, advice, onClear, onAskArdi }: { toxic?: Toxic; advice?: string; onClear?: () => void; onAskArdi?: () => void }) {
   if (!toxic) {
     return (
       <div className="rd-context-empty">
@@ -633,6 +641,18 @@ function ClauseContext({ toxic, advice, onClear }: { toxic?: Toxic; advice?: str
           {adviceText || '수정 제안이 준비되지 않았습니다.'}
         </div>
       </div>
+
+      {onAskArdi && (
+        <button
+          type="button"
+          className="rd-ask-ardi-cta"
+          onClick={onAskArdi}
+        >
+          {/* eslint-disable-next-line @next/next/no-img-element */}
+          <img src="/ardi/ardi-waving.png" alt="" width={28} height={28} />
+          <span>아르디에게 물어보세요</span>
+        </button>
+      )}
 
       {parsedReference.reference && (
         <div className="mt-6">

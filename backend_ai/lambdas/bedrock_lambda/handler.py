@@ -1067,10 +1067,70 @@ def analyze_contract_with_bedrock(
     }
 
 
+def handle_retrieve_only(event: dict[str, Any]) -> dict[str, Any]:
+    """챗봇용 KB 검색 전용 모드. 분석/LLM 호출 없이 retrieve 결과만 반환."""
+    query = str(event.get("retrievalQuery") or event.get("query") or "").strip()
+    if not query:
+        return {"success": False, "error": "Missing query.", "results": []}
+
+    knowledge_base_id = (
+        str(event.get("knowledgeBaseId") or "").strip()
+        or os.getenv("KNOWLEDGE_BASE_ID", "").strip()
+    )
+    if not knowledge_base_id:
+        return {"success": False, "error": "Missing KNOWLEDGE_BASE_ID.", "results": []}
+
+    contract_type = str(event.get("contractType") or "").strip().lower() or None
+    top_k_raw = event.get("topK")
+    try:
+        top_k = max(1, min(int(top_k_raw), 10)) if top_k_raw is not None else None
+    except (TypeError, ValueError):
+        top_k = None
+
+    try:
+        session = build_boto3_session()
+        client = session.client("bedrock-agent-runtime")
+        vector_search_config: dict[str, Any] = {
+            "numberOfResults": top_k or get_retrieval_result_count(),
+        }
+        if contract_type and contract_type != "unknown":
+            vector_search_config["filter"] = {
+                "equals": {"key": "contract_type", "value": contract_type}
+            }
+        response = client.retrieve(
+            knowledgeBaseId=knowledge_base_id,
+            retrievalQuery={"text": query[:1500]},
+            retrievalConfiguration={"vectorSearchConfiguration": vector_search_config},
+        )
+        results = normalize_retrieval_results(response)
+        return {
+            "success": True,
+            "query": query,
+            "knowledgeBaseId": knowledge_base_id,
+            "contractType": contract_type or "unknown",
+            "results": [
+                {
+                    "rank": item["rank"],
+                    "score": item.get("score"),
+                    "text": item["text"][:1200],
+                    "sourceLabel": item.get("sourceLabel", ""),
+                    "basisPhrase": item.get("basisPhrase", ""),
+                    "location": item.get("location", ""),
+                }
+                for item in results
+            ],
+        }
+    except Exception as exc:
+        return {"success": False, "error": str(exc), "results": []}
+
+
 def lambda_handler(event: dict[str, Any], context: Any) -> dict[str, Any]:
     del context
 
     load_env_file()
+
+    if str(event.get("mode") or "").strip().lower() == "retrieve":
+        return handle_retrieve_only(event)
 
     contract_id = event.get("contractId")
     analysis_id = event.get("analysisId")
