@@ -487,7 +487,7 @@ function AnalysisResultContent() {
                   </div>
                 </div>
 
-                <section className="mt-8 grid gap-4 sm:grid-cols-4">
+                <section className="rd-result-stats mt-8 grid gap-4 sm:grid-cols-4">
                   {[
                     ['총 조항', originBlocks.length || data.toxicCount, 0],
                     ['주의 필요', warningCount, 3],
@@ -495,9 +495,9 @@ function AnalysisResultContent() {
                     ['안전', safeCount, 1],
                   ].map(([label, value, risk]) => (
                     <div key={label} className="rd-stat-card">
-                      <div className="text-[12px] font-semibold text-[var(--rd-ink-3)]">{label}</div>
+                      <div className="rd-stat-label text-[12px] font-semibold text-[var(--rd-ink-3)]">{label}</div>
                       <div
-                        className="mt-2 text-[31px] font-extrabold"
+                        className="rd-stat-value mt-2 text-[31px] font-extrabold"
                         style={{ color: risk === 3 ? 'var(--rd-risk-hi)' : risk === 2 ? 'var(--rd-risk-md)' : risk === 1 ? 'var(--rd-risk-lo)' : 'var(--rd-ink)' }}
                       >
                         {String(value)}
@@ -555,8 +555,8 @@ function AnalysisResultContent() {
             </div>
           </div>
           {mobileContextOpen && selected && (
-            <div className="rd-mobile-sheet-backdrop lg:hidden" onClick={() => { setMobileContextOpen(false); setSelectedIndex(null); }}>
-              <div className="rd-mobile-sheet" onClick={(event) => event.stopPropagation()}>
+            <div className="rd-mobile-sheet-backdrop rd-result-sheet-backdrop lg:hidden" onClick={() => { setMobileContextOpen(false); setSelectedIndex(null); }}>
+              <div className="rd-mobile-sheet rd-result-sheet" onClick={(event) => event.stopPropagation()}>
                 <ClauseContext
                   toxic={selected}
                   advice={data.riskdetectorCommentary?.advice}

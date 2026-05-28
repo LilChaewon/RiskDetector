@@ -40,6 +40,7 @@ button {
 
 .rd-shell {
   min-height: 100vh;
+  min-height: 100dvh;
   display: grid;
   grid-template-columns: 240px minmax(0, 1fr);
   background: var(--rd-bg);
@@ -351,20 +352,46 @@ button {
 .rd-mobile-sheet-backdrop {
   position: fixed;
   inset: 0;
+  height: 100dvh;
   z-index: 80;
   display: flex;
   align-items: stretch;
   background: rgba(15, 23, 42, 0.28);
+  overflow: hidden;
 }
 
 .rd-mobile-sheet {
   position: relative;
   width: 100%;
-  height: 100%;
+  height: 100dvh;
   overflow: auto;
   border-radius: 0;
   background: #fff;
   padding: 18px 16px calc(18px + env(safe-area-inset-bottom));
+  -webkit-overflow-scrolling: touch;
+}
+
+.rd-result-sheet-backdrop {
+  align-items: flex-end;
+  background: rgba(15, 23, 42, 0.18);
+}
+
+.rd-result-sheet {
+  height: auto;
+  max-height: min(72dvh, 680px);
+  margin: 0 12px calc(82px + env(safe-area-inset-bottom));
+  border-radius: 24px;
+  box-shadow: 0 -12px 40px rgba(15, 23, 42, 0.18);
+}
+
+.rd-result-sheet::before {
+  content: "";
+  display: block;
+  width: 38px;
+  height: 4px;
+  margin: 0 auto 16px;
+  border-radius: 999px;
+  background: var(--rd-line);
 }
 
 .rd-mobile-top {
@@ -775,6 +802,11 @@ button {
 @media (max-width: 900px) {
   .rd-shell {
     display: block;
+    height: 100vh;
+    height: 100dvh;
+    min-height: 100vh;
+    min-height: 100dvh;
+    overflow: hidden;
   }
 
   .rd-sidebar {
@@ -782,6 +814,10 @@ button {
   }
 
   .rd-main {
+    height: 100%;
+    min-height: 0;
+    overflow-y: auto;
+    -webkit-overflow-scrolling: touch;
     padding: 16px 16px 92px;
   }
 
@@ -926,6 +962,60 @@ button {
     padding: 16px;
   }
 
+  .rd-result-stats {
+    grid-template-columns: repeat(4, minmax(0, 1fr));
+    gap: 0;
+    overflow: hidden;
+    border: 1px solid var(--rd-line);
+    border-radius: 16px;
+    background: #fff;
+  }
+
+  .rd-result-stats .rd-stat-card {
+    min-height: 74px;
+    border: 0;
+    border-radius: 0;
+    padding: 12px 10px;
+    background: transparent;
+  }
+
+  .rd-result-stats .rd-stat-card + .rd-stat-card {
+    border-left: 1px solid var(--rd-line-2);
+  }
+
+  .rd-result-stats .rd-stat-label {
+    font-size: 11px;
+    line-height: 1.2;
+    white-space: nowrap;
+  }
+
+  .rd-result-stats .rd-stat-value {
+    margin-top: 8px;
+    font-size: 26px;
+    line-height: 1;
+  }
+
+  .rd-result-sheet {
+    max-height: min(64dvh, 560px);
+    padding: 16px 18px 20px;
+  }
+
+  .rd-result-sheet .rd-context-detail {
+    padding-bottom: 0;
+  }
+
+  .rd-result-sheet .rd-context-detail h2 {
+    margin-top: 12px;
+    font-size: 21px;
+    line-height: 1.35;
+  }
+
+  .rd-result-sheet .rd-context-detail p {
+    margin-top: 12px;
+    font-size: 14px;
+    line-height: 1.75;
+  }
+
   .rd-summary-strip {
     border-radius: 14px;
   }
@@ -1027,10 +1117,26 @@ button {
 .ardi-header-name {
   display: flex;
   align-items: center;
-  gap: 6px;
+  gap: 8px;
   font-size: 12.5px;
   font-weight: 700;
   white-space: nowrap;
+}
+
+.ardi-header-avatar {
+  width: 46px;
+  height: 46px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+}
+
+.ardi-header-avatar img {
+  width: 46px !important;
+  height: 46px !important;
+  object-fit: contain;
+  display: block;
 }
 
 .ardi-online {
@@ -1091,25 +1197,24 @@ button {
   white-space: nowrap;
 }
 
-/* Avatar — head crop via background-position trick ------------------- */
+/* Avatar ------------------------------------------------------------- */
 .ardi-avatar-sm {
-  width: 32px;
-  height: 32px;
+  width: 42px;
+  height: 42px;
   border-radius: 999px;
   background: var(--rd-blue-soft);
-  overflow: hidden;
+  overflow: visible;
   flex-shrink: 0;
-  position: relative;
+  display: flex;
+  align-items: center;
+  justify-content: center;
 }
 
 .ardi-avatar-sm img {
-  width: 155% !important;
-  height: auto !important;
-  max-width: none !important;
-  position: absolute;
-  left: 50%;
-  top: 14%;
-  transform: translateX(-50%);
+  width: 38px !important;
+  height: 38px !important;
+  object-fit: contain;
+  display: block;
 }
 
 /* Messages area ------------------------------------------------------ */
