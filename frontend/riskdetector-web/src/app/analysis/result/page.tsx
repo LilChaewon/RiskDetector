@@ -557,7 +557,12 @@ function AnalysisResultContent() {
           {mobileContextOpen && selected && (
             <div className="rd-mobile-sheet-backdrop rd-result-sheet-backdrop lg:hidden" onClick={() => { setMobileContextOpen(false); setSelectedIndex(null); }}>
               <div className="rd-mobile-sheet rd-result-sheet" onClick={(event) => event.stopPropagation()}>
-                <ClauseContext toxic={selected} advice={data.riskdetectorCommentary?.advice} onClear={() => { setSelectedIndex(null); setMobileContextOpen(false); }} />
+                <ClauseContext
+                  toxic={selected}
+                  advice={data.riskdetectorCommentary?.advice}
+                  onClear={() => { setSelectedIndex(null); setMobileContextOpen(false); }}
+                  onAskArdi={() => setChatbotOpen(true)}
+                />
               </div>
             </div>
           )}
