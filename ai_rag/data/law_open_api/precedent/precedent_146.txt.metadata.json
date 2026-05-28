@@ -1,6 +1,15 @@
 {
   "metadataAttributes": {
     "contract_type": "labor",
-    "source_file": "precedent_146.txt"
+    "source_type": "precedent",
+    "source_file": "precedent_146.txt",
+    "law_names": [
+      "근로기준법",
+      "남녀고용평등과 일·가정 양립 지원에 관한 법률"
+    ],
+    "primary_law": "근로기준법",
+    "case_number": "2019노3882",
+    "judgment_year": 2020,
+    "court_name": "인천지방법원"
   }
 }

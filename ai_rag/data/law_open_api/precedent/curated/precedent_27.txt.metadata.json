@@ -1,6 +1,9 @@
 {
   "metadataAttributes": {
     "contract_type": "unknown",
-    "source_file": "precedent_27.txt"
+    "source_type": "precedent",
+    "source_file": "precedent_27.txt",
+    "case_number": "2017다51610",
+    "judgment_year": 2021
   }
 }

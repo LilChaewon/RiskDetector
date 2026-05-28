@@ -1,6 +1,14 @@
 {
   "metadataAttributes": {
     "contract_type": "labor",
-    "source_file": "precedent_14.txt"
+    "source_type": "precedent",
+    "source_file": "precedent_14.txt",
+    "law_names": [
+      "근로기준법",
+      "남녀고용평등과 일·가정 양립 지원에 관한 법률"
+    ],
+    "primary_law": "근로기준법",
+    "case_number": "2020도16431",
+    "judgment_year": 2023
   }
 }

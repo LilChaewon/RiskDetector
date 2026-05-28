@@ -1,6 +1,10 @@
 {
   "metadataAttributes": {
     "contract_type": "lease",
-    "source_file": "precedent_502.txt"
+    "source_type": "precedent",
+    "source_file": "precedent_502.txt",
+    "case_number": "춘천지방법원-2006-가합-1121",
+    "judgment_year": 2007,
+    "court_name": "판결유형:"
   }
 }

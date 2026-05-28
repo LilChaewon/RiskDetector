@@ -1,6 +1,14 @@
 {
   "metadataAttributes": {
     "contract_type": "lease",
-    "source_file": "precedent_431.txt"
+    "source_type": "precedent",
+    "source_file": "precedent_431.txt",
+    "law_names": [
+      "주택임대차보호법"
+    ],
+    "primary_law": "주택임대차보호법",
+    "case_number": "진주지원-2015-가단-10505",
+    "judgment_year": 2016,
+    "court_name": "판결유형:"
   }
 }

@@ -1,6 +1,10 @@
 {
   "metadataAttributes": {
     "contract_type": "unknown",
-    "source_file": "precedent_41.txt"
+    "source_type": "precedent",
+    "source_file": "precedent_41.txt",
+    "case_number": "서울행정법원-2022-구합-88132",
+    "judgment_year": 2025,
+    "court_name": "판결유형:"
   }
 }

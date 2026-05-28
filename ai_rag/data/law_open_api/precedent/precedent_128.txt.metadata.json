@@ -1,6 +1,14 @@
 {
   "metadataAttributes": {
     "contract_type": "unknown",
-    "source_file": "precedent_128.txt"
+    "source_type": "precedent",
+    "source_file": "precedent_128.txt",
+    "law_names": [
+      "근로기준법"
+    ],
+    "primary_law": "근로기준법",
+    "case_number": "2022누10618",
+    "judgment_year": 2022,
+    "court_name": "대전고등법원"
   }
 }

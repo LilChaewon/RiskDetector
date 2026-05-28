@@ -1,6 +1,10 @@
 {
   "metadataAttributes": {
     "contract_type": "lease",
-    "source_file": "precedent_496.txt"
+    "source_type": "precedent",
+    "source_file": "precedent_496.txt",
+    "case_number": "서울행정법원-2017-구합-55107",
+    "judgment_year": 2017,
+    "court_name": "판결유형:"
   }
 }

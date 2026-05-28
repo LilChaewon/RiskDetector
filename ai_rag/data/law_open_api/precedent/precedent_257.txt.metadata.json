@@ -1,6 +1,10 @@
 {
   "metadataAttributes": {
     "contract_type": "lease",
-    "source_file": "precedent_257.txt"
+    "source_type": "precedent",
+    "source_file": "precedent_257.txt",
+    "case_number": "수원지방법원-2025-가단-514391",
+    "judgment_year": 2025,
+    "court_name": "판결유형:"
   }
 }

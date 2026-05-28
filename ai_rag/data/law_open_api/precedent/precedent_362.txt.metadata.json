@@ -1,6 +1,10 @@
 {
   "metadataAttributes": {
     "contract_type": "lease",
-    "source_file": "precedent_362.txt"
+    "source_type": "precedent",
+    "source_file": "precedent_362.txt",
+    "case_number": "안산지원-2020-가합-11701",
+    "judgment_year": 2022,
+    "court_name": "판결유형:"
   }
 }

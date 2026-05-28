@@ -1,6 +1,10 @@
 {
   "metadataAttributes": {
     "contract_type": "lease",
-    "source_file": "precedent_417.txt"
+    "source_type": "precedent",
+    "source_file": "precedent_417.txt",
+    "case_number": "서울고등법원-2019-누-32377",
+    "judgment_year": 2019,
+    "court_name": "판결유형:"
   }
 }

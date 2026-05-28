@@ -1,6 +1,10 @@
 {
   "metadataAttributes": {
     "contract_type": "unknown",
-    "source_file": "precedent_203.txt"
+    "source_type": "precedent",
+    "source_file": "precedent_203.txt",
+    "case_number": "대구지방법원-2025-나-302135",
+    "judgment_year": 2026,
+    "court_name": "판결유형:"
   }
 }

@@ -1,6 +1,10 @@
 {
   "metadataAttributes": {
     "contract_type": "lease",
-    "source_file": "precedent_414.txt"
+    "source_type": "precedent",
+    "source_file": "precedent_414.txt",
+    "case_number": "대구지방법원-2018-가합-209076",
+    "judgment_year": 2020,
+    "court_name": "판결유형:"
   }
 }

@@ -1,6 +1,10 @@
 {
   "metadataAttributes": {
     "contract_type": "unknown",
-    "source_file": "precedent_119.txt"
+    "source_type": "precedent",
+    "source_file": "precedent_119.txt",
+    "case_number": "전주지방법원-2022-구단-64",
+    "judgment_year": 2023,
+    "court_name": "판결유형:"
   }
 }

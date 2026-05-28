@@ -1,6 +1,10 @@
 {
   "metadataAttributes": {
     "contract_type": "lease",
-    "source_file": "precedent_440.txt"
+    "source_type": "precedent",
+    "source_file": "precedent_440.txt",
+    "case_number": "순천지원-2014-가단-70904",
+    "judgment_year": 2014,
+    "court_name": "판결유형:"
   }
 }

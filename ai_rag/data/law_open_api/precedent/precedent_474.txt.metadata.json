@@ -1,6 +1,10 @@
 {
   "metadataAttributes": {
     "contract_type": "lease",
-    "source_file": "precedent_474.txt"
+    "source_type": "precedent",
+    "source_file": "precedent_474.txt",
+    "case_number": "서울고등법원-2005-누-22694",
+    "judgment_year": 2006,
+    "court_name": "판결유형:"
   }
 }

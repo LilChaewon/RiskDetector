@@ -1,6 +1,10 @@
 {
   "metadataAttributes": {
     "contract_type": "unknown",
-    "source_file": "precedent_33.txt"
+    "source_type": "precedent",
+    "source_file": "precedent_33.txt",
+    "case_number": "부산고등법원(창원)-2024-누-10976",
+    "judgment_year": 2025,
+    "court_name": "판결유형:"
   }
 }

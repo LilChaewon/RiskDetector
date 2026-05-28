@@ -1,6 +1,10 @@
 {
   "metadataAttributes": {
     "contract_type": "labor",
-    "source_file": "precedent_61.txt"
+    "source_type": "precedent",
+    "source_file": "precedent_61.txt",
+    "case_number": "2024마6760",
+    "judgment_year": 2024,
+    "court_name": "대법원"
   }
 }

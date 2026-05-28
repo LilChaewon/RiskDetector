@@ -1,6 +1,10 @@
 {
   "metadataAttributes": {
     "contract_type": "unknown",
-    "source_file": "precedent_297.txt"
+    "source_type": "precedent",
+    "source_file": "precedent_297.txt",
+    "case_number": "서울행정법원-2024-구단-64003",
+    "judgment_year": 2025,
+    "court_name": "판결유형:"
   }
 }

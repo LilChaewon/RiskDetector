@@ -1,6 +1,10 @@
 {
   "metadataAttributes": {
     "contract_type": "lease",
-    "source_file": "precedent_320.txt"
+    "source_type": "precedent",
+    "source_file": "precedent_320.txt",
+    "case_number": "서울고등법원2024누33237",
+    "judgment_year": 2024,
+    "court_name": "판결유형:"
   }
 }

@@ -1,6 +1,10 @@
 {
   "metadataAttributes": {
     "contract_type": "unknown",
-    "source_file": "precedent_267.txt"
+    "source_type": "precedent",
+    "source_file": "precedent_267.txt",
+    "case_number": "의정부지방법원2024구단6538",
+    "judgment_year": 2025,
+    "court_name": "판결유형:"
   }
 }

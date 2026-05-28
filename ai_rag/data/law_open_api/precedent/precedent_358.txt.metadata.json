@@ -1,6 +1,15 @@
 {
   "metadataAttributes": {
     "contract_type": "lease",
-    "source_file": "precedent_358.txt"
+    "source_type": "precedent",
+    "source_file": "precedent_358.txt",
+    "law_names": [
+      "상가건물 임대차보호법",
+      "민법"
+    ],
+    "primary_law": "상가건물 임대차보호법",
+    "case_number": "2022가단5123215",
+    "judgment_year": 2022,
+    "court_name": "서울중앙지방법원"
   }
 }

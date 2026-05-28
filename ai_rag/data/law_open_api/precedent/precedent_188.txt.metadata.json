@@ -1,6 +1,10 @@
 {
   "metadataAttributes": {
     "contract_type": "unknown",
-    "source_file": "precedent_188.txt"
+    "source_type": "precedent",
+    "source_file": "precedent_188.txt",
+    "case_number": "부산고등법원-2017-누-22527",
+    "judgment_year": 2017,
+    "court_name": "판결유형:"
   }
 }

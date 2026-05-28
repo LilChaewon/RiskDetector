@@ -1,6 +1,10 @@
 {
   "metadataAttributes": {
     "contract_type": "unknown",
-    "source_file": "precedent_217.txt"
+    "source_type": "precedent",
+    "source_file": "precedent_217.txt",
+    "case_number": "광주지방법원-2024-가단-532969",
+    "judgment_year": 2025,
+    "court_name": "판결유형:"
   }
 }

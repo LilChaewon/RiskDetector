@@ -1,6 +1,10 @@
 {
   "metadataAttributes": {
     "contract_type": "unknown",
-    "source_file": "precedent_192.txt"
+    "source_type": "precedent",
+    "source_file": "precedent_192.txt",
+    "case_number": "의정부지방법원-2016-구단-5981",
+    "judgment_year": 2017,
+    "court_name": "판결유형:"
   }
 }

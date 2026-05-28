@@ -1,6 +1,10 @@
 {
   "metadataAttributes": {
     "contract_type": "lease",
-    "source_file": "precedent_316.txt"
+    "source_type": "precedent",
+    "source_file": "precedent_316.txt",
+    "case_number": "서울행정법원-2024-구단-53249",
+    "judgment_year": 2024,
+    "court_name": "판결유형:"
   }
 }

@@ -1,6 +1,10 @@
 {
   "metadataAttributes": {
     "contract_type": "lease",
-    "source_file": "precedent_433.txt"
+    "source_type": "precedent",
+    "source_file": "precedent_433.txt",
+    "case_number": "인천지방법원-2015-구합-1629",
+    "judgment_year": 2016,
+    "court_name": "판결유형:"
   }
 }

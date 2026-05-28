@@ -1,6 +1,10 @@
 {
   "metadataAttributes": {
     "contract_type": "lease",
-    "source_file": "precedent_467.txt"
+    "source_type": "precedent",
+    "source_file": "precedent_467.txt",
+    "case_number": "2008가합2445",
+    "judgment_year": 2008,
+    "court_name": "수원지방법원성남지원"
   }
 }

@@ -1,6 +1,10 @@
 {
   "metadataAttributes": {
     "contract_type": "lease",
-    "source_file": "precedent_398.txt"
+    "source_type": "precedent",
+    "source_file": "precedent_398.txt",
+    "case_number": "광주지방법원-2020-구합-15154",
+    "judgment_year": 2022,
+    "court_name": "판결유형:"
   }
 }

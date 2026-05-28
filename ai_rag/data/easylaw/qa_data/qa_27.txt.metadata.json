@@ -1,6 +1,12 @@
 {
   "metadataAttributes": {
-    "contract_type": "unknown",
-    "source_file": "qa_27.txt"
+    "contract_type": "labor",
+    "source_type": "qa",
+    "source_file": "qa_27.txt",
+    "law_names": [
+      "상법"
+    ],
+    "primary_law": "상법",
+    "category": "근로/노동"
   }
 }

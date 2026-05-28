@@ -1,6 +1,13 @@
 {
   "metadataAttributes": {
     "contract_type": "unknown",
-    "source_file": "precedent_60.txt"
+    "source_type": "precedent",
+    "source_file": "precedent_60.txt",
+    "law_names": [
+      "근로기준법"
+    ],
+    "primary_law": "근로기준법",
+    "case_number": "2017두52924",
+    "judgment_year": 2017
   }
 }

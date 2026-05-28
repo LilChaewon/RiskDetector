@@ -1,6 +1,10 @@
 {
   "metadataAttributes": {
     "contract_type": "lease",
-    "source_file": "precedent_491.txt"
+    "source_type": "precedent",
+    "source_file": "precedent_491.txt",
+    "case_number": "99가합881",
+    "judgment_year": 1999,
+    "court_name": "인천지방법원"
   }
 }

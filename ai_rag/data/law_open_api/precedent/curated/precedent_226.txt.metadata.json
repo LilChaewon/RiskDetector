@@ -1,6 +1,13 @@
 {
   "metadataAttributes": {
-    "contract_type": "unknown",
-    "source_file": "precedent_226.txt"
+    "contract_type": "labor",
+    "source_type": "precedent",
+    "source_file": "precedent_226.txt",
+    "law_names": [
+      "근로기준법"
+    ],
+    "primary_law": "근로기준법",
+    "case_number": "2024두34122",
+    "judgment_year": 2024
   }
 }

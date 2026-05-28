@@ -1,6 +1,10 @@
 {
   "metadataAttributes": {
     "contract_type": "unknown",
-    "source_file": "precedent_281.txt"
+    "source_type": "precedent",
+    "source_file": "precedent_281.txt",
+    "case_number": "성남지원-2024-가단-234856",
+    "judgment_year": 2025,
+    "court_name": "판결유형:"
   }
 }

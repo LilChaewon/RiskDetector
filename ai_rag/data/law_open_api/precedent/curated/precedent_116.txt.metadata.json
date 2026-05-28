@@ -1,6 +1,13 @@
 {
   "metadataAttributes": {
     "contract_type": "lease",
-    "source_file": "precedent_116.txt"
+    "source_type": "precedent",
+    "source_file": "precedent_116.txt",
+    "law_names": [
+      "주택임대차보호법"
+    ],
+    "primary_law": "주택임대차보호법",
+    "case_number": "2023다258672",
+    "judgment_year": 2024
   }
 }

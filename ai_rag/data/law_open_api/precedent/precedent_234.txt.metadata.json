@@ -1,6 +1,10 @@
 {
   "metadataAttributes": {
     "contract_type": "unknown",
-    "source_file": "precedent_234.txt"
+    "source_type": "precedent",
+    "source_file": "precedent_234.txt",
+    "case_number": "강릉지원-2023-구합-30124",
+    "judgment_year": 2025,
+    "court_name": "판결유형:"
   }
 }

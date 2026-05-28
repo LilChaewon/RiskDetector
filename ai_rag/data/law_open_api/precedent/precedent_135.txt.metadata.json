@@ -1,6 +1,10 @@
 {
   "metadataAttributes": {
     "contract_type": "unknown",
-    "source_file": "precedent_135.txt"
+    "source_type": "precedent",
+    "source_file": "precedent_135.txt",
+    "case_number": "광주고등법원(전주)-2021-누-1508",
+    "judgment_year": 2021,
+    "court_name": "판결유형:"
   }
 }

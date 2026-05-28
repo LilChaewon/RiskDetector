@@ -1,6 +1,10 @@
 {
   "metadataAttributes": {
     "contract_type": "lease",
-    "source_file": "precedent_425.txt"
+    "source_type": "precedent",
+    "source_file": "precedent_425.txt",
+    "case_number": "창원지방법원-2016-가단-17227",
+    "judgment_year": 2017,
+    "court_name": "판결유형:"
   }
 }

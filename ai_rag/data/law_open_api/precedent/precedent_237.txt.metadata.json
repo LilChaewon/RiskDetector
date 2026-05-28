@@ -1,6 +1,15 @@
 {
   "metadataAttributes": {
     "contract_type": "unknown",
-    "source_file": "precedent_237.txt"
+    "source_type": "precedent",
+    "source_file": "precedent_237.txt",
+    "law_names": [
+      "민법",
+      "상법"
+    ],
+    "primary_law": "민법",
+    "case_number": "2022다225897",
+    "judgment_year": 2025,
+    "court_name": "대법원"
   }
 }

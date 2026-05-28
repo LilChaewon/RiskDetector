@@ -1,6 +1,12 @@
 {
   "metadataAttributes": {
-    "contract_type": "unknown",
-    "source_file": "qa_450.txt"
+    "contract_type": "labor",
+    "source_type": "qa",
+    "source_file": "qa_450.txt",
+    "law_names": [
+      "근로기준법"
+    ],
+    "primary_law": "근로기준법",
+    "category": "근로/노동"
   }
 }

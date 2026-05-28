@@ -1,6 +1,10 @@
 {
   "metadataAttributes": {
     "contract_type": "unknown",
-    "source_file": "precedent_259.txt"
+    "source_type": "precedent",
+    "source_file": "precedent_259.txt",
+    "case_number": "인천지방법원-2024-가소-578666",
+    "judgment_year": 2025,
+    "court_name": "판결유형:"
   }
 }

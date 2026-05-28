@@ -1,6 +1,10 @@
 {
   "metadataAttributes": {
     "contract_type": "unknown",
-    "source_file": "precedent_182.txt"
+    "source_type": "precedent",
+    "source_file": "precedent_182.txt",
+    "case_number": "강릉지원-2017-구합-30413",
+    "judgment_year": 2018,
+    "court_name": "판결유형:"
   }
 }

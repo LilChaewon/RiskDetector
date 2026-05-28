@@ -1,6 +1,10 @@
 {
   "metadataAttributes": {
     "contract_type": "lease",
-    "source_file": "precedent_156.txt"
+    "source_type": "precedent",
+    "source_file": "precedent_156.txt",
+    "case_number": "2019누12063",
+    "judgment_year": 2020,
+    "court_name": "수원고등법원, 판결유형: 처분청 패소"
   }
 }

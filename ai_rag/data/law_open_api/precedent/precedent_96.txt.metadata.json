@@ -1,6 +1,10 @@
 {
   "metadataAttributes": {
     "contract_type": "unknown",
-    "source_file": "precedent_96.txt"
+    "source_type": "precedent",
+    "source_file": "precedent_96.txt",
+    "case_number": "서울고등법원-2023-누-45301",
+    "judgment_year": 2024,
+    "court_name": "판결유형:"
   }
 }

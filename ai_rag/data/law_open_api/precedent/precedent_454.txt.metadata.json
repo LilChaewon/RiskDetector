@@ -1,6 +1,10 @@
 {
   "metadataAttributes": {
     "contract_type": "lease",
-    "source_file": "precedent_454.txt"
+    "source_type": "precedent",
+    "source_file": "precedent_454.txt",
+    "case_number": "강릉지원-2011-가단-8511",
+    "judgment_year": 2012,
+    "court_name": "판결유형:"
   }
 }
