@@ -2,6 +2,7 @@
 
 import { useRouter } from 'next/navigation';
 import { LogIn, UserRound } from 'lucide-react';
+import { startGuestMode } from '@/api/guest';
 
 const apiBase = process.env.NEXT_PUBLIC_API_BASE_URL || '/api';
 
@@ -13,22 +14,12 @@ export default function LoginPage() {
     window.location.href = `${backendUrl}/oauth2/authorization/google`;
   }
 
-  async function handleGuestLogin() {
-    await fetch(`${apiBase}/auth/logout`, {
-      method: 'POST',
-      credentials: 'include',
-    }).catch((err) => console.warn('guest mode cookie cleanup failed:', err));
-
-    localStorage.removeItem('refreshToken');
-    localStorage.removeItem('userPicture');
-    localStorage.removeItem('userEmail');
-    localStorage.setItem('accessToken', 'guest');
-    localStorage.setItem('userName', '게스트');
-    localStorage.setItem('isLoggedIn', 'false');
-    if (!localStorage.getItem('guestId')) {
-      localStorage.setItem('guestId', `guest-${crypto.randomUUID?.() || Date.now().toString(36)}`);
+  function handleGuestLogin() {
+    try {
+      startGuestMode(apiBase);
+    } finally {
+      router.replace('/');
     }
-    router.replace('/');
   }
 
   return (
