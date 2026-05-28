@@ -1,6 +1,10 @@
 {
   "metadataAttributes": {
     "contract_type": "lease",
-    "source_file": "precedent_507.txt"
+    "source_type": "precedent",
+    "source_file": "precedent_507.txt",
+    "case_number": "74다2249",
+    "judgment_year": 1975,
+    "court_name": "대법원"
   }
 }

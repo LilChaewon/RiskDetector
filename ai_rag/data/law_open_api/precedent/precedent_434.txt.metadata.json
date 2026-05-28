@@ -1,6 +1,10 @@
 {
   "metadataAttributes": {
     "contract_type": "lease",
-    "source_file": "precedent_434.txt"
+    "source_type": "precedent",
+    "source_file": "precedent_434.txt",
+    "case_number": "부산고등법원-2015-나-55540",
+    "judgment_year": 2016,
+    "court_name": "판결유형:"
   }
 }

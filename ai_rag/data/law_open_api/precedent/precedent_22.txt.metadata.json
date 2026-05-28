@@ -1,6 +1,14 @@
 {
   "metadataAttributes": {
-    "contract_type": "lease",
-    "source_file": "precedent_22.txt"
+    "contract_type": "labor",
+    "source_type": "precedent",
+    "source_file": "precedent_22.txt",
+    "law_names": [
+      "근로기준법"
+    ],
+    "primary_law": "근로기준법",
+    "case_number": "2023두59391",
+    "judgment_year": 2025,
+    "court_name": "대법원"
   }
 }

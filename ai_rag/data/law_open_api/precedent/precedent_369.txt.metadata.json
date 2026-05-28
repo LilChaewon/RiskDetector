@@ -1,6 +1,10 @@
 {
   "metadataAttributes": {
     "contract_type": "lease",
-    "source_file": "precedent_369.txt"
+    "source_type": "precedent",
+    "source_file": "precedent_369.txt",
+    "case_number": "서울중앙지방법원-2021-가합-520231",
+    "judgment_year": 2021,
+    "court_name": "판결유형:"
   }
 }

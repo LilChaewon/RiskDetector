@@ -1,6 +1,9 @@
 {
   "metadataAttributes": {
     "contract_type": "lease",
-    "source_file": "precedent_216.txt"
+    "source_type": "precedent",
+    "source_file": "precedent_216.txt",
+    "case_number": "76나363",
+    "judgment_year": 1977
   }
 }

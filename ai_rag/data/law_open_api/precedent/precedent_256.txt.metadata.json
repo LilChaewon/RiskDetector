@@ -1,6 +1,10 @@
 {
   "metadataAttributes": {
     "contract_type": "unknown",
-    "source_file": "precedent_256.txt"
+    "source_type": "precedent",
+    "source_file": "precedent_256.txt",
+    "case_number": "광주지방법원-2022-가합-55526",
+    "judgment_year": 2025,
+    "court_name": "판결유형:"
   }
 }

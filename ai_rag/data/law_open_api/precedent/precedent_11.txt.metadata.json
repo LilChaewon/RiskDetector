@@ -1,6 +1,10 @@
 {
   "metadataAttributes": {
     "contract_type": "unknown",
-    "source_file": "precedent_11.txt"
+    "source_type": "precedent",
+    "source_file": "precedent_11.txt",
+    "case_number": "대구지방법원-2024-구합-25366",
+    "judgment_year": 2025,
+    "court_name": "판결유형:"
   }
 }

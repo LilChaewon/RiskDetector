@@ -1,6 +1,14 @@
 {
   "metadataAttributes": {
     "contract_type": "lease",
-    "source_file": "precedent_145.txt"
+    "source_type": "precedent",
+    "source_file": "precedent_145.txt",
+    "law_names": [
+      "민법",
+      "상법"
+    ],
+    "primary_law": "민법",
+    "case_number": "2019나108778",
+    "judgment_year": 2021
   }
 }

@@ -1,6 +1,10 @@
 {
   "metadataAttributes": {
     "contract_type": "lease",
-    "source_file": "precedent_443.txt"
+    "source_type": "precedent",
+    "source_file": "precedent_443.txt",
+    "case_number": "울산지방법원-2012-가합-5250",
+    "judgment_year": 2013,
+    "court_name": "판결유형:"
   }
 }

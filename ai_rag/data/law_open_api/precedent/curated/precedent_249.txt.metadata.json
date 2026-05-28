@@ -1,6 +1,13 @@
 {
   "metadataAttributes": {
     "contract_type": "unknown",
-    "source_file": "precedent_249.txt"
+    "source_type": "precedent",
+    "source_file": "precedent_249.txt",
+    "law_names": [
+      "민법"
+    ],
+    "primary_law": "민법",
+    "case_number": "2021다274069",
+    "judgment_year": 2024
   }
 }

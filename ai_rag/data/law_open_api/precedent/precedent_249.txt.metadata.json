@@ -1,6 +1,10 @@
 {
   "metadataAttributes": {
     "contract_type": "unknown",
-    "source_file": "precedent_249.txt"
+    "source_type": "precedent",
+    "source_file": "precedent_249.txt",
+    "case_number": "서울동부지방법원-2023-가단-174195",
+    "judgment_year": 2025,
+    "court_name": "판결유형:"
   }
 }

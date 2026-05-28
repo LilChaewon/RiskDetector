@@ -1,6 +1,14 @@
 {
   "metadataAttributes": {
-    "contract_type": "unknown",
-    "source_file": "precedent_87.txt"
+    "contract_type": "labor",
+    "source_type": "precedent",
+    "source_file": "precedent_87.txt",
+    "law_names": [
+      "근로기준법",
+      "최저임금법"
+    ],
+    "primary_law": "근로기준법",
+    "case_number": "2022다257238",
+    "judgment_year": 2025
   }
 }

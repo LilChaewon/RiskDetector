@@ -1,6 +1,14 @@
 {
   "metadataAttributes": {
     "contract_type": "lease",
-    "source_file": "precedent_424.txt"
+    "source_type": "precedent",
+    "source_file": "precedent_424.txt",
+    "law_names": [
+      "민법"
+    ],
+    "primary_law": "민법",
+    "case_number": "2015가단1835",
+    "judgment_year": 2017,
+    "court_name": "춘천지방법원속초지원"
   }
 }

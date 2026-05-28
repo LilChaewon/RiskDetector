@@ -1,6 +1,9 @@
 {
   "metadataAttributes": {
     "contract_type": "lease",
-    "source_file": "precedent_136.txt"
+    "source_type": "precedent",
+    "source_file": "precedent_136.txt",
+    "case_number": "2020구합72806",
+    "judgment_year": 2022
   }
 }

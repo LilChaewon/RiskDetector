@@ -1,6 +1,10 @@
 {
   "metadataAttributes": {
     "contract_type": "unknown",
-    "source_file": "precedent_141.txt"
+    "source_type": "precedent",
+    "source_file": "precedent_141.txt",
+    "case_number": "2017다51610",
+    "judgment_year": 2021,
+    "court_name": "대법원"
   }
 }

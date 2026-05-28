@@ -1,6 +1,10 @@
 {
   "metadataAttributes": {
     "contract_type": "unknown",
-    "source_file": "precedent_184.txt"
+    "source_type": "precedent",
+    "source_file": "precedent_184.txt",
+    "case_number": "울산지방법원-2017-구합-583",
+    "judgment_year": 2018,
+    "court_name": "판결유형:"
   }
 }

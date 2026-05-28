@@ -1,6 +1,10 @@
 {
   "metadataAttributes": {
     "contract_type": "unknown",
-    "source_file": "precedent_159.txt"
+    "source_type": "precedent",
+    "source_file": "precedent_159.txt",
+    "case_number": "부산지방법원-2019-구합-263",
+    "judgment_year": 2019,
+    "court_name": "판결유형:"
   }
 }

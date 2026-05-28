@@ -1,6 +1,10 @@
 {
   "metadataAttributes": {
     "contract_type": "lease",
-    "source_file": "precedent_415.txt"
+    "source_type": "precedent",
+    "source_file": "precedent_415.txt",
+    "case_number": "진주지원-2019-가단-30187",
+    "judgment_year": 2019,
+    "court_name": "판결유형:"
   }
 }

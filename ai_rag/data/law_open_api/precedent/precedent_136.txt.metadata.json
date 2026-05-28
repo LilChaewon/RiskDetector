@@ -1,6 +1,10 @@
 {
   "metadataAttributes": {
     "contract_type": "unknown",
-    "source_file": "precedent_136.txt"
+    "source_type": "precedent",
+    "source_file": "precedent_136.txt",
+    "case_number": "의정부지방법원-2021-구단-5800",
+    "judgment_year": 2021,
+    "court_name": "판결유형:"
   }
 }

@@ -1,6 +1,10 @@
 {
   "metadataAttributes": {
     "contract_type": "lease",
-    "source_file": "precedent_448.txt"
+    "source_type": "precedent",
+    "source_file": "precedent_448.txt",
+    "case_number": "서울고등법원-2012-나-75712",
+    "judgment_year": 2013,
+    "court_name": "판결유형:"
   }
 }

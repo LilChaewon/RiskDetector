@@ -1,6 +1,10 @@
 {
   "metadataAttributes": {
     "contract_type": "unknown",
-    "source_file": "precedent_144.txt"
+    "source_type": "precedent",
+    "source_file": "precedent_144.txt",
+    "case_number": "의정부지방법원-2019-구단-7322",
+    "judgment_year": 2020,
+    "court_name": "판결유형:"
   }
 }

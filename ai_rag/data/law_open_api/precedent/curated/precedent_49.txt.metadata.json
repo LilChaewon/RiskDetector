@@ -1,6 +1,9 @@
 {
   "metadataAttributes": {
     "contract_type": "unknown",
-    "source_file": "precedent_49.txt"
+    "source_type": "precedent",
+    "source_file": "precedent_49.txt",
+    "case_number": "2017두37031",
+    "judgment_year": 2018
   }
 }

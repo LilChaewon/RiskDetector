@@ -1,6 +1,10 @@
 {
   "metadataAttributes": {
     "contract_type": "unknown",
-    "source_file": "precedent_143.txt"
+    "source_type": "precedent",
+    "source_file": "precedent_143.txt",
+    "case_number": "2020누49197",
+    "judgment_year": 2020,
+    "court_name": "서울고등법원"
   }
 }

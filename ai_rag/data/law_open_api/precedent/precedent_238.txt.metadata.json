@@ -1,6 +1,10 @@
 {
   "metadataAttributes": {
     "contract_type": "unknown",
-    "source_file": "precedent_238.txt"
+    "source_type": "precedent",
+    "source_file": "precedent_238.txt",
+    "case_number": "서울서부지방법원-2025-가단-9836",
+    "judgment_year": 2025,
+    "court_name": "판결유형:"
   }
 }

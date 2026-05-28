@@ -1,6 +1,10 @@
 {
   "metadataAttributes": {
     "contract_type": "lease",
-    "source_file": "precedent_345.txt"
+    "source_type": "precedent",
+    "source_file": "precedent_345.txt",
+    "case_number": "서울중앙지방법원-2022-가단-5346155",
+    "judgment_year": 2023,
+    "court_name": "판결유형:"
   }
 }

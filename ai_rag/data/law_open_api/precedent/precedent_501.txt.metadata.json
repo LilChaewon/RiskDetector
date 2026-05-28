@@ -1,6 +1,10 @@
 {
   "metadataAttributes": {
     "contract_type": "lease",
-    "source_file": "precedent_501.txt"
+    "source_type": "precedent",
+    "source_file": "precedent_501.txt",
+    "case_number": "수원지방법원-2007-구합-2136",
+    "judgment_year": 2008,
+    "court_name": "판결유형:"
   }
 }

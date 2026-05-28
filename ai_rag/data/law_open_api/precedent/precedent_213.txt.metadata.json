@@ -1,6 +1,10 @@
 {
   "metadataAttributes": {
     "contract_type": "unknown",
-    "source_file": "precedent_213.txt"
+    "source_type": "precedent",
+    "source_file": "precedent_213.txt",
+    "case_number": "인천지방법원-2025-구합-50445",
+    "judgment_year": 2025,
+    "court_name": "판결유형:"
   }
 }

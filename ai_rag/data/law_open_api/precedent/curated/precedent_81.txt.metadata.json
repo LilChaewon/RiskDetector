@@ -1,6 +1,9 @@
 {
   "metadataAttributes": {
     "contract_type": "lease",
-    "source_file": "precedent_81.txt"
+    "source_type": "precedent",
+    "source_file": "precedent_81.txt",
+    "case_number": "2024다284418",
+    "judgment_year": 2025
   }
 }

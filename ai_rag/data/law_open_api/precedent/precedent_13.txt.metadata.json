@@ -1,6 +1,10 @@
 {
   "metadataAttributes": {
     "contract_type": "unknown",
-    "source_file": "precedent_13.txt"
+    "source_type": "precedent",
+    "source_file": "precedent_13.txt",
+    "case_number": "수원고등법원-2023-누-16765",
+    "judgment_year": 2025,
+    "court_name": "판결유형:"
   }
 }

@@ -1,6 +1,10 @@
 {
   "metadataAttributes": {
     "contract_type": "unknown",
-    "source_file": "precedent_162.txt"
+    "source_type": "precedent",
+    "source_file": "precedent_162.txt",
+    "case_number": "청주지방법원-2018-구합-3191",
+    "judgment_year": 2019,
+    "court_name": "판결유형:"
   }
 }

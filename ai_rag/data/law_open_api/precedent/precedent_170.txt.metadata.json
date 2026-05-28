@@ -1,6 +1,10 @@
 {
   "metadataAttributes": {
     "contract_type": "unknown",
-    "source_file": "precedent_170.txt"
+    "source_type": "precedent",
+    "source_file": "precedent_170.txt",
+    "case_number": "광주고등법원-2018-누-5153",
+    "judgment_year": 2018,
+    "court_name": "판결유형:"
   }
 }

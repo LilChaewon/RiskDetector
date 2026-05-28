@@ -1,6 +1,12 @@
 {
   "metadataAttributes": {
-    "contract_type": "unknown",
-    "source_file": "qa_449.txt"
+    "contract_type": "labor",
+    "source_type": "qa",
+    "source_file": "qa_449.txt",
+    "law_names": [
+      "남녀고용평등과 일·가정 양립 지원에 관한 법률"
+    ],
+    "primary_law": "남녀고용평등과 일·가정 양립 지원에 관한 법률",
+    "category": "근로/노동"
   }
 }

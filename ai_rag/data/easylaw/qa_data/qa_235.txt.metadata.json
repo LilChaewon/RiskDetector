@@ -1,6 +1,12 @@
 {
   "metadataAttributes": {
     "contract_type": "lease",
-    "source_file": "qa_235.txt"
+    "source_type": "qa",
+    "source_file": "qa_235.txt",
+    "law_names": [
+      "공인중개사법",
+      "부동산 거래신고 등에 관한 법률"
+    ],
+    "primary_law": "공인중개사법"
   }
 }

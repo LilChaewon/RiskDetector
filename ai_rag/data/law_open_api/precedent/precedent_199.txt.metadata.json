@@ -1,6 +1,10 @@
 {
   "metadataAttributes": {
     "contract_type": "lease",
-    "source_file": "precedent_199.txt"
+    "source_type": "precedent",
+    "source_file": "precedent_199.txt",
+    "case_number": "의정부지방법원-2025-가단-105186",
+    "judgment_year": 2026,
+    "court_name": "판결유형:"
   }
 }

@@ -1,6 +1,14 @@
 {
   "metadataAttributes": {
     "contract_type": "lease",
-    "source_file": "precedent_305.txt"
+    "source_type": "precedent",
+    "source_file": "precedent_305.txt",
+    "law_names": [
+      "주택임대차보호법"
+    ],
+    "primary_law": "주택임대차보호법",
+    "case_number": "남양주지원-2024-가단-6186",
+    "judgment_year": 2025,
+    "court_name": "판결유형:"
   }
 }

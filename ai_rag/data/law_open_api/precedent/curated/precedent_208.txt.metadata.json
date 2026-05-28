@@ -1,6 +1,9 @@
 {
   "metadataAttributes": {
     "contract_type": "labor",
-    "source_file": "precedent_208.txt"
+    "source_type": "precedent",
+    "source_file": "precedent_208.txt",
+    "case_number": "2021다245528",
+    "judgment_year": 2025
   }
 }

@@ -1,6 +1,13 @@
 {
   "metadataAttributes": {
     "contract_type": "lease",
-    "source_file": "precedent_138.txt"
+    "source_type": "precedent",
+    "source_file": "precedent_138.txt",
+    "law_names": [
+      "공인중개사법"
+    ],
+    "primary_law": "공인중개사법",
+    "case_number": "2021가단121803",
+    "judgment_year": 2022
   }
 }

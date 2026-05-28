@@ -1,6 +1,10 @@
 {
   "metadataAttributes": {
     "contract_type": "lease",
-    "source_file": "precedent_498.txt"
+    "source_type": "precedent",
+    "source_file": "precedent_498.txt",
+    "case_number": "서울행정법원-2011-구합-8864",
+    "judgment_year": 2011,
+    "court_name": "판결유형:"
   }
 }

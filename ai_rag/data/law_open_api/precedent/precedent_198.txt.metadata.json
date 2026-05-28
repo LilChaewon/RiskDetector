@@ -1,6 +1,10 @@
 {
   "metadataAttributes": {
     "contract_type": "unknown",
-    "source_file": "precedent_198.txt"
+    "source_type": "precedent",
+    "source_file": "precedent_198.txt",
+    "case_number": "서부지원-2025-가단-52686",
+    "judgment_year": 2026,
+    "court_name": "판결유형:"
   }
 }

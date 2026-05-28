@@ -1,6 +1,10 @@
 {
   "metadataAttributes": {
     "contract_type": "lease",
-    "source_file": "precedent_382.txt"
+    "source_type": "precedent",
+    "source_file": "precedent_382.txt",
+    "case_number": "2020두44169",
+    "judgment_year": 2020,
+    "court_name": "대법원"
   }
 }

@@ -1,6 +1,10 @@
 {
   "metadataAttributes": {
     "contract_type": "lease",
-    "source_file": "precedent_367.txt"
+    "source_type": "precedent",
+    "source_file": "precedent_367.txt",
+    "case_number": "서산지원-2021-가단-51138",
+    "judgment_year": 2021,
+    "court_name": "판결유형:"
   }
 }

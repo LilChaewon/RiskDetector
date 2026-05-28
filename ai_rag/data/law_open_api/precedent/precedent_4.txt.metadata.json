@@ -1,6 +1,16 @@
 {
   "metadataAttributes": {
     "contract_type": "lease",
-    "source_file": "precedent_4.txt"
+    "source_type": "precedent",
+    "source_file": "precedent_4.txt",
+    "law_names": [
+      "근로기준법",
+      "민법",
+      "상법"
+    ],
+    "primary_law": "근로기준법",
+    "case_number": "2022다214040",
+    "judgment_year": 2026,
+    "court_name": "대법원"
   }
 }

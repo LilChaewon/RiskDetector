@@ -1,6 +1,16 @@
 {
   "metadataAttributes": {
     "contract_type": "labor",
-    "source_file": "precedent_74.txt"
+    "source_type": "precedent",
+    "source_file": "precedent_74.txt",
+    "law_names": [
+      "근로기준법",
+      "최저임금법",
+      "민법"
+    ],
+    "primary_law": "근로기준법",
+    "case_number": "2023다206138",
+    "judgment_year": 2024,
+    "court_name": "대법원"
   }
 }

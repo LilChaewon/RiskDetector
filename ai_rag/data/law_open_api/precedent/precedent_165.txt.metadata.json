@@ -1,6 +1,10 @@
 {
   "metadataAttributes": {
     "contract_type": "unknown",
-    "source_file": "precedent_165.txt"
+    "source_type": "precedent",
+    "source_file": "precedent_165.txt",
+    "case_number": "인천지방법원-2018-구단-392",
+    "judgment_year": 2019,
+    "court_name": "판결유형:"
   }
 }

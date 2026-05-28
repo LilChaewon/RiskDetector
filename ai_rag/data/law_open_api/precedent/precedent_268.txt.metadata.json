@@ -1,6 +1,10 @@
 {
   "metadataAttributes": {
     "contract_type": "unknown",
-    "source_file": "precedent_268.txt"
+    "source_type": "precedent",
+    "source_file": "precedent_268.txt",
+    "case_number": "수원지방법원-2024-구합-67246",
+    "judgment_year": 2025,
+    "court_name": "판결유형:"
   }
 }
