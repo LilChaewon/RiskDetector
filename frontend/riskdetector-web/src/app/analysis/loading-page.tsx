@@ -114,11 +114,10 @@ export default function AnalysisLoadingPage({ contractId, analysisId }: Props) {
           <span className="ardi-loader-spark s6" />
           <div className="ardi-loader-mascot">
             <Image
-              src="/ardi/ardi-searching.png"
+              src="/ardi/ardi-hero.png"
               alt="아르디가 조항을 살펴보고 있어요"
-              width={152}
-              height={152}
-              unoptimized
+              width={168}
+              height={200}
               priority
             />
           </div>
