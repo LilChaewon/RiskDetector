@@ -1,7 +1,7 @@
 'use client';
 
 import { createContext, useContext, useEffect, useId, useMemo, useRef, useState } from 'react';
-import { AlertCircle, Banknote, BellRing, ChevronDown, Clipboard, FileDown, Gavel, Plus, RotateCcw, Trash2 } from 'lucide-react';
+import { AlertCircle, Banknote, BellRing, Clipboard, FileDown, Gavel, Plus, RotateCcw, Trash2 } from 'lucide-react';
 import AppShell from '@/components/AppShell';
 
 type DraftType = 'loan' | 'notice' | 'order';
@@ -1277,6 +1277,8 @@ export default function DraftPage() {
   const [activeExampleLabels, setActiveExampleLabels] = useState<string[]>([]);
   const [activePreviewTerms, setActivePreviewTerms] = useState<string[]>([]);
   const previewBodyRef = useRef<HTMLDivElement | null>(null);
+  const previewDragRef = useRef<{ startY: number; latestY: number } | null>(null);
+  const [previewDragging, setPreviewDragging] = useState(false);
 
   const generatedText = useMemo(() => {
     if (draftType === 'loan') return loanText(loan);
@@ -1730,6 +1732,40 @@ export default function DraftPage() {
     setMobilePreviewOpen(false);
   }
 
+  function startPreviewDragAt(clientY: number) {
+    previewDragRef.current = { startY: clientY, latestY: clientY };
+    setPreviewDragging(true);
+  }
+
+  function movePreviewDragAt(clientY: number) {
+    if (!previewDragRef.current) return;
+    previewDragRef.current.latestY = clientY;
+  }
+
+  function startPreviewPointerDrag(event: React.PointerEvent<HTMLButtonElement>) {
+    startPreviewDragAt(event.clientY);
+    event.currentTarget.setPointerCapture(event.pointerId);
+  }
+
+  function startPreviewTouchDrag(event: React.TouchEvent<HTMLButtonElement>) {
+    startPreviewDragAt(event.touches[0]?.clientY || 0);
+  }
+
+  function endPreviewDrag() {
+    const drag = previewDragRef.current;
+    previewDragRef.current = null;
+    setPreviewDragging(false);
+    if (!drag) return;
+
+    const deltaY = drag.latestY - drag.startY;
+    if (deltaY < -28) {
+      setMobilePreviewOpen(true);
+    }
+    if (deltaY > 28) {
+      setMobilePreviewOpen(false);
+    }
+  }
+
   return (
     <AppShell>
       <ExampleFocusContext.Provider value={exampleFocusHandlers}>
@@ -1844,17 +1880,25 @@ export default function DraftPage() {
         <section className={`rd-draft-preview-wrap ${mobilePreviewOpen ? 'is-open' : ''}`}>
           <button
             type="button"
-            onClick={() => setMobilePreviewOpen((open) => !open)}
-            className="rd-draft-preview-toggle"
+            onPointerDown={startPreviewPointerDrag}
+            onPointerMove={(event) => movePreviewDragAt(event.clientY)}
+            onPointerUp={endPreviewDrag}
+            onPointerCancel={endPreviewDrag}
+            onMouseDown={(event) => startPreviewDragAt(event.clientY)}
+            onMouseMove={(event) => movePreviewDragAt(event.clientY)}
+            onMouseUp={endPreviewDrag}
+            onTouchStart={startPreviewTouchDrag}
+            onTouchMove={(event) => movePreviewDragAt(event.touches[0]?.clientY || 0)}
+            onTouchEnd={endPreviewDrag}
+            className={`rd-draft-preview-toggle ${previewDragging ? 'is-dragging' : ''}`}
             aria-expanded={mobilePreviewOpen}
           >
             <span>
               <span className="block text-[12px] font-extrabold text-[var(--rd-ink-3)]">실시간 문서 미리보기</span>
               <span className="mt-0.5 block text-[15px] font-extrabold text-[var(--rd-ink)]">
-                {mobilePreviewOpen ? '실시간 미리보기 닫기' : '작성하며 미리보기'}
+                {mobilePreviewOpen ? '아래로 밀어 닫기' : '위로 밀어 올리기'}
               </span>
             </span>
-            <ChevronDown className="rd-draft-preview-toggle-icon" size={18} />
           </button>
 
           <div ref={previewBodyRef} className="rd-draft-preview-body">
