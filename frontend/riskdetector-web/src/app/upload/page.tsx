@@ -1,14 +1,15 @@
 'use client';
 
-import { useRef, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import Image from 'next/image';
 import { useRouter } from 'next/navigation';
-import { Camera, ChevronRight, FileText, UploadCloud } from 'lucide-react';
+import { Camera, ChevronRight, FileText, Plus, Trash2, UploadCloud, X } from 'lucide-react';
 import AppShell from '@/components/AppShell';
 import { uploadOCR } from '@/api/contract';
 
 type ContractType = 'RENTAL' | 'EMPLOYMENT';
 type Step = 'select-type' | 'upload' | 'uploading';
+type StagedItem = { id: string; file: File; preview: string | null };
 
 const contractTypes: Array<{
   type: ContractType;
@@ -23,35 +24,84 @@ const contractTypes: Array<{
 export default function UploadPage() {
   const router = useRouter();
   const cameraInputRef = useRef<HTMLInputElement>(null);
+  const fileInputRef = useRef<HTMLInputElement>(null);
   const [step, setStep] = useState<Step>('select-type');
   const [contractType, setContractType] = useState<ContractType>('RENTAL');
   const [isDragging, setIsDragging] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [preparing, setPreparing] = useState(false);
+  const [staged, setStaged] = useState<StagedItem[]>([]);
+
+  // 컴포넌트 언마운트 시 모든 object URL 해제
+  useEffect(() => {
+    return () => {
+      staged.forEach((item) => {
+        if (item.preview) URL.revokeObjectURL(item.preview);
+      });
+    };
+    // staged는 함수 안에서만 변경되므로 effect 재실행 불필요 (cleanup만 필요)
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
 
   function beginUpload(type: ContractType) {
     setContractType(type);
     setStep('upload');
     setError(null);
+    setStaged([]);
   }
 
-  async function acceptFiles(selected: File[]) {
-    setPreparing(true);
+  function addToStaged(selected: File[]) {
     setError(null);
 
     const supported = selected.filter(isSupportedFile);
     if (supported.length === 0) {
       setError('JPG, PNG, HEIC 이미지 또는 PDF 파일을 올려주세요.');
-      setPreparing(false);
       return;
     }
+    if (supported.length !== selected.length) {
+      setError('일부 파일은 지원되지 않아 제외되었습니다.');
+    }
 
+    const newItems: StagedItem[] = supported.map((file) => ({
+      id: `${file.name}-${file.size}-${file.lastModified}-${Math.random().toString(36).slice(2, 8)}`,
+      file,
+      preview: isImageFile(file) ? URL.createObjectURL(file) : null,
+    }));
+
+    setStaged((prev) => [...prev, ...newItems]);
+  }
+
+  function removeStaged(id: string) {
+    setStaged((prev) => {
+      const target = prev.find((item) => item.id === id);
+      if (target?.preview) URL.revokeObjectURL(target.preview);
+      return prev.filter((item) => item.id !== id);
+    });
+  }
+
+  function clearStaged() {
+    staged.forEach((item) => {
+      if (item.preview) URL.revokeObjectURL(item.preview);
+    });
+    setStaged([]);
+    setError(null);
+  }
+
+  async function submitStaged() {
+    if (staged.length === 0) {
+      setError('업로드할 파일을 먼저 추가해주세요.');
+      return;
+    }
+    setPreparing(true);
+    setError(null);
     try {
-      const uploadFiles = await expandPdfFiles(supported);
-      handleUpload(uploadFiles);
+      const files = staged.map((item) => item.file);
+      const uploadFiles = await expandPdfFiles(files);
+      await handleUpload(uploadFiles);
     } catch (err) {
       console.error('파일 준비 실패:', err);
       setError('PDF를 페이지별 이미지로 변환하지 못했습니다. 다른 파일로 다시 시도해주세요.');
+      setStep('upload');
     } finally {
       setPreparing(false);
     }
@@ -156,7 +206,7 @@ export default function UploadPage() {
             <div className="rd-section-label">계약서 업로드</div>
             <h1 className="mt-1 text-[29px] font-extrabold tracking-tight">계약서를 올려주세요</h1>
             <p className="mt-2 text-[14px] font-medium text-[var(--rd-ink-2)]">
-              PDF 파일 또는 전체 페이지가 잘 보이게 찍은 이미지를 여러 장 올릴 수 있어요.
+              여러 장을 추가한 뒤 한 번에 분석할 수 있어요. PDF나 사진 모두 가능합니다.
             </p>
 
             <label
@@ -171,26 +221,30 @@ export default function UploadPage() {
               onDrop={(e) => {
                 e.preventDefault();
                 setIsDragging(false);
-                acceptFiles(Array.from(e.dataTransfer.files));
+                addToStaged(Array.from(e.dataTransfer.files));
               }}
-              className={`mt-8 flex min-h-[280px] cursor-pointer flex-col items-center justify-center rounded-[18px] border-2 border-dashed p-8 text-center transition ${
+              className={`mt-8 flex min-h-[200px] cursor-pointer flex-col items-center justify-center rounded-[18px] border-2 border-dashed p-8 text-center transition ${
                 isDragging
                   ? 'border-[var(--rd-blue)] bg-[var(--rd-blue-soft)]'
                   : 'border-[var(--rd-line)] bg-[var(--rd-paper-2)] hover:border-[var(--rd-blue)]'
               }`}
             >
-              <UploadCloud size={38} className="text-[var(--rd-ink-3)]" strokeWidth={1.6} />
-              <div className="mt-4 text-[18px] font-extrabold">
-                {preparing ? '파일을 준비하고 있어요' : isDragging ? '여기에 놓아주세요' : 'PDF · 사진 선택 또는 드래그'}
+              <UploadCloud size={34} className="text-[var(--rd-ink-3)]" strokeWidth={1.6} />
+              <div className="mt-3 text-[17px] font-extrabold">
+                {isDragging ? '여기에 놓아주세요' : 'PDF · 사진 선택 또는 드래그'}
               </div>
-              <div className="mt-1 text-[13px] font-semibold text-[var(--rd-ink-2)]">PDF · JPG · PNG · HEIC · 여러 파일 가능</div>
-              <span className="rd-btn mt-5">파일 선택</span>
+              <div className="mt-1 text-[12px] font-semibold text-[var(--rd-ink-2)]">PDF · JPG · PNG · HEIC · 여러 파일 가능</div>
+              <span className="rd-btn mt-4">파일 선택</span>
               <input
+                ref={fileInputRef}
                 type="file"
                 accept="application/pdf,image/*,.pdf,.jpg,.jpeg,.png,.heic,.heif"
                 multiple
                 className="hidden"
-                onChange={(e) => acceptFiles(Array.from(e.target.files || []))}
+                onChange={(e) => {
+                  addToStaged(Array.from(e.target.files || []));
+                  e.target.value = '';
+                }}
               />
             </label>
 
@@ -204,8 +258,8 @@ export default function UploadPage() {
                   <Camera size={20} />
                 </div>
                 <div>
-                  <div className="text-[14px] font-extrabold">모바일 촬영</div>
-                  <div className="text-[12px] font-semibold text-[var(--rd-ink-2)]">휴대폰에서 바로 찍기</div>
+                  <div className="text-[14px] font-extrabold">한 장 더 촬영</div>
+                  <div className="text-[12px] font-semibold text-[var(--rd-ink-2)]">찍을 때마다 아래 목록에 추가돼요</div>
                 </div>
               </button>
               <input
@@ -214,9 +268,84 @@ export default function UploadPage() {
                 accept="image/*"
                 capture="environment"
                 className="hidden"
-                onChange={(e) => acceptFiles(Array.from(e.target.files || []))}
+                onChange={(e) => {
+                  addToStaged(Array.from(e.target.files || []));
+                  e.target.value = '';
+                }}
               />
             </div>
+
+            {staged.length > 0 && (
+              <div className="mt-6 rounded-[18px] border border-[var(--rd-line)] bg-[var(--rd-paper)] p-4">
+                <div className="flex items-center justify-between">
+                  <div className="text-[14px] font-extrabold">
+                    추가된 파일 <span className="text-[var(--rd-blue)]">{staged.length}</span>장
+                  </div>
+                  <button
+                    type="button"
+                    onClick={clearStaged}
+                    className="flex items-center gap-1 text-[12px] font-bold text-[var(--rd-ink-3)] hover:text-[var(--rd-ink)]"
+                  >
+                    <Trash2 size={14} /> 전체 지우기
+                  </button>
+                </div>
+
+                <ul className="mt-3 grid grid-cols-3 gap-2 sm:grid-cols-4">
+                  {staged.map((item, idx) => (
+                    <li
+                      key={item.id}
+                      className="relative aspect-square overflow-hidden rounded-xl border border-[var(--rd-line)] bg-[var(--rd-paper-2)]"
+                    >
+                      {item.preview ? (
+                        // eslint-disable-next-line @next/next/no-img-element
+                        <img
+                          src={item.preview}
+                          alt={`업로드 대기 ${idx + 1}`}
+                          className="h-full w-full object-cover"
+                        />
+                      ) : (
+                        <div className="flex h-full w-full flex-col items-center justify-center gap-1 p-2 text-center">
+                          <FileText size={20} className="text-[var(--rd-ink-3)]" />
+                          <div className="line-clamp-2 text-[10px] font-bold text-[var(--rd-ink-2)]">
+                            {item.file.name}
+                          </div>
+                        </div>
+                      )}
+                      <span className="absolute left-1 top-1 rounded-full bg-black/55 px-1.5 py-0.5 text-[10px] font-bold text-white">
+                        {idx + 1}
+                      </span>
+                      <button
+                        type="button"
+                        onClick={() => removeStaged(item.id)}
+                        aria-label="파일 삭제"
+                        className="absolute right-1 top-1 flex h-6 w-6 items-center justify-center rounded-full bg-black/55 text-white hover:bg-black/75"
+                      >
+                        <X size={13} />
+                      </button>
+                    </li>
+                  ))}
+                  <li>
+                    <button
+                      type="button"
+                      onClick={() => fileInputRef.current?.click()}
+                      className="flex aspect-square w-full flex-col items-center justify-center gap-1 rounded-xl border-2 border-dashed border-[var(--rd-line)] text-[var(--rd-ink-3)] transition hover:border-[var(--rd-blue)] hover:text-[var(--rd-blue)]"
+                    >
+                      <Plus size={20} />
+                      <span className="text-[11px] font-bold">더 추가</span>
+                    </button>
+                  </li>
+                </ul>
+
+                <button
+                  type="button"
+                  onClick={submitStaged}
+                  disabled={preparing}
+                  className="rd-btn mt-4 w-full disabled:cursor-not-allowed disabled:opacity-60"
+                >
+                  {preparing ? '파일 준비 중...' : `${staged.length}장 분석 시작`}
+                </button>
+              </div>
+            )}
 
             {error && (
               <div className="mt-4 rounded-xl bg-[var(--rd-risk-hi-bg)] p-4 text-[13px] font-bold text-[var(--rd-risk-hi)]">
