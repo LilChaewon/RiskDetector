@@ -978,10 +978,26 @@ button {
 .ardi-header-name {
   display: flex;
   align-items: center;
-  gap: 6px;
+  gap: 8px;
   font-size: 12.5px;
   font-weight: 700;
   white-space: nowrap;
+}
+
+.ardi-header-avatar {
+  width: 46px;
+  height: 46px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+}
+
+.ardi-header-avatar img {
+  width: 46px !important;
+  height: 46px !important;
+  object-fit: contain;
+  display: block;
 }
 
 .ardi-online {
@@ -1042,28 +1058,24 @@ button {
   white-space: nowrap;
 }
 
-/* Avatar — head-only crop.
-   Source PNG is full-body (~190×242). We enlarge it so the head+antenna
-   (top ~41% of the image) fills the 36×36 circle, and pin `top: 0` so the
-   antenna tip is never clipped. */
+/* Avatar ------------------------------------------------------------- */
 .ardi-avatar-sm {
-  width: 36px;
-  height: 36px;
+  width: 42px;
+  height: 42px;
   border-radius: 999px;
   background: var(--rd-blue-soft);
-  overflow: hidden;
+  overflow: visible;
   flex-shrink: 0;
-  position: relative;
+  display: flex;
+  align-items: center;
+  justify-content: center;
 }
 
 .ardi-avatar-sm img {
-  width: auto !important;
-  height: 88px !important;
-  max-width: none !important;
-  position: absolute;
-  left: 50%;
-  top: 0;
-  transform: translateX(-50%);
+  width: 38px !important;
+  height: 38px !important;
+  object-fit: contain;
+  display: block;
 }
 
 /* Messages area ------------------------------------------------------ */
