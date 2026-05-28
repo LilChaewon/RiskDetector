@@ -15,6 +15,7 @@ import {
   User,
 } from 'lucide-react';
 import AuthChoiceDialog from '@/components/AuthChoiceDialog';
+import { isGuestMode } from '@/api/guest';
 
 const navItems = [
   { href: '/', label: '홈', icon: Home },
@@ -41,8 +42,9 @@ export default function AppShell({ children }: { children: React.ReactNode }) {
     const syncLoginState = () => {
       const token = localStorage.getItem('accessToken');
       const loginFlag = localStorage.getItem('isLoggedIn') === 'true';
+      const guestMode = isGuestMode();
       const authChoiceSeen = sessionStorage.getItem('rdAuthChoiceSeen') === 'true';
-      const shouldAskAuthChoice = !authChoiceSeen && !loginFlag && pathname !== '/login' && pathname !== '/oauth2/callback';
+      const shouldAskAuthChoice = !authChoiceSeen && !loginFlag && !guestMode && pathname !== '/login' && pathname !== '/oauth2/callback';
 
       setIsLoggedIn(loginFlag || Boolean(token && token !== 'guest'));
       setShowInitialAuth(shouldAskAuthChoice);
