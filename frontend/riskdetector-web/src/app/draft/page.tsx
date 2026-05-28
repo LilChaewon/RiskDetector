@@ -1,7 +1,7 @@
 'use client';
 
-import { createContext, useContext, useMemo, useState } from 'react';
-import { AlertCircle, Banknote, BellRing, Clipboard, FileDown, Gavel, Plus, RotateCcw, Trash2 } from 'lucide-react';
+import { createContext, useContext, useEffect, useId, useMemo, useRef, useState } from 'react';
+import { AlertCircle, Banknote, BellRing, ChevronDown, Clipboard, FileDown, Gavel, Plus, RotateCcw, Trash2 } from 'lucide-react';
 import AppShell from '@/components/AppShell';
 
 type DraftType = 'loan' | 'notice' | 'order';
@@ -113,7 +113,7 @@ type Section = {
 };
 
 const ExampleFocusContext = createContext<{
-  onExampleFocus: (labels: string[]) => void;
+  onExampleFocus: (labels: string[], terms?: string[]) => void;
   onExampleBlur: () => void;
 } | null>(null);
 
@@ -637,6 +637,32 @@ function createEvidenceFiles(files: FileList | null, kind: EvidenceKind) {
   }));
 }
 
+function uniqueTerms(values: string[]) {
+  return Array.from(new Set(values.map((value) => value.trim()).filter(Boolean))).sort((a, b) => b.length - a.length);
+}
+
+function displayDateTerm(value: string) {
+  if (!/^\d{4}-\d{2}-\d{2}$/.test(value)) return '';
+  const [year, month, day] = value.split('-').map(Number);
+  return `${year}년 ${month}월 ${day}일`;
+}
+
+function displayMoneyTerm(value: string) {
+  const raw = value.replace(/[^\d]/g, '');
+  if (!raw) return '';
+  return `${Number(raw).toLocaleString('ko-KR')}원`;
+}
+
+function previewTermsForField(label: string, value: string) {
+  const previewLabels = fieldExamples[label]?.previewLabels || [];
+  return uniqueTerms([
+    value,
+    displayDateTerm(value),
+    displayMoneyTerm(value),
+    ...previewLabels.map((previewLabel) => exampleValues[previewLabel] || ''),
+  ]);
+}
+
 function Field({
   label,
   value,
@@ -655,27 +681,32 @@ function Field({
   placeholder?: string;
   readOnly?: boolean;
   helper?: string;
-  onExampleFocus?: (labels: string[]) => void;
+  onExampleFocus?: (labels: string[], terms?: string[]) => void;
   onExampleBlur?: () => void;
 }) {
   const [focused, setFocused] = useState(false);
+  const inputId = useId();
   const exampleFocus = useContext(ExampleFocusContext);
   const meta = fieldExamples[label];
   const fieldPlaceholder = placeholder || meta?.placeholder;
-  const activateExample = () => {
+  const activateExample = (nextValue = value) => {
     setFocused(true);
-    (onExampleFocus || exampleFocus?.onExampleFocus)?.(meta?.previewLabels || []);
+    (onExampleFocus || exampleFocus?.onExampleFocus)?.(meta?.previewLabels || [], previewTermsForField(label, nextValue));
   };
 
   return (
-    <label className="grid gap-2">
-      <span className="text-[12px] font-extrabold text-[var(--rd-ink-2)]">{label}</span>
+    <div className="grid gap-2">
+      <label htmlFor={inputId} className="text-[12px] font-extrabold text-[var(--rd-ink-2)]">{label}</label>
       <input
+        id={inputId}
         type={type}
         value={value}
-        onChange={(event) => onChange(event.target.value)}
-        onMouseDown={activateExample}
-        onFocus={activateExample}
+        onChange={(event) => {
+          onChange(event.target.value);
+          activateExample(event.target.value);
+        }}
+        onMouseDown={() => activateExample()}
+        onFocus={() => activateExample()}
         onBlur={() => {
           setFocused(false);
           (onExampleBlur || exampleFocus?.onExampleBlur)?.();
@@ -685,7 +716,7 @@ function Field({
         className={`min-h-11 rounded-xl border border-[var(--rd-line)] px-3 text-[14px] font-semibold outline-none focus:border-[var(--rd-blue)] ${readOnly ? 'bg-[var(--rd-blue-soft)] text-[var(--rd-blue)]' : 'bg-white'}`}
       />
       {helper && <span className="text-[12px] font-semibold leading-5 text-[var(--rd-ink-3)]">{helper}</span>}
-    </label>
+    </div>
   );
 }
 
@@ -701,26 +732,31 @@ function TextArea({
   value: string;
   onChange: (value: string) => void;
   placeholder?: string;
-  onExampleFocus?: (labels: string[]) => void;
+  onExampleFocus?: (labels: string[], terms?: string[]) => void;
   onExampleBlur?: () => void;
 }) {
   const [focused, setFocused] = useState(false);
+  const textareaId = useId();
   const exampleFocus = useContext(ExampleFocusContext);
   const meta = fieldExamples[label];
   const fieldPlaceholder = placeholder || meta?.placeholder;
-  const activateExample = () => {
+  const activateExample = (nextValue = value) => {
     setFocused(true);
-    (onExampleFocus || exampleFocus?.onExampleFocus)?.(meta?.previewLabels || []);
+    (onExampleFocus || exampleFocus?.onExampleFocus)?.(meta?.previewLabels || [], previewTermsForField(label, nextValue));
   };
 
   return (
-    <label className="grid gap-2">
-      <span className="text-[12px] font-extrabold text-[var(--rd-ink-2)]">{label}</span>
+    <div className="grid gap-2">
+      <label htmlFor={textareaId} className="text-[12px] font-extrabold text-[var(--rd-ink-2)]">{label}</label>
       <textarea
+        id={textareaId}
         value={value}
-        onChange={(event) => onChange(event.target.value)}
-        onMouseDown={activateExample}
-        onFocus={activateExample}
+        onChange={(event) => {
+          onChange(event.target.value);
+          activateExample(event.target.value);
+        }}
+        onMouseDown={() => activateExample()}
+        onFocus={() => activateExample()}
         onBlur={() => {
           setFocused(false);
           (onExampleBlur || exampleFocus?.onExampleBlur)?.();
@@ -729,7 +765,7 @@ function TextArea({
         rows={4}
         className="rounded-xl border border-[var(--rd-line)] bg-white px-3 py-3 text-[14px] font-semibold leading-6 outline-none focus:border-[var(--rd-blue)]"
       />
-    </label>
+    </div>
   );
 }
 
@@ -737,17 +773,29 @@ function Toggle({
   checked,
   onChange,
   label,
+  previewTerms,
 }: {
   checked: boolean;
   onChange: (checked: boolean) => void;
   label: string;
+  previewTerms?: string[];
 }) {
+  const exampleFocus = useContext(ExampleFocusContext);
+  const activatePreview = () => {
+    exampleFocus?.onExampleFocus([], uniqueTerms(previewTerms || [label]));
+  };
+
   return (
     <label className="flex min-h-11 items-center gap-3 rounded-xl border border-[var(--rd-line)] bg-white px-3 text-[13px] font-extrabold text-[var(--rd-ink-2)]">
       <input
         type="checkbox"
         checked={checked}
-        onChange={(event) => onChange(event.target.checked)}
+        onMouseDown={activatePreview}
+        onFocus={activatePreview}
+        onChange={(event) => {
+          onChange(event.target.checked);
+          activatePreview();
+        }}
         className="h-4 w-4 accent-[var(--rd-blue)]"
       />
       {label}
@@ -760,12 +808,16 @@ function RadioGroup<T extends string>({
   value,
   options,
   onChange,
+  previewTerms,
 }: {
   label: string;
   value: T;
-  options: Array<{ label: string; value: T }>;
+  options: Array<{ label: string; value: T; previewTerms?: string[] }>;
   onChange: (value: T) => void;
+  previewTerms?: string[];
 }) {
+  const exampleFocus = useContext(ExampleFocusContext);
+
   return (
     <div className="grid gap-2">
       <div className="text-[12px] font-extrabold text-[var(--rd-ink-2)]">{label}</div>
@@ -780,7 +832,12 @@ function RadioGroup<T extends string>({
             <input
               type="radio"
               checked={value === option.value}
-              onChange={() => onChange(option.value)}
+              onMouseDown={() => exampleFocus?.onExampleFocus([], uniqueTerms([...(previewTerms || []), ...(option.previewTerms || []), option.label]))}
+              onFocus={() => exampleFocus?.onExampleFocus([], uniqueTerms([...(previewTerms || []), ...(option.previewTerms || []), option.label]))}
+              onChange={() => {
+                onChange(option.value);
+                exampleFocus?.onExampleFocus([], uniqueTerms([...(previewTerms || []), ...(option.previewTerms || []), option.label]));
+              }}
               className="h-4 w-4 accent-[var(--rd-blue)]"
             />
             {option.label}
@@ -796,12 +853,16 @@ function CheckboxGroup<T extends string>({
   values,
   options,
   onChange,
+  previewTerms,
 }: {
   label: string;
   values: T[];
-  options: Array<{ label: string; value: T; helper?: string }>;
+  options: Array<{ label: string; value: T; helper?: string; previewTerms?: string[] }>;
   onChange: (values: T[]) => void;
+  previewTerms?: string[];
 }) {
+  const exampleFocus = useContext(ExampleFocusContext);
+
   return (
     <div className="grid gap-2">
       <div className="text-[12px] font-extrabold text-[var(--rd-ink-2)]">{label}</div>
@@ -818,7 +879,12 @@ function CheckboxGroup<T extends string>({
               <input
                 type="checkbox"
                 checked={checked}
-                onChange={() => onChange(toggleList(values, option.value))}
+                onMouseDown={() => exampleFocus?.onExampleFocus([], uniqueTerms([...(previewTerms || []), ...(option.previewTerms || []), option.helper || '', option.label]))}
+                onFocus={() => exampleFocus?.onExampleFocus([], uniqueTerms([...(previewTerms || []), ...(option.previewTerms || []), option.helper || '', option.label]))}
+                onChange={() => {
+                  onChange(toggleList(values, option.value));
+                  exampleFocus?.onExampleFocus([], uniqueTerms([...(previewTerms || []), ...(option.previewTerms || []), option.helper || '', option.label]));
+                }}
                 className="mt-0.5 h-4 w-4 accent-[var(--rd-blue)]"
               />
               <span>
@@ -843,6 +909,11 @@ function AttachmentPicker({
   onChange: (values: OrderAttachment[], counts: Partial<Record<OrderAttachment, number>>) => void;
 }) {
   const options = Object.keys(orderAttachmentLabels) as OrderAttachment[];
+  const exampleFocus = useContext(ExampleFocusContext);
+
+  const activateAttachmentPreview = (value: OrderAttachment) => {
+    exampleFocus?.onExampleFocus([], uniqueTerms([orderAttachmentLabels[value], '첨부서류', '첨부']));
+  };
 
   const toggleAttachment = (value: OrderAttachment) => {
     if (values.includes(value)) {
@@ -876,7 +947,12 @@ function AttachmentPicker({
                 <input
                   type="checkbox"
                   checked={checked}
-                  onChange={() => toggleAttachment(value)}
+                  onMouseDown={() => activateAttachmentPreview(value)}
+                  onFocus={() => activateAttachmentPreview(value)}
+                  onChange={() => {
+                    toggleAttachment(value);
+                    activateAttachmentPreview(value);
+                  }}
                   className="h-4 w-4 shrink-0 accent-[var(--rd-blue)]"
                 />
                 <span className="min-w-0">{orderAttachmentLabels[value]}</span>
@@ -1119,14 +1195,25 @@ function renderPreviewLine(line: string, hiddenExampleTexts: Set<string>) {
   return parts;
 }
 
+function hasActivePreviewTerm(line: string, activePreviewTerms: string[]) {
+  return activePreviewTerms.some((term) => line.includes(term));
+}
+
+function activePreviewProps(line: string, activePreviewTerms: string[]) {
+  const active = hasActivePreviewTerm(line, activePreviewTerms);
+  return active ? { className: 'rd-draft-active-line', 'data-active-preview-line': 'true' } : {};
+}
+
 function DocumentPreview({
   text,
   evidenceFiles,
   activeExampleLabels,
+  activePreviewTerms,
 }: {
   text: string;
   evidenceFiles: EvidenceFile[];
   activeExampleLabels: string[];
+  activePreviewTerms: string[];
 }) {
   const hiddenExampleTexts = new Set(activeExampleLabels.map((label) => exampleValues[label]).filter(Boolean));
 
@@ -1141,15 +1228,17 @@ function DocumentPreview({
           return <h3 key={`${line}-${index}`}>{heading}</h3>;
         }
         if (isStandaloneDateLine(line)) {
-          return <p key={`${line}-${index}`} className="rd-draft-date-line">{line}</p>;
+          const active = hasActivePreviewTerm(line, activePreviewTerms);
+          return <p key={`${line}-${index}`} className={`rd-draft-date-line ${active ? 'rd-draft-active-line' : ''}`} data-active-preview-line={active ? 'true' : undefined}>{line}</p>;
         }
         if (isClosingStatement(line)) {
           return <p key={`${line}-${index}`} className="rd-draft-closing-line">{line}</p>;
         }
         if (isSignatureLine(line)) {
-          return <p key={`${line}-${index}`} className="rd-draft-sign-line">{renderPreviewLine(line, hiddenExampleTexts)}</p>;
+          const active = hasActivePreviewTerm(line, activePreviewTerms);
+          return <p key={`${line}-${index}`} className={`rd-draft-sign-line ${active ? 'rd-draft-active-line' : ''}`} data-active-preview-line={active ? 'true' : undefined}>{renderPreviewLine(line, hiddenExampleTexts)}</p>;
         }
-        return line ? <p key={`${line}-${index}`}>{renderPreviewLine(line, hiddenExampleTexts)}</p> : <br key={`blank-${index}`} />;
+        return line ? <p key={`${line}-${index}`} {...activePreviewProps(line, activePreviewTerms)}>{renderPreviewLine(line, hiddenExampleTexts)}</p> : <br key={`blank-${index}`} />;
       })}
       {evidenceFiles.length > 0 && (
         <section className="rd-draft-attachments">
@@ -1177,17 +1266,17 @@ function DocumentPreview({
 
 export default function DraftPage() {
   const [draftType, setDraftType] = useState<DraftType>('loan');
+  const [mobileStarted, setMobileStarted] = useState(false);
+  const [mobilePreviewOpen, setMobilePreviewOpen] = useState(false);
+  const [mobileKeyboardOpen, setMobileKeyboardOpen] = useState(false);
   const [loan, setLoan] = useState<LoanForm>(emptyLoan);
   const [notice, setNotice] = useState<NoticeForm>(emptyNotice);
   const [order, setOrder] = useState<PaymentOrderForm>(emptyOrder);
   const [copied, setCopied] = useState(false);
   const [manualText, setManualText] = useState<string | null>(null);
   const [activeExampleLabels, setActiveExampleLabels] = useState<string[]>([]);
-
-  const exampleFocusHandlers = {
-    onExampleFocus: setActiveExampleLabels,
-    onExampleBlur: () => setActiveExampleLabels([]),
-  };
+  const [activePreviewTerms, setActivePreviewTerms] = useState<string[]>([]);
+  const previewBodyRef = useRef<HTMLDivElement | null>(null);
 
   const generatedText = useMemo(() => {
     if (draftType === 'loan') return loanText(loan);
@@ -1198,6 +1287,52 @@ export default function DraftPage() {
   const manualDirty = manualText !== null;
   const missing = draftType === 'loan' ? missingLoan(loan) : draftType === 'notice' ? missingNotice(notice) : missingOrder(order);
   const noticeAutoAmount = loanRecordTotal(notice.loanRecords);
+  const exampleFocusHandlers = useMemo(
+    () => ({
+      onExampleFocus: (labels: string[], terms: string[] = []) => {
+        setActiveExampleLabels(labels);
+        setActivePreviewTerms(terms);
+      },
+      onExampleBlur: () => {
+        setActiveExampleLabels([]);
+        setActivePreviewTerms([]);
+      },
+    }),
+    []
+  );
+
+  useEffect(() => {
+    if (!mobilePreviewOpen || activePreviewTerms.length === 0) return;
+    const previewBody = previewBodyRef.current;
+    const activeLine = previewBody?.querySelector<HTMLElement>('[data-active-preview-line="true"]');
+    if (!previewBody || !activeLine) return;
+
+    const previewRect = previewBody.getBoundingClientRect();
+    const lineRect = activeLine.getBoundingClientRect();
+    const targetTop = previewBody.scrollTop + lineRect.top - previewRect.top - previewBody.clientHeight * 0.35;
+    previewBody.scrollTo({ top: Math.max(0, targetTop), behavior: 'smooth' });
+  }, [activePreviewTerms, mobilePreviewOpen, text]);
+
+  useEffect(() => {
+    const visualViewport = window.visualViewport;
+    if (!visualViewport) return;
+
+    const updateKeyboardOffset = () => {
+      const keyboardOffset = Math.max(0, window.innerHeight - visualViewport.height - visualViewport.offsetTop);
+      document.documentElement.style.setProperty('--rd-keyboard-offset', `${keyboardOffset}px`);
+      setMobileKeyboardOpen(keyboardOffset > 80);
+    };
+
+    updateKeyboardOffset();
+    visualViewport.addEventListener('resize', updateKeyboardOffset);
+    visualViewport.addEventListener('scroll', updateKeyboardOffset);
+
+    return () => {
+      document.documentElement.style.setProperty('--rd-keyboard-offset', '0px');
+      visualViewport.removeEventListener('resize', updateKeyboardOffset);
+      visualViewport.removeEventListener('scroll', updateKeyboardOffset);
+    };
+  }, []);
 
   const loanSections: Section[] = [
     {
@@ -1244,9 +1379,9 @@ export default function DraftPage() {
       required: 0,
       body: (
         <>
-          <Toggle label="이자를 약정했어요" checked={loan.hasInterest} onChange={(checked) => setLoan({ ...loan, hasInterest: checked })} />
+          <Toggle label="이자를 약정했어요" checked={loan.hasInterest} onChange={(checked) => setLoan({ ...loan, hasInterest: checked })} previewTerms={['이자는 연', '별도의 이자를 약정하지 않았습니다']} />
           {loan.hasInterest && <Field label="이자율(연 %)" value={loan.interestRate} onChange={(value) => setLoan({ ...loan, interestRate: value })} placeholder="예: 5" />}
-          <Toggle label="지연손해금을 정했어요" checked={loan.hasLateFee} onChange={(checked) => setLoan({ ...loan, hasLateFee: checked })} />
+          <Toggle label="지연손해금을 정했어요" checked={loan.hasLateFee} onChange={(checked) => setLoan({ ...loan, hasLateFee: checked })} previewTerms={['지연손해금은 연', '별도의 지연손해금을 약정하지 않았습니다']} />
           {loan.hasLateFee && <Field label="지연손해금율(연 %)" value={loan.lateFeeRate} onChange={(value) => setLoan({ ...loan, lateFeeRate: value })} placeholder="예: 12" />}
           <Field label="상환계좌" value={loan.repaymentAccount} onChange={(value) => setLoan({ ...loan, repaymentAccount: value })} placeholder="은행명 계좌번호 예금주" />
         </>
@@ -1307,11 +1442,12 @@ export default function DraftPage() {
             label="돈을 몇 번에 걸쳐 빌려줬나요?"
             value={notice.loanCount}
             onChange={(value) => setNotice({ ...notice, loanCount: value })}
+            previewTerms={['위 금전 대여는']}
             options={['1회', '2회', '3회', '3회 그 이상'].map((value) => ({ label: value, value: value as LoanCount }))}
           />
-          <Toggle label="빌려준 돈의 일부를 돌려받았어요" checked={notice.partialPaid} onChange={(checked) => setNotice({ ...notice, partialPaid: checked })} />
-          <Toggle label="돈을 돌려받지 못해 특별한 손해가 있어요" checked={notice.hasSpecialDamage} onChange={(checked) => setNotice({ ...notice, hasSpecialDamage: checked })} />
-          <Toggle label="돌려받을 계좌 정보를 문서에 넣을게요" checked={notice.includeAccount} onChange={(checked) => setNotice({ ...notice, includeAccount: checked })} />
+          <Toggle label="빌려준 돈의 일부를 돌려받았어요" checked={notice.partialPaid} onChange={(checked) => setNotice({ ...notice, partialPaid: checked })} previewTerms={['일부 변제한 금액', '현재 미변제 금액']} />
+          <Toggle label="돈을 돌려받지 못해 특별한 손해가 있어요" checked={notice.hasSpecialDamage} onChange={(checked) => setNotice({ ...notice, hasSpecialDamage: checked })} previewTerms={['특별한 손해는 다음과 같습니다']} />
+          <Toggle label="돌려받을 계좌 정보를 문서에 넣을게요" checked={notice.includeAccount} onChange={(checked) => setNotice({ ...notice, includeAccount: checked })} previewTerms={['변제 계좌는 다음과 같습니다']} />
         </>
       ),
     },
@@ -1380,9 +1516,10 @@ export default function DraftPage() {
             label="상대에게 돈을 돌려받을 날짜를 정하시나요?"
             value={notice.repayTiming}
             onChange={(value) => setNotice({ ...notice, repayTiming: value })}
+            previewTerms={['위 미변제 금액을 변제할 것을 요청합니다']}
             options={[
-              { label: '즉시 갚도록 함', value: 'immediate' },
-              { label: '돈 갚을 기한을 정해서 알림', value: 'deadline' },
+              { label: '즉시 갚도록 함', value: 'immediate', previewTerms: ['본 내용증명을 받은 즉시'] },
+              { label: '돈 갚을 기한을 정해서 알림', value: 'deadline', previewTerms: ['까지 위 미변제 금액'] },
             ]}
           />
           {notice.repayTiming === 'deadline' && <Field label="최종 변제 요청 기한" type="date" value={notice.requestDueDate} onChange={(value) => setNotice({ ...notice, requestDueDate: value })} />}
@@ -1491,7 +1628,7 @@ export default function DraftPage() {
       required: order.includeInterest ? 1 : 0,
       body: (
         <>
-          <Toggle label="이자나 지연손해금도 청구할 예정이에요" checked={order.includeInterest} onChange={(checked) => setOrder({ ...order, includeInterest: checked })} />
+          <Toggle label="이자나 지연손해금도 청구할 예정이에요" checked={order.includeInterest} onChange={(checked) => setOrder({ ...order, includeInterest: checked })} previewTerms={['이자 또는 지연손해금 산정 근거', '지연손해금을 지급하라는 지급명령']} />
           {order.includeInterest && (
             <TextArea label="이자/지연손해금 산정 근거" value={order.interestBasis} onChange={(value) => setOrder({ ...order, interestBasis: value })} placeholder="약정 이자율, 지연손해금 약정, 청구 기간 등을 적어주세요." />
           )}
@@ -1586,12 +1723,51 @@ export default function DraftPage() {
     setManualText(null);
   }
 
+  function selectDraftType(type: DraftType) {
+    setDraftType(type);
+    setManualText(null);
+    setMobileStarted(true);
+    setMobilePreviewOpen(false);
+  }
+
   return (
     <AppShell>
       <ExampleFocusContext.Provider value={exampleFocusHandlers}>
-        <div className="rd-draft-workspace">
+        <div className={`rd-draft-workspace ${mobileStarted ? 'is-mobile-writing' : 'is-mobile-choosing'} ${mobilePreviewOpen ? 'is-preview-open' : ''} ${mobileKeyboardOpen ? 'is-keyboard-open' : ''}`}>
+        <section className="rd-draft-mobile-choice">
+          <div>
+            <div className="rd-section-label">법률문서 작성</div>
+            <h1 className="mt-1 text-[24px] font-extrabold tracking-tight">어떤 문서를 만들까요?</h1>
+            <p className="mt-2 text-[13px] font-semibold leading-6 text-[var(--rd-ink-2)]">
+              필요한 문서를 먼저 고르면, 다음 화면에서 입력만 차례대로 진행합니다.
+            </p>
+          </div>
+
+          <div className="grid gap-3">
+            {(Object.keys(draftStepInfo) as DraftType[]).map((type) => {
+              const Icon = stepIcons[type];
+              return (
+                <button
+                  key={type}
+                  type="button"
+                  onClick={() => selectDraftType(type)}
+                  className={`rd-draft-type-card ${draftType === type ? 'is-active' : ''}`}
+                >
+                  <span className={`rd-draft-type-icon ${type === 'notice' ? 'is-danger' : ''}`}>
+                    <Icon size={22} />
+                  </span>
+                  <span className="min-w-0">
+                    <span className="block text-[16px] font-extrabold text-[var(--rd-ink)]">{draftStepInfo[type].title}</span>
+                    <span className="mt-1 block text-[13px] font-semibold leading-5 text-[var(--rd-ink-2)]">{draftStepInfo[type].desc}</span>
+                  </span>
+                </button>
+              );
+            })}
+          </div>
+        </section>
+
         <section className="rd-draft-tools">
-          <div className="rd-card grid gap-3 p-4">
+          <div className="rd-card rd-draft-type-panel grid gap-3 p-4">
             <div className="flex flex-wrap items-center justify-between gap-3">
               <div>
                 <div className="rd-section-label">법률문서 작성</div>
@@ -1617,10 +1793,7 @@ export default function DraftPage() {
                     <button
                       key={type}
                       type="button"
-                      onClick={() => {
-                        setDraftType(type);
-                        setManualText(null);
-                      }}
+                      onClick={() => selectDraftType(type)}
                       className={`flex items-center gap-3 rounded-xl border px-3 py-3 text-left transition ${draftType === type ? 'border-[var(--rd-blue)] bg-[var(--rd-blue-soft)]' : 'border-[var(--rd-line)] bg-white hover:border-[var(--rd-blue)]'}`}
                     >
                       <span className={`flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-white ${type === 'notice' ? 'text-[var(--rd-risk-hi)]' : 'text-[var(--rd-blue)]'}`}>
@@ -1642,6 +1815,20 @@ export default function DraftPage() {
             </div>
           </div>
 
+          <div className="rd-card rd-draft-mobile-current">
+            <div>
+              <div className="rd-section-label">선택한 문서</div>
+              <div className="mt-1 text-[16px] font-extrabold text-[var(--rd-ink)]">{draftStepInfo[draftType].title}</div>
+            </div>
+            <button
+              type="button"
+              onClick={() => setMobileStarted(false)}
+              className="rd-btn rd-btn-ghost min-h-9 px-3 text-[12px]"
+            >
+              문서 종류 변경
+            </button>
+          </div>
+
           <div className="grid gap-4">
             <div className="rd-card flex items-center justify-between gap-3 p-4">
               <h2 className="text-[20px] font-extrabold">{draftType === 'loan' ? '차용증 입력' : draftType === 'notice' ? '내용증명 입력' : '지급명령 신청서 입력'}</h2>
@@ -1654,14 +1841,31 @@ export default function DraftPage() {
           </div>
         </section>
 
-        <section className="rd-draft-preview-wrap">
-          <DocumentPreview
-            text={text}
-            evidenceFiles={draftType === 'notice' ? notice.evidenceFiles : []}
-            activeExampleLabels={activeExampleLabels}
-          />
-          <div className="rd-card mt-4 grid gap-3 p-4 print:hidden">
-            <div className="flex flex-wrap items-center justify-between gap-3">
+        <section className={`rd-draft-preview-wrap ${mobilePreviewOpen ? 'is-open' : ''}`}>
+          <button
+            type="button"
+            onClick={() => setMobilePreviewOpen((open) => !open)}
+            className="rd-draft-preview-toggle"
+            aria-expanded={mobilePreviewOpen}
+          >
+            <span>
+              <span className="block text-[12px] font-extrabold text-[var(--rd-ink-3)]">실시간 문서 미리보기</span>
+              <span className="mt-0.5 block text-[15px] font-extrabold text-[var(--rd-ink)]">
+                {mobilePreviewOpen ? '실시간 미리보기 닫기' : '작성하며 미리보기'}
+              </span>
+            </span>
+            <ChevronDown className="rd-draft-preview-toggle-icon" size={18} />
+          </button>
+
+          <div ref={previewBodyRef} className="rd-draft-preview-body">
+            <DocumentPreview
+              text={text}
+              evidenceFiles={draftType === 'notice' ? notice.evidenceFiles : []}
+              activeExampleLabels={activeExampleLabels}
+              activePreviewTerms={activePreviewTerms}
+            />
+            <div className="rd-card mt-4 grid gap-3 p-4 print:hidden">
+              <div className="flex flex-wrap items-center justify-between gap-3">
               <div>
                 <h2 className="text-[17px] font-extrabold">최종 문서 직접 수정</h2>
                 <p className="mt-1 text-[12px] font-semibold leading-5 text-[var(--rd-ink-3)]">
@@ -1679,16 +1883,17 @@ export default function DraftPage() {
                   자동 문장으로 되돌리기
                 </button>
               )}
+              </div>
+              <textarea
+                value={text}
+                onChange={(event) => {
+                  setManualText(event.target.value);
+                }}
+                rows={10}
+                className="rd-draft-final-editor"
+                aria-label="최종 문서 직접 수정"
+              />
             </div>
-            <textarea
-              value={text}
-              onChange={(event) => {
-                setManualText(event.target.value);
-              }}
-              rows={10}
-              className="rd-draft-final-editor"
-              aria-label="최종 문서 직접 수정"
-            />
           </div>
         </section>
 
