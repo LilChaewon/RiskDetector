@@ -1758,10 +1758,10 @@ export default function DraftPage() {
     if (!drag) return;
 
     const deltaY = drag.latestY - drag.startY;
-    if (deltaY < -28) {
+    if (deltaY > 28) {
       setMobilePreviewOpen(true);
     }
-    if (deltaY > 28) {
+    if (deltaY < -28) {
       setMobilePreviewOpen(false);
     }
   }
@@ -1896,7 +1896,7 @@ export default function DraftPage() {
             <span>
               <span className="block text-[12px] font-extrabold text-[var(--rd-ink-3)]">실시간 문서 미리보기</span>
               <span className="mt-0.5 block text-[15px] font-extrabold text-[var(--rd-ink)]">
-                {mobilePreviewOpen ? '아래로 밀어 닫기' : '위로 밀어 올리기'}
+                {mobilePreviewOpen ? '위로 밀어 닫기' : '아래로 내려 보기'}
               </span>
             </span>
           </button>
