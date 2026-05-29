@@ -1,5 +1,5 @@
-const CACHE_NAME = 'riskdetector-pwa-v2';
-const APP_SHELL = ['/', '/manifest.webmanifest', '/icon.svg'];
+const CACHE_NAME = 'riskdetector-pwa-v3';
+const APP_SHELL = ['/', '/manifest.webmanifest', '/icon-192.png', '/icon-512.png', '/icon-maskable-512.png', '/apple-icon.png'];
 
 self.addEventListener('install', (event) => {
   event.waitUntil(
