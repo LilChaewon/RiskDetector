@@ -663,10 +663,17 @@ function displayMoneyTerm(value: string) {
   return `${Number(raw).toLocaleString('ko-KR')}원`;
 }
 
+function meaningfulTextTerm(value: string) {
+  const trimmed = value.trim();
+  if (trimmed.replace(/\s/g, '').length < 2) return '';
+  return trimmed;
+}
+
 function previewTermsForField(label: string, value: string) {
   const previewLabels = fieldExamples[label]?.previewLabels || [];
-  const enteredTerms = uniqueTerms([value, displayDateTerm(value), displayMoneyTerm(value)]);
+  const enteredTerms = uniqueTerms([meaningfulTextTerm(value), displayDateTerm(value), displayMoneyTerm(value)]);
   if (enteredTerms.length > 0) return enteredTerms;
+  if (value.trim()) return [];
 
   return uniqueTerms([
     ...previewLabels.map((previewLabel) => exampleValues[previewLabel] || ''),
