@@ -729,7 +729,7 @@ button {
   display: block;
 }
 
-.rd-draft-inline-preview {
+.rd-draft-live-preview {
   display: none;
 }
 
@@ -973,6 +973,10 @@ button {
     background: transparent;
   }
 
+  .rd-draft-workspace.has-live-preview {
+    padding-top: 112px;
+  }
+
   .rd-draft-tools {
     height: auto;
     overflow-y: visible;
@@ -1017,35 +1021,38 @@ button {
     display: block;
   }
 
-  .rd-draft-inline-preview {
+  .rd-draft-live-preview {
+    position: fixed;
+    top: max(8px, env(safe-area-inset-top));
+    left: 12px;
+    right: 12px;
+    z-index: 70;
     display: grid;
-    gap: 5px;
-    border: 1px solid rgba(27, 100, 218, 0.16);
-    border-radius: 14px;
-    background: #f7faff;
-    padding: 10px 12px;
+    gap: 6px;
+    margin: 0;
+    border: 1px solid rgba(27, 100, 218, 0.18);
+    border-radius: 16px;
+    background: rgba(255, 255, 255, 0.96);
+    padding: 12px 14px;
+    box-shadow: 0 8px 24px rgba(17, 24, 39, 0.12);
+    backdrop-filter: blur(14px);
   }
 
-  .rd-draft-inline-preview-label {
+  .rd-draft-live-preview-label {
     color: var(--rd-blue);
     font-size: 11px;
     font-weight: 900;
     line-height: 1.2;
   }
 
-  .rd-draft-inline-preview-heading {
+  .rd-draft-live-preview-heading {
     color: var(--rd-ink-3);
     font-size: 12px;
     font-weight: 850;
     line-height: 1.2;
   }
 
-  .rd-draft-inline-preview-item {
-    display: grid;
-    gap: 3px;
-  }
-
-  .rd-draft-inline-preview p {
+  .rd-draft-live-preview p {
     display: -webkit-box;
     overflow: hidden;
     -webkit-box-orient: vertical;

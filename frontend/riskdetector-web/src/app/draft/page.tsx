@@ -112,19 +112,9 @@ type Section = {
   body: React.ReactNode;
 };
 
-type LivePreview = {
-  count: number;
-  lines: Array<{
-    heading: string;
-    line: string;
-  }>;
-};
-
 const ExampleFocusContext = createContext<{
   onExampleFocus: (labels: string[], terms?: string[]) => void;
   onExampleBlur: () => void;
-  activePreviewTerms: string[];
-  preview: LivePreview | null;
 } | null>(null);
 
 const today = new Date().toISOString().slice(0, 10);
@@ -679,33 +669,6 @@ function previewTermsForField(label: string, value: string) {
   ]);
 }
 
-function hasSharedPreviewTerm(sourceTerms: string[], activeTerms: string[]) {
-  return sourceTerms.some((term) => activeTerms.includes(term));
-}
-
-function FieldInlinePreview({ visible }: { visible: boolean }) {
-  const exampleFocus = useContext(ExampleFocusContext);
-  const preview = exampleFocus?.preview;
-  if (!visible || !preview) return null;
-
-  return (
-    <section className="rd-draft-inline-preview" aria-live="polite">
-      <div className="rd-draft-inline-preview-label">문서 반영 {preview.count > 1 ? `${preview.count}곳` : ''}</div>
-      <div className="grid gap-2">
-        {preview.lines.map((item, index) => (
-          <div key={`${item.heading}-${item.line}-${index}`} className="rd-draft-inline-preview-item">
-            <div className="rd-draft-inline-preview-heading">{item.heading}</div>
-            <p>{item.line}</p>
-          </div>
-        ))}
-      </div>
-      {preview.count > preview.lines.length && (
-        <div className="rd-draft-inline-preview-more">외 {preview.count - preview.lines.length}곳 더 반영돼요</div>
-      )}
-    </section>
-  );
-}
-
 function Field({
   label,
   value,
@@ -740,7 +703,6 @@ function Field({
   return (
     <div className="grid gap-2">
       <label htmlFor={inputId} className="text-[12px] font-extrabold text-[var(--rd-ink-2)]">{label}</label>
-      <FieldInlinePreview visible={focused} />
       <input
         id={inputId}
         type={type}
@@ -792,7 +754,6 @@ function TextArea({
   return (
     <div className="grid gap-2">
       <label htmlFor={textareaId} className="text-[12px] font-extrabold text-[var(--rd-ink-2)]">{label}</label>
-      <FieldInlinePreview visible={focused} />
       <textarea
         id={textareaId}
         value={value}
@@ -826,29 +787,25 @@ function Toggle({
   previewTerms?: string[];
 }) {
   const exampleFocus = useContext(ExampleFocusContext);
-  const terms = uniqueTerms(previewTerms || [label]);
   const activatePreview = () => {
-    exampleFocus?.onExampleFocus([], terms);
+    exampleFocus?.onExampleFocus([], uniqueTerms(previewTerms || [label]));
   };
 
   return (
-    <div className="grid gap-2">
-      <FieldInlinePreview visible={hasSharedPreviewTerm(terms, exampleFocus?.activePreviewTerms || [])} />
-      <label className="flex min-h-11 items-center gap-3 rounded-xl border border-[var(--rd-line)] bg-white px-3 text-[13px] font-extrabold text-[var(--rd-ink-2)]">
-        <input
-          type="checkbox"
-          checked={checked}
-          onMouseDown={activatePreview}
-          onFocus={activatePreview}
-          onChange={(event) => {
-            onChange(event.target.checked);
-            activatePreview();
-          }}
-          className="h-4 w-4 accent-[var(--rd-blue)]"
-        />
-        {label}
-      </label>
-    </div>
+    <label className="flex min-h-11 items-center gap-3 rounded-xl border border-[var(--rd-line)] bg-white px-3 text-[13px] font-extrabold text-[var(--rd-ink-2)]">
+      <input
+        type="checkbox"
+        checked={checked}
+        onMouseDown={activatePreview}
+        onFocus={activatePreview}
+        onChange={(event) => {
+          onChange(event.target.checked);
+          activatePreview();
+        }}
+        className="h-4 w-4 accent-[var(--rd-blue)]"
+      />
+      {label}
+    </label>
   );
 }
 
@@ -866,12 +823,10 @@ function RadioGroup<T extends string>({
   previewTerms?: string[];
 }) {
   const exampleFocus = useContext(ExampleFocusContext);
-  const groupTerms = uniqueTerms([...options.flatMap((option) => [option.label, ...(option.previewTerms || [])]), ...(previewTerms || [])]);
 
   return (
     <div className="grid gap-2">
       <div className="text-[12px] font-extrabold text-[var(--rd-ink-2)]">{label}</div>
-      <FieldInlinePreview visible={hasSharedPreviewTerm(groupTerms, exampleFocus?.activePreviewTerms || [])} />
       <div className="flex flex-wrap gap-2">
         {options.map((option) => (
           <label
@@ -913,15 +868,10 @@ function CheckboxGroup<T extends string>({
   previewTerms?: string[];
 }) {
   const exampleFocus = useContext(ExampleFocusContext);
-  const groupTerms = uniqueTerms([
-    ...options.flatMap((option) => [option.label, option.helper || '', ...(option.previewTerms || [])]),
-    ...(previewTerms || []),
-  ]);
 
   return (
     <div className="grid gap-2">
       <div className="text-[12px] font-extrabold text-[var(--rd-ink-2)]">{label}</div>
-      <FieldInlinePreview visible={hasSharedPreviewTerm(groupTerms, exampleFocus?.activePreviewTerms || [])} />
       <div className="grid gap-2">
         {options.map((option) => {
           const checked = values.includes(option.value);
@@ -966,7 +916,6 @@ function AttachmentPicker({
 }) {
   const options = Object.keys(orderAttachmentLabels) as OrderAttachment[];
   const exampleFocus = useContext(ExampleFocusContext);
-  const attachmentTerms = uniqueTerms([...Object.values(orderAttachmentLabels), '첨부서류', '첨부']);
 
   const activateAttachmentPreview = (value: OrderAttachment) => {
     exampleFocus?.onExampleFocus([], uniqueTerms([orderAttachmentLabels[value], '첨부서류', '첨부']));
@@ -989,7 +938,6 @@ function AttachmentPicker({
   return (
     <div className="grid gap-2">
       <div className="text-[12px] font-extrabold text-[var(--rd-ink-2)]">첨부서류를 선택하세요</div>
-      <FieldInlinePreview visible={hasSharedPreviewTerm(attachmentTerms, exampleFocus?.activePreviewTerms || [])} />
       <div className="grid gap-2">
         {options.map((value) => {
           const checked = values.includes(value);
@@ -1364,6 +1312,18 @@ function findLivePreviewLine(text: string, terms: string[], labels: string[]) {
   };
 }
 
+function MobileDraftLivePreview({ preview }: { preview: { heading: string; line: string } | null }) {
+  if (!preview) return null;
+
+  return (
+    <section className="rd-draft-live-preview" aria-live="polite">
+      <div className="rd-draft-live-preview-label">실시간 문서 반영</div>
+      <div className="rd-draft-live-preview-heading">{preview.heading}</div>
+      <p>{preview.line}</p>
+    </section>
+  );
+}
+
 export default function DraftPage() {
   const [draftType, setDraftType] = useState<DraftType>('loan');
   const [mobileStarted, setMobileStarted] = useState(false);
@@ -1395,10 +1355,8 @@ export default function DraftPage() {
         setActiveExampleLabels([]);
         setActivePreviewTerms([]);
       },
-      activePreviewTerms,
-      preview: livePreview,
     }),
-    [activePreviewTerms, livePreview]
+    []
   );
 
   const loanSections: Section[] = [
@@ -1799,7 +1757,7 @@ export default function DraftPage() {
   return (
     <AppShell>
       <ExampleFocusContext.Provider value={exampleFocusHandlers}>
-        <div className={`rd-draft-workspace ${mobileStarted ? 'is-mobile-writing' : 'is-mobile-choosing'}`}>
+        <div className={`rd-draft-workspace ${mobileStarted ? 'is-mobile-writing' : 'is-mobile-choosing'} ${livePreview ? 'has-live-preview' : ''}`}>
         <section className="rd-draft-mobile-choice">
           <div>
             <div className="rd-section-label">법률문서 작성</div>
@@ -1831,6 +1789,8 @@ export default function DraftPage() {
             })}
           </div>
         </section>
+
+        <MobileDraftLivePreview preview={livePreview} />
 
         <section className="rd-draft-tools">
           <div className="rd-card rd-draft-type-panel grid gap-3 p-4">
