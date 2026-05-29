@@ -1,6 +1,10 @@
 {
   "metadataAttributes": {
     "contract_type": "unknown",
-    "source_file": "precedent_123.txt"
+    "source_type": "precedent",
+    "source_file": "precedent_123.txt",
+    "case_number": "창원지방법원-2022-구단-96",
+    "judgment_year": 2023,
+    "court_name": "판결유형:"
   }
 }

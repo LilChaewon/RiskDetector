@@ -1,6 +1,10 @@
 {
   "metadataAttributes": {
     "contract_type": "lease",
-    "source_file": "precedent_404.txt"
+    "source_type": "precedent",
+    "source_file": "precedent_404.txt",
+    "case_number": "서울행정법원-2020-구합-50676",
+    "judgment_year": 2021,
+    "court_name": "판결유형:"
   }
 }

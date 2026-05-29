@@ -1,6 +1,15 @@
 {
   "metadataAttributes": {
     "contract_type": "lease",
-    "source_file": "precedent_120.txt"
+    "source_type": "precedent",
+    "source_file": "precedent_120.txt",
+    "law_names": [
+      "상가건물 임대차보호법",
+      "민법"
+    ],
+    "primary_law": "상가건물 임대차보호법",
+    "case_number": "2023다257600",
+    "judgment_year": 2023,
+    "court_name": "대법원, 판결유형: 판결"
   }
 }

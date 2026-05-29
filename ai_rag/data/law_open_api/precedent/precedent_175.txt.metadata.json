@@ -1,6 +1,10 @@
 {
   "metadataAttributes": {
     "contract_type": "unknown",
-    "source_file": "precedent_175.txt"
+    "source_type": "precedent",
+    "source_file": "precedent_175.txt",
+    "case_number": "대법원-2018-두-48854",
+    "judgment_year": 2018,
+    "court_name": "판결유형:"
   }
 }

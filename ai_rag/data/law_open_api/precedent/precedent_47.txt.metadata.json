@@ -1,6 +1,10 @@
 {
   "metadataAttributes": {
     "contract_type": "unknown",
-    "source_file": "precedent_47.txt"
+    "source_type": "precedent",
+    "source_file": "precedent_47.txt",
+    "case_number": "서울행정법원-2024-구합-75642",
+    "judgment_year": 2025,
+    "court_name": "판결유형:"
   }
 }

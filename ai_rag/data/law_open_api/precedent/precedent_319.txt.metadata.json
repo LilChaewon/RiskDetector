@@ -1,6 +1,10 @@
 {
   "metadataAttributes": {
     "contract_type": "lease",
-    "source_file": "precedent_319.txt"
+    "source_type": "precedent",
+    "source_file": "precedent_319.txt",
+    "case_number": "대구지방법원",
+    "judgment_year": 2024,
+    "court_name": "판결유형:"
   }
 }

@@ -1,6 +1,10 @@
 {
   "metadataAttributes": {
     "contract_type": "lease",
-    "source_file": "precedent_446.txt"
+    "source_type": "precedent",
+    "source_file": "precedent_446.txt",
+    "case_number": "광주지방법원-2012-가합-54135",
+    "judgment_year": 2013,
+    "court_name": "판결유형:"
   }
 }

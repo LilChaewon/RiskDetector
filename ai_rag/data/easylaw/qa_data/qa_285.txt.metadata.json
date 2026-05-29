@@ -1,6 +1,8 @@
 {
   "metadataAttributes": {
     "contract_type": "lease",
-    "source_file": "qa_285.txt"
+    "source_type": "qa",
+    "source_file": "qa_285.txt",
+    "category": "부동산/임대차"
   }
 }

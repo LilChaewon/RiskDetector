@@ -1,6 +1,10 @@
 {
   "metadataAttributes": {
     "contract_type": "lease",
-    "source_file": "precedent_436.txt"
+    "source_type": "precedent",
+    "source_file": "precedent_436.txt",
+    "case_number": "서울중앙지방법원-2012-가합-538391",
+    "judgment_year": 2015,
+    "court_name": "판결유형:"
   }
 }

@@ -1,6 +1,10 @@
 {
   "metadataAttributes": {
     "contract_type": "lease",
-    "source_file": "precedent_377.txt"
+    "source_type": "precedent",
+    "source_file": "precedent_377.txt",
+    "case_number": "대구지방법원-2020-가단-17761",
+    "judgment_year": 2021,
+    "court_name": "판결유형:"
   }
 }

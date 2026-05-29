@@ -1,6 +1,14 @@
 {
   "metadataAttributes": {
     "contract_type": "lease",
-    "source_file": "precedent_489.txt"
+    "source_type": "precedent",
+    "source_file": "precedent_489.txt",
+    "law_names": [
+      "민법"
+    ],
+    "primary_law": "민법",
+    "case_number": "98다31301",
+    "judgment_year": 1999,
+    "court_name": "대법원"
   }
 }

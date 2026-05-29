@@ -1,6 +1,10 @@
 {
   "metadataAttributes": {
     "contract_type": "unknown",
-    "source_file": "precedent_207.txt"
+    "source_type": "precedent",
+    "source_file": "precedent_207.txt",
+    "case_number": "대구고등법원-2025-누-10085",
+    "judgment_year": 2025,
+    "court_name": "판결유형:"
   }
 }

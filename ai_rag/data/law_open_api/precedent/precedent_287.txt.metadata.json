@@ -1,6 +1,10 @@
 {
   "metadataAttributes": {
     "contract_type": "unknown",
-    "source_file": "precedent_287.txt"
+    "source_type": "precedent",
+    "source_file": "precedent_287.txt",
+    "case_number": "서울고등법원-2025-나-202392",
+    "judgment_year": 2025,
+    "court_name": "판결유형:"
   }
 }

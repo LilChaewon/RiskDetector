@@ -1,6 +1,14 @@
 {
   "metadataAttributes": {
     "contract_type": "lease",
-    "source_file": "precedent_387.txt"
+    "source_type": "precedent",
+    "source_file": "precedent_387.txt",
+    "law_names": [
+      "주택임대차보호법"
+    ],
+    "primary_law": "주택임대차보호법",
+    "case_number": "대법원-2019-다-274868",
+    "judgment_year": 2019,
+    "court_name": "판결유형:"
   }
 }

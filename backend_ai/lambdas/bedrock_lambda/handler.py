@@ -105,9 +105,65 @@ def get_retrieval_result_count() -> int:
     if not raw_value:
         return DEFAULT_RETRIEVAL_RESULTS
     try:
-        return max(1, min(int(raw_value), 20))
+        return max(1, min(int(raw_value), 100))
     except ValueError:
         return DEFAULT_RETRIEVAL_RESULTS
+
+
+def get_search_type() -> str:
+    """HYBRID(BM25+vector) 또는 SEMANTIC. 기본 HYBRID.
+    벡터 스토어가 hybrid 미지원이면 retrieve 단계에서 SEMANTIC으로 자동 fallback."""
+    raw = os.getenv("BEDROCK_SEARCH_TYPE", "").strip().upper()
+    if raw in ("HYBRID", "SEMANTIC"):
+        return raw
+    return "HYBRID"
+
+
+def get_rerank_model_arn() -> str:
+    """리랭킹 모델 ARN. 비어 있으면 reranking 비활성.
+    예: arn:aws:bedrock:us-west-2::foundation-model/cohere.rerank-v3-5:0
+    예: arn:aws:bedrock:ap-northeast-1::foundation-model/amazon.rerank-v1:0
+    Reranking은 us-west-2/ca-central-1/eu-central-1/ap-northeast-1에서만 지원."""
+    return os.getenv("BEDROCK_RERANK_MODEL_ARN", "").strip()
+
+
+def get_rerank_final_count() -> int:
+    """Reranking 적용 후 최종 반환할 결과 개수."""
+    raw = os.getenv("BEDROCK_RERANK_FINAL_COUNT", "").strip()
+    if not raw:
+        return get_retrieval_result_count()
+    try:
+        return max(1, min(int(raw), 25))
+    except ValueError:
+        return get_retrieval_result_count()
+
+
+def get_retrieval_overfetch_count() -> int:
+    """Reranking 활성 시 후보를 더 많이 가져온 뒤 재정렬하기 위한 overfetch 개수.
+    기본값은 final_count의 4배 (상한 100)."""
+    raw = os.getenv("BEDROCK_RERANK_OVERFETCH_COUNT", "").strip()
+    if raw:
+        try:
+            return max(1, min(int(raw), 100))
+        except ValueError:
+            pass
+    return max(get_rerank_final_count() * 4, 20)
+
+
+def get_query_rewrite_count() -> int:
+    """검색 쿼리 재작성 개수. 0이면 비활성 (단일 쿼리만 사용)."""
+    raw = os.getenv("BEDROCK_QUERY_REWRITE_COUNT", "").strip()
+    if not raw:
+        return 0
+    try:
+        return max(0, min(int(raw), 5))
+    except ValueError:
+        return 0
+
+
+def get_query_rewrite_model_id() -> str:
+    """쿼리 재작성용 모델 ID. 비어있으면 주 모델을 사용. Haiku 등 빠른 모델 권장."""
+    return os.getenv("BEDROCK_QUERY_REWRITE_MODEL_ID", "").strip()
 
 
 def get_result_loader_function_name() -> str:
@@ -351,46 +407,276 @@ def normalize_retrieval_results(response: dict[str, Any]) -> list[dict[str, Any]
     return normalized
 
 
+def build_vector_search_config(
+    contract_type: str,
+    search_type: str,
+    rerank_arn: str,
+) -> dict[str, Any]:
+    """Bedrock KB Retrieve API용 vectorSearchConfiguration을 구성합니다.
+    Reranking은 KB API 안에서가 아니라 별도 Rerank API로 후처리합니다 (cross-region 회피).
+    rerank_arn이 있으면 후보를 overfetch 수만큼 가져옵니다."""
+    if rerank_arn:
+        number_of_results = get_retrieval_overfetch_count()
+    else:
+        number_of_results = get_retrieval_result_count()
+
+    config: dict[str, Any] = {
+        "numberOfResults": number_of_results,
+        "overrideSearchType": search_type,  # HYBRID or SEMANTIC
+    }
+
+    if contract_type != "unknown":
+        config["filter"] = {
+            "equals": {
+                "key": "contract_type",
+                "value": contract_type,
+            }
+        }
+
+    return config
+
+
+def post_rerank_results(
+    query: str,
+    results: list[dict[str, Any]],
+    rerank_arn: str,
+    final_count: int,
+) -> tuple[list[dict[str, Any]], bool]:
+    """Cohere/Amazon Rerank API를 별도 호출해 검색 결과를 재정렬.
+    KB와 rerank 모델 리전이 달라도 동작 (cross-region 호출).
+    실패 시 원본 결과의 앞 final_count개 반환."""
+    if not results or not rerank_arn or final_count <= 0:
+        return results[:final_count], False
+
+    try:
+        parts = rerank_arn.split(":")
+        rerank_region = parts[3] if len(parts) > 3 else "ap-northeast-1"
+    except Exception:
+        rerank_region = "ap-northeast-1"
+
+    try:
+        session = build_boto3_session()
+        rerank_client = session.client("bedrock-agent-runtime", region_name=rerank_region)
+    except Exception:
+        return results[:final_count], False
+
+    sources = [
+        {
+            "type": "INLINE",
+            "inlineDocumentSource": {
+                "type": "TEXT",
+                "textDocument": {"text": (item.get("text") or "")[:5000]},
+            },
+        }
+        for item in results
+    ]
+
+    try:
+        response = rerank_client.rerank(
+            queries=[{"type": "TEXT", "textQuery": {"text": query[:1000]}}],
+            sources=sources,
+            rerankingConfiguration={
+                "type": "BEDROCK_RERANKING_MODEL",
+                "bedrockRerankingConfiguration": {
+                    "modelConfiguration": {"modelArn": rerank_arn},
+                    "numberOfResults": final_count,
+                },
+            },
+        )
+    except Exception as exc:
+        print(f"[rerank] failed: {type(exc).__name__}: {exc}")
+        return results[:final_count], False
+
+    reordered: list[dict[str, Any]] = []
+    for new_rank, hit in enumerate(response.get("results", []), start=1):
+        idx = hit.get("index")
+        if idx is None or idx >= len(results):
+            continue
+        item = dict(results[idx])
+        item["rerankScore"] = hit.get("relevanceScore")
+        item["rank"] = new_rank
+        reordered.append(item)
+
+    if not reordered:
+        return results[:final_count], False
+    return reordered[:final_count], True
+
+
+def generate_query_variants(
+    base_query: str,
+    contract_excerpt: str,
+    count: int,
+) -> list[str]:
+    """Bedrock LLM으로 서로 다른 관점의 검색 쿼리 N개를 생성.
+    실패하거나 결과가 비면 빈 리스트를 반환해 호출 측이 단일 쿼리로 fallback할 수 있게 합니다."""
+    if count <= 0:
+        return []
+    try:
+        session = build_boto3_session()
+        runtime = session.client("bedrock-runtime")
+    except Exception:
+        return []
+
+    model_id = get_query_rewrite_model_id() or get_model_id()
+    prompt = (
+        f"아래 한국어 계약 조항을 분석하기 위해 법률/판례 검색에 사용할 서로 다른 쿼리 {count}개를 생성하세요.\n"
+        "- 각 쿼리는 다른 관점이어야 합니다 (예: 1) 적용 법령명 중심 2) 위험 키워드 중심 3) 유사 판례 검색용).\n"
+        "- 출력은 한 줄에 쿼리 하나씩. 번호/따옴표/머리표 금지.\n"
+        "- 각 쿼리는 30~150자 한국어.\n\n"
+        f"기준 쿼리: {base_query[:400]}\n\n"
+        f"계약 발췌:\n{contract_excerpt[:1500]}\n"
+    )
+    try:
+        response = runtime.converse(
+            modelId=model_id,
+            messages=[{"role": "user", "content": [{"text": prompt}]}],
+            inferenceConfig={"temperature": 0.4, "maxTokens": 600},
+        )
+    except Exception:
+        return []
+    text = extract_text_from_converse_response(response)
+    variants: list[str] = []
+    seen = set()
+    for raw_line in text.splitlines():
+        line = raw_line.strip().lstrip("-•*0123456789.) ").strip("\"' ")
+        if not line or len(line) < 15 or len(line) > 250:
+            continue
+        key = line[:80]
+        if key in seen:
+            continue
+        seen.add(key)
+        variants.append(line)
+        if len(variants) >= count:
+            break
+    return variants
+
+
+def reciprocal_rank_fusion(
+    result_lists: list[list[dict[str, Any]]],
+    top_n: int,
+    k: int = 60,
+) -> list[dict[str, Any]]:
+    """여러 쿼리의 결과 리스트를 RRF로 병합합니다.
+    score(d) = sum_q 1 / (k + rank_q(d))
+    location+text prefix를 dedup 키로 사용."""
+    scores: dict[str, float] = {}
+    keep: dict[str, dict[str, Any]] = {}
+    for results in result_lists:
+        for rank, item in enumerate(results, start=1):
+            key = (item.get("location") or "") + "|" + (item.get("text") or "")[:200]
+            scores[key] = scores.get(key, 0.0) + 1.0 / (k + rank)
+            if key not in keep:
+                keep[key] = dict(item)
+    ordered = sorted(scores.items(), key=lambda kv: kv[1], reverse=True)
+    merged: list[dict[str, Any]] = []
+    for new_rank, (key, score) in enumerate(ordered[:top_n], start=1):
+        item = keep[key]
+        item["rank"] = new_rank
+        item["rrfScore"] = score
+        merged.append(item)
+    return merged
+
+
 def retrieve_knowledge_context(
     contract_texts: list[str],
     knowledge_base_id: str,
     event_query: str | None = None,
 ) -> dict[str, Any]:
     """Retrieve relevant legal contexts from AWS Bedrock Knowledge Base.
-    AWS Bedrock Knowledge Base에서 관련 법률 컨텍스트를 검색합니다."""
+    AWS Bedrock Knowledge Base에서 관련 법률 컨텍스트를 검색합니다.
+    HYBRID(BM25+벡터) 검색, reranking, multi-query RAG-Fusion(RRF)을 모두 지원.
+    벡터 스토어가 hybrid를 지원하지 않으면 SEMANTIC으로 자동 fallback합니다."""
     session = build_boto3_session()
     client = session.client("bedrock-agent-runtime")
-    query_text = build_retrieval_query(contract_texts=contract_texts, event_query=event_query)
+    base_query = build_retrieval_query(contract_texts=contract_texts, event_query=event_query)
     contract_type = infer_contract_type(contract_texts) if contract_texts else "unknown"
 
-    vector_search_config = {
-        "numberOfResults": get_retrieval_result_count(),
-    }
-    
-    # 추론된 계약 종류가 있으면 메타데이터 필터를 적용
-    if contract_type != "unknown":
-        vector_search_config["filter"] = {
-            "equals": {
-                "key": "contract_type",
-                "value": contract_type
-            }
+    search_type = get_search_type()
+    rerank_arn = get_rerank_model_arn()
+    rewrite_count = get_query_rewrite_count()
+
+    def _do_retrieve(query: str, active_search_type: str, active_rerank_arn: str) -> dict[str, Any]:
+        config = build_vector_search_config(contract_type, active_search_type, active_rerank_arn)
+        return client.retrieve(
+            knowledgeBaseId=knowledge_base_id,
+            retrievalQuery={"text": query},
+            retrievalConfiguration={"vectorSearchConfiguration": config},
+        )
+
+    def _retrieve_with_fallback(query: str) -> tuple[dict[str, Any], str]:
+        # HYBRID 미지원 벡터 스토어이면 SEMANTIC으로 자동 fallback
+        try:
+            return _do_retrieve(query, search_type, ""), search_type
+        except client.exceptions.ValidationException as exc:
+            message = str(exc).lower()
+            if search_type == "HYBRID" and (
+                "hybrid" in message or "search type" in message or "oversearchtype" in message
+            ):
+                return _do_retrieve(query, "SEMANTIC", ""), "SEMANTIC"
+            raise
+
+    # 다중 쿼리 RAG-Fusion 경로
+    variants: list[str] = []
+    if rewrite_count > 0 and contract_texts:
+        excerpt = " ".join(t.strip() for t in contract_texts if t.strip())
+        variants = generate_query_variants(base_query, excerpt, rewrite_count)
+
+    queries = [base_query] + variants
+
+    final_count = get_rerank_final_count() if rerank_arn else get_retrieval_result_count()
+
+    if len(queries) == 1:
+        response, applied_search_type = _retrieve_with_fallback(base_query)
+        results = normalize_retrieval_results(response)
+        if rerank_arn:
+            results, applied_rerank = post_rerank_results(base_query, results, rerank_arn, final_count)
+        else:
+            applied_rerank = False
+            results = results[:final_count]
+        return {
+            "query": base_query,
+            "variants": [],
+            "results": results,
+            "nextToken": response.get("nextToken"),
+            "searchType": applied_search_type,
+            "rerankApplied": applied_rerank,
+            "rrfApplied": False,
         }
 
-    response = client.retrieve(
-        knowledgeBaseId=knowledge_base_id,
-        retrievalQuery={
-            "text": query_text,
-        },
-        retrievalConfiguration={
-            "vectorSearchConfiguration": vector_search_config
-        },
-    )
+    result_lists: list[list[dict[str, Any]]] = []
+    applied_search_type = search_type
+    for q in queries:
+        try:
+            resp, applied_search_type = _retrieve_with_fallback(q)
+        except Exception:
+            continue
+        result_lists.append(normalize_retrieval_results(resp))
 
-    results = normalize_retrieval_results(response)
+    if not result_lists:
+        return {
+            "query": base_query,
+            "variants": variants,
+            "results": [],
+            "searchType": applied_search_type,
+            "rerankApplied": False,
+            "rrfApplied": False,
+        }
+
+    # 다중 쿼리 결과를 RRF로 1차 병합 (rerank 시엔 후보 더 많이 남김)
+    rrf_top_n = max(get_retrieval_overfetch_count(), final_count) if rerank_arn else final_count
+    merged = reciprocal_rank_fusion(result_lists, top_n=rrf_top_n)
+    if rerank_arn:
+        merged, applied_rerank = post_rerank_results(base_query, merged, rerank_arn, final_count)
+    else:
+        applied_rerank = False
+        merged = merged[:final_count]
     return {
-        "query": query_text,
-        "results": results,
-        "nextToken": response.get("nextToken"),
+        "query": base_query,
+        "variants": variants,
+        "results": merged,
+        "searchType": applied_search_type,
+        "rerankApplied": applied_rerank,
+        "rrfApplied": True,
     }
 
 
@@ -474,10 +760,10 @@ def build_analysis_prompt(
     elif knowledge_base_id:
         kb_text = (
             f"Knowledge Base ID: {knowledge_base_id}. "
-            "검색 결과가 없으므로 보수적으로 판단하고, 근거 부족을 명시하세요."
+            "검색 결과가 없더라도 일반 계약법 원칙으로 판단하고, 의심 조항은 적극 식별하세요. groundingStatus만 insufficient로 표시하세요."
         )
     else:
-        kb_text = "Knowledge Base가 연결되지 않았습니다. 일반적인 계약법 상식 수준에서만 보수적으로 판단하세요."
+        kb_text = "Knowledge Base가 연결되지 않았습니다. 일반 계약법 원칙(주택임대차보호법, 근로기준법, 민법 신의성실/공정 원칙)으로 판단하세요. 사용자 보호 관점에서 의심 조항은 적극적으로 식별하세요."
     output_constraints = (
         "출력은 간결하게 유지하세요.\n"
         "- 모든 설명은 반드시 한국어로 작성하세요.\n"
@@ -503,8 +789,10 @@ def build_analysis_prompt(
         "- 법률상 보호를 우회하거나 약화하는 문구\n"
         "- 모호해서 분쟁 가능성이 큰 문구\n\n"
         "분석 원칙:\n"
-        "- 판례/법률 적합성 검증(Relevance Check): 검색된 판례나 법 조항을 sourceIds에 포함하기 전에, 해당 판례가 분석 중인 계약 조항의 상황과 정확히 일치하는지 한 번 더 검증(Cross-check)하세요. 단순히 단어만 비슷하고 맥락이 다른 엉뚱한 판례라면 과감히 배제하세요.\n"
-        "- 크로스 체크 및 Self-Correction: 결과를 출력하기 전에 스스로 한 번 더 검토(Cross-check)하세요. 추출한 조항이 정말로 법적으로 불공정한지 다시 평가하고, 과장되거나 잘못 해석된 경우 수정(Self-Correction)하세요.\n"
+        "- [최우선] 사용자 보호 우선: 임차인/근로자에게 일방적으로 불리하거나 보호 법령 수준을 약화시키는 조항은 적극적으로 clauses에 포함하세요. 100% 확실하지 않더라도 의심되는 조항은 일단 식별하고 riskLevel(low/medium/high)로 강도만 조절하세요. 명백히 적법하고 공정한 조항만 제외합니다.\n"
+        "- [필수] 입력 조항 중 표준 양식이 아니거나 보호 법령(주택임대차보호법, 근로기준법, 민법 등)의 기본 보호를 약화/면제/전가하는 정황이 있으면, 그 조항은 반드시 clauses에 1개 이상 포함하세요. clauses가 0개로 나오는 경우는 모든 조항이 표준이고 공정할 때뿐입니다.\n"
+        "- 판례/법률 적합성 검증(Relevance Check): 검색된 판례나 법 조항을 sourceIds에 포함하기 전에, 해당 판례가 분석 중인 계약 조항의 상황과 일치하는지 검증하세요. 단순히 단어만 비슷하고 맥락이 다른 엉뚱한 판례는 sourceIds에서 배제하되, 그것 때문에 clauses 자체를 빼지는 마세요 (다른 근거 또는 일반 법령으로 reason 작성).\n"
+        "- Self-Correction은 사실관계/법령명 오류를 잡는 용도입니다. '확신이 부족하다'는 이유로 clauses를 제외하지 마세요. 불확실하면 riskLevel을 low로 낮추세요.\n"
         "- 검색된 법률/판례/생활법령 컨텍스트가 있으면 이를 우선 근거로 사용하세요.\n"
         "- reason에는 왜 문제가 되는지 구체적으로 설명하고, 최소 1개의 법률 근거나 판례 키워드를 포함하세요.\n"
         "- reason은 가능하면 '문제점 -> 법적 근거 또는 판례 취지 -> 이 조항에 적용되는 이유' 순서로 쓰세요.\n"
@@ -534,6 +822,11 @@ def build_analysis_prompt(
         "    }\n"
         "  ]\n"
         "}\n\n"
+        "판단 기준 예시 (참고용):\n"
+        "- '임차인은 퇴거 시 원상복구 비용 전부를 부담한다' → 통상손모까지 부담시키는 일방조항. 판례상 통상손모는 임대인 부담 → clauses 포함, riskLevel: high\n"
+        "- '관리비 30만원을 매월 임차인이 부담한다' → 금액 산정 근거/항목 명시 없음. 부당한 추가비용 가능 → clauses 포함, riskLevel: medium\n"
+        "- '보증금은 계약 종료 후 합리적인 기간 내에 반환한다' → '합리적'이 모호하여 임대인이 자의적 해석 가능 → clauses 포함, riskLevel: medium\n"
+        "- '본 계약은 한국법에 따라 해석한다' → 표준 조항, 불공정 아님 → 제외\n\n"
         "계약 조항:\n"
         f"{joined_text}"
     )
@@ -1172,6 +1465,12 @@ def lambda_handler(event: dict[str, Any], context: Any) -> dict[str, Any]:
                 "knowledgeBaseId": knowledge_base_id,
                 "retrievalQuery": (result.get("retrieval") or {}).get("query"),
                 "retrievalResults": (result.get("retrieval") or {}).get("results", []),
+                "retrievalMeta": {
+                    "searchType": (result.get("retrieval") or {}).get("searchType"),
+                    "rerankApplied": (result.get("retrieval") or {}).get("rerankApplied"),
+                    "rrfApplied": (result.get("retrieval") or {}).get("rrfApplied"),
+                    "variants": (result.get("retrieval") or {}).get("variants", []),
+                },
                 "analysis": result["parsed"],
                 "usage": result["usage"],
                 "provider": result["provider"],

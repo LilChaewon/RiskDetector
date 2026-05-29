@@ -1,6 +1,10 @@
 {
   "metadataAttributes": {
     "contract_type": "unknown",
-    "source_file": "precedent_186.txt"
+    "source_type": "precedent",
+    "source_file": "precedent_186.txt",
+    "case_number": "대전지방법원-2016-구단-100821",
+    "judgment_year": 2017,
+    "court_name": "판결유형:"
   }
 }

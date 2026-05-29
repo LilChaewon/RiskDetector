@@ -1,6 +1,14 @@
 {
   "metadataAttributes": {
     "contract_type": "unknown",
-    "source_file": "precedent_166.txt"
+    "source_type": "precedent",
+    "source_file": "precedent_166.txt",
+    "law_names": [
+      "민법"
+    ],
+    "primary_law": "민법",
+    "case_number": "2018다248909",
+    "judgment_year": 2019,
+    "court_name": "대법원"
   }
 }

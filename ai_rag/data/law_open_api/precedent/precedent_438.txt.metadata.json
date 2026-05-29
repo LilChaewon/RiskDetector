@@ -1,6 +1,10 @@
 {
   "metadataAttributes": {
     "contract_type": "lease",
-    "source_file": "precedent_438.txt"
+    "source_type": "precedent",
+    "source_file": "precedent_438.txt",
+    "case_number": "천안지원-2015-가단-6704",
+    "judgment_year": 2015,
+    "court_name": "판결유형:"
   }
 }

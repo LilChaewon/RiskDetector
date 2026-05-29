@@ -1,6 +1,10 @@
 {
   "metadataAttributes": {
     "contract_type": "lease",
-    "source_file": "precedent_351.txt"
+    "source_type": "precedent",
+    "source_file": "precedent_351.txt",
+    "case_number": "고양지원-2022-가단-109400",
+    "judgment_year": 2023,
+    "court_name": "판결유형:"
   }
 }

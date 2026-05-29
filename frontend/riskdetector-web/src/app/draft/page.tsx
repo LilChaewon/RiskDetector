@@ -314,7 +314,7 @@ const exampleValues: Record<string, string> = {
   이자율: '5',
   지연손해금율: '12',
   '이자/지연손해금 근거': '연 5% 이자 약정 및 변제기한 이후 연 12% 지연손해금 약정',
-  '입금 계좌': '국민은행 123456-01-123456 김민수',
+  '입금 계좌': '국민은행 123456-01-123456 예금주명',
   '특별한 손해': '약속한 날짜에 변제를 받지 못해 계약금 500,000원을 잃었음',
 };
 
@@ -359,8 +359,8 @@ const fieldExamples: Record<string, { placeholder: string; previewLabels: string
   준비일: { placeholder: '예: 2026-05-20', previewLabels: ['준비일'] },
   '이자율(연 %)': { placeholder: '예: 5', previewLabels: ['이자율'] },
   '지연손해금율(연 %)': { placeholder: '예: 12', previewLabels: ['지연손해금율'] },
-  상환계좌: { placeholder: '예: 국민은행 123456-01-123456 김민수', previewLabels: ['입금 계좌'] },
-  '입금 계좌': { placeholder: '예: 국민은행 123456-01-123456 김민수', previewLabels: ['입금 계좌'] },
+  상환계좌: { placeholder: '예: 국민은행 123456-01-123456 예금주명', previewLabels: ['입금 계좌'] },
+  '입금 계좌': { placeholder: '예: 국민은행 123456-01-123456 예금주명', previewLabels: ['입금 계좌'] },
   '특별한 손해 내용': { placeholder: '예: 약속한 날짜에 돈을 받지 못해 계약금 500,000원을 잃었음', previewLabels: ['특별한 손해'] },
   '이자/지연손해금 산정 근거': { placeholder: '예: 연 5% 이자 약정 및 변제기한 이후 연 12% 지연손해금 약정', previewLabels: ['이자/지연손해금 근거'] },
 };
@@ -653,12 +653,18 @@ function displayMoneyTerm(value: string) {
   return `${Number(raw).toLocaleString('ko-KR')}원`;
 }
 
+function meaningfulTextTerm(value: string) {
+  const trimmed = value.trim();
+  return trimmed;
+}
+
 function previewTermsForField(label: string, value: string) {
   const previewLabels = fieldExamples[label]?.previewLabels || [];
+  const enteredTerms = uniqueTerms([meaningfulTextTerm(value), displayDateTerm(value), displayMoneyTerm(value)]);
+  if (enteredTerms.length > 0) return enteredTerms;
+  if (value.trim()) return [];
+
   return uniqueTerms([
-    value,
-    displayDateTerm(value),
-    displayMoneyTerm(value),
     ...previewLabels.map((previewLabel) => exampleValues[previewLabel] || ''),
   ]);
 }
@@ -1264,17 +1270,45 @@ function DocumentPreview({
   );
 }
 
-function findLivePreviewLine(text: string, terms: string[]) {
+function previewScopeTerms(labels: string[]) {
+  return uniqueTerms(labels.flatMap((label) => {
+    if (label.includes('주소')) return ['주소'];
+    if (label.includes('연락처')) return ['연락처'];
+    if (label.includes('계좌')) return ['계좌', '상환계좌', '변제 계좌', '입금 계좌'];
+    if (label.includes('발신인')) return ['발신인'];
+    if (label.includes('수신인')) return ['수신인'];
+    if (label.includes('채권자')) return ['채권자'];
+    if (label.includes('채무자')) return ['채무자'];
+    return [];
+  }));
+}
+
+function findLivePreviewLine(text: string, terms: string[], labels: string[]) {
   if (terms.length === 0) return null;
 
   const lines = text.split('\n').map((line) => line.trim());
-  const index = lines.findIndex((line) => line && terms.some((term) => line.includes(term)));
-  if (index < 0) return null;
+  const scopes = previewScopeTerms(labels);
+  const matchingLine = ({ line }: { line: string }) => line && terms.some((term) => line.includes(term));
+  const scopedMatches = scopes.length > 0
+    ? lines
+      .map((line, index) => ({ line, index }))
+      .filter((match) => matchingLine(match) && scopes.some((scope) => match.line.includes(scope)))
+    : [];
+  const matches = scopedMatches.length > 0 ? scopedMatches : lines
+    .map((line, index) => ({ line, index }))
+    .filter((match) => matchingLine(match) && (scopes.length === 0 || terms.some((term) => term.replace(/\s/g, '').length >= 2)));
 
-  const heading = [...lines.slice(0, index)].reverse().find((line) => centeredHeadingLabel(line));
+  if (matches.length === 0) return null;
+
   return {
-    heading: heading ? centeredHeadingLabel(heading) || heading : '문서 반영 문장',
-    line: lines[index],
+    count: matches.length,
+    lines: matches.slice(0, 3).map(({ line, index }) => {
+      const heading = [...lines.slice(0, index)].reverse().find((candidate) => centeredHeadingLabel(candidate));
+      return {
+        heading: heading ? centeredHeadingLabel(heading) || heading : '문서 반영 문장',
+        line,
+      };
+    }),
   };
 }
 
@@ -1310,7 +1344,7 @@ export default function DraftPage() {
   const manualDirty = manualText !== null;
   const missing = draftType === 'loan' ? missingLoan(loan) : draftType === 'notice' ? missingNotice(notice) : missingOrder(order);
   const noticeAutoAmount = loanRecordTotal(notice.loanRecords);
-  const livePreview = useMemo(() => findLivePreviewLine(text, activePreviewTerms), [text, activePreviewTerms]);
+  const livePreview = useMemo(() => findLivePreviewLine(text, activePreviewTerms, activeExampleLabels), [text, activePreviewTerms, activeExampleLabels]);
   const exampleFocusHandlers = useMemo(
     () => ({
       onExampleFocus: (labels: string[], terms: string[] = []) => {

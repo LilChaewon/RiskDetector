@@ -1,6 +1,8 @@
 {
   "metadataAttributes": {
-    "contract_type": "unknown",
-    "source_file": "qa_280.txt"
+    "contract_type": "labor",
+    "source_type": "qa",
+    "source_file": "qa_280.txt",
+    "category": "근로/노동"
   }
 }

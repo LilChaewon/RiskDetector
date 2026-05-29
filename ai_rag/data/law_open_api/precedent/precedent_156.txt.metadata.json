@@ -1,6 +1,10 @@
 {
   "metadataAttributes": {
     "contract_type": "unknown",
-    "source_file": "precedent_156.txt"
+    "source_type": "precedent",
+    "source_file": "precedent_156.txt",
+    "case_number": "부산고등법원-2019-누-23234",
+    "judgment_year": 2019,
+    "court_name": "판결유형:"
   }
 }

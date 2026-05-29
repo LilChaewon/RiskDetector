@@ -1,6 +1,10 @@
 {
   "metadataAttributes": {
     "contract_type": "lease",
-    "source_file": "precedent_343.txt"
+    "source_type": "precedent",
+    "source_file": "precedent_343.txt",
+    "case_number": "서울고등법원-2023-누-32008",
+    "judgment_year": 2023,
+    "court_name": "판결유형:"
   }
 }

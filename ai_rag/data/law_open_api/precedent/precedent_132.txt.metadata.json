@@ -1,6 +1,10 @@
 {
   "metadataAttributes": {
     "contract_type": "unknown",
-    "source_file": "precedent_132.txt"
+    "source_type": "precedent",
+    "source_file": "precedent_132.txt",
+    "case_number": "2020구합104971",
+    "judgment_year": 2022,
+    "court_name": "대전지방법원"
   }
 }

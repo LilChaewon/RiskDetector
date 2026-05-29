@@ -630,7 +630,7 @@ function ClauseContext({ toxic, advice, onClear, onAskArdi }: { toxic?: Toxic; a
       </div>
       <h2 className="mt-4 text-[22px] font-extrabold leading-8">{toxic.title}</h2>
       {toxic.reason && (
-        <p className="mt-4 text-[14px] font-semibold leading-8 text-[var(--rd-ink-2)]">{toxic.reason}</p>
+        <p className="mt-4 rd-reason-scroll text-[14px] font-semibold leading-8 text-[var(--rd-ink-2)]">{toxic.reason}</p>
       )}
 
       {toxic.clause && (

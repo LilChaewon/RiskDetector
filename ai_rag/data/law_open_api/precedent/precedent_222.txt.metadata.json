@@ -1,6 +1,10 @@
 {
   "metadataAttributes": {
     "contract_type": "unknown",
-    "source_file": "precedent_222.txt"
+    "source_type": "precedent",
+    "source_file": "precedent_222.txt",
+    "case_number": "광주고등법원(전주)-2025-누-40",
+    "judgment_year": 2025,
+    "court_name": "판결유형:"
   }
 }

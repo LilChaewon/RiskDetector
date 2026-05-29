@@ -1,6 +1,10 @@
 {
   "metadataAttributes": {
     "contract_type": "unknown",
-    "source_file": "precedent_180.txt"
+    "source_type": "precedent",
+    "source_file": "precedent_180.txt",
+    "case_number": "부산고등법원(창원)-2017-누-11148",
+    "judgment_year": 2018,
+    "court_name": "판결유형:"
   }
 }

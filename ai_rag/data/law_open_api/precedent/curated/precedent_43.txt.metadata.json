@@ -1,6 +1,13 @@
 {
   "metadataAttributes": {
     "contract_type": "unknown",
-    "source_file": "precedent_43.txt"
+    "source_type": "precedent",
+    "source_file": "precedent_43.txt",
+    "law_names": [
+      "근로기준법"
+    ],
+    "primary_law": "근로기준법",
+    "case_number": "2019두33828",
+    "judgment_year": 2019
   }
 }

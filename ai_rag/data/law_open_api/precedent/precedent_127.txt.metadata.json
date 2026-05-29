@@ -1,6 +1,10 @@
 {
   "metadataAttributes": {
     "contract_type": "unknown",
-    "source_file": "precedent_127.txt"
+    "source_type": "precedent",
+    "source_file": "precedent_127.txt",
+    "case_number": "제주지방법원-2021-구합-6670",
+    "judgment_year": 2022,
+    "court_name": "판결유형:"
   }
 }

@@ -1,6 +1,10 @@
 {
   "metadataAttributes": {
     "contract_type": "lease",
-    "source_file": "precedent_449.txt"
+    "source_type": "precedent",
+    "source_file": "precedent_449.txt",
+    "case_number": "창원지방법원-2012-구합-2496",
+    "judgment_year": 2013,
+    "court_name": "판결유형:"
   }
 }

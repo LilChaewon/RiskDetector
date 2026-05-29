@@ -1,6 +1,10 @@
 {
   "metadataAttributes": {
     "contract_type": "lease",
-    "source_file": "precedent_442.txt"
+    "source_type": "precedent",
+    "source_file": "precedent_442.txt",
+    "case_number": "대법원-2013-두-19776",
+    "judgment_year": 2014,
+    "court_name": "판결유형:"
   }
 }

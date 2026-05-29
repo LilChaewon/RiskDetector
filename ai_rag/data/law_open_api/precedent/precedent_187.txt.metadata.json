@@ -1,6 +1,10 @@
 {
   "metadataAttributes": {
     "contract_type": "labor",
-    "source_file": "precedent_187.txt"
+    "source_type": "precedent",
+    "source_file": "precedent_187.txt",
+    "case_number": "2015구합76438",
+    "judgment_year": 2017,
+    "court_name": "서울행정법원"
   }
 }

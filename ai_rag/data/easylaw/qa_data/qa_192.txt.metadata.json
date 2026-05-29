@@ -1,6 +1,13 @@
 {
   "metadataAttributes": {
     "contract_type": "lease",
-    "source_file": "qa_192.txt"
+    "source_type": "qa",
+    "source_file": "qa_192.txt",
+    "law_names": [
+      "주택임대차보호법",
+      "상가건물 임대차보호법"
+    ],
+    "primary_law": "주택임대차보호법",
+    "category": "부동산/임대차"
   }
 }

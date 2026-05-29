@@ -1,6 +1,10 @@
 {
   "metadataAttributes": {
     "contract_type": "unknown",
-    "source_file": "precedent_23.txt"
+    "source_type": "precedent",
+    "source_file": "precedent_23.txt",
+    "case_number": "울산지방법원-2023-구합-7196",
+    "judgment_year": 2025,
+    "court_name": "판결유형:"
   }
 }

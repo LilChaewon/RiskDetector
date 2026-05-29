@@ -1,6 +1,13 @@
 {
   "metadataAttributes": {
     "contract_type": "lease",
-    "source_file": "precedent_215.txt"
+    "source_type": "precedent",
+    "source_file": "precedent_215.txt",
+    "law_names": [
+      "민법"
+    ],
+    "primary_law": "민법",
+    "case_number": "78다1103",
+    "judgment_year": 1978
   }
 }

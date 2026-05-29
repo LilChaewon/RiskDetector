@@ -1,6 +1,10 @@
 {
   "metadataAttributes": {
     "contract_type": "lease",
-    "source_file": "precedent_410.txt"
+    "source_type": "precedent",
+    "source_file": "precedent_410.txt",
+    "case_number": "서울행정법원-2019-구합-60585",
+    "judgment_year": 2020,
+    "court_name": "판결유형:"
   }
 }

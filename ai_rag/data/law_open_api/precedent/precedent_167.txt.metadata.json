@@ -1,6 +1,10 @@
 {
   "metadataAttributes": {
     "contract_type": "unknown",
-    "source_file": "precedent_167.txt"
+    "source_type": "precedent",
+    "source_file": "precedent_167.txt",
+    "case_number": "창원지방법원-2018-구단-11600",
+    "judgment_year": 2019,
+    "court_name": "판결유형:"
   }
 }
