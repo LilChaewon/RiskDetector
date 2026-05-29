@@ -113,8 +113,11 @@ type Section = {
 };
 
 type LivePreview = {
-  heading: string;
-  line: string;
+  count: number;
+  lines: Array<{
+    heading: string;
+    line: string;
+  }>;
 };
 
 const ExampleFocusContext = createContext<{
@@ -681,9 +684,18 @@ function FieldInlinePreview({ visible }: { visible: boolean }) {
 
   return (
     <section className="rd-draft-inline-preview" aria-live="polite">
-      <div className="rd-draft-inline-preview-label">문서 반영</div>
-      <div className="rd-draft-inline-preview-heading">{preview.heading}</div>
-      <p>{preview.line}</p>
+      <div className="rd-draft-inline-preview-label">문서 반영 {preview.count > 1 ? `${preview.count}곳` : ''}</div>
+      <div className="grid gap-2">
+        {preview.lines.map((item, index) => (
+          <div key={`${item.heading}-${item.line}-${index}`} className="rd-draft-inline-preview-item">
+            <div className="rd-draft-inline-preview-heading">{item.heading}</div>
+            <p>{item.line}</p>
+          </div>
+        ))}
+      </div>
+      {preview.count > preview.lines.length && (
+        <div className="rd-draft-inline-preview-more">외 {preview.count - preview.lines.length}곳 더 반영돼요</div>
+      )}
     </section>
   );
 }
@@ -1308,13 +1320,21 @@ function findLivePreviewLine(text: string, terms: string[]) {
   if (terms.length === 0) return null;
 
   const lines = text.split('\n').map((line) => line.trim());
-  const index = lines.findIndex((line) => line && terms.some((term) => line.includes(term)));
-  if (index < 0) return null;
+  const matches = lines
+    .map((line, index) => ({ line, index }))
+    .filter(({ line }) => line && terms.some((term) => line.includes(term)));
 
-  const heading = [...lines.slice(0, index)].reverse().find((line) => centeredHeadingLabel(line));
+  if (matches.length === 0) return null;
+
   return {
-    heading: heading ? centeredHeadingLabel(heading) || heading : '문서 반영 문장',
-    line: lines[index],
+    count: matches.length,
+    lines: matches.slice(0, 3).map(({ line, index }) => {
+      const heading = [...lines.slice(0, index)].reverse().find((candidate) => centeredHeadingLabel(candidate));
+      return {
+        heading: heading ? centeredHeadingLabel(heading) || heading : '문서 반영 문장',
+        line,
+      };
+    }),
   };
 }
 
