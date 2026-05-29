@@ -324,7 +324,7 @@ const exampleValues: Record<string, string> = {
   이자율: '5',
   지연손해금율: '12',
   '이자/지연손해금 근거': '연 5% 이자 약정 및 변제기한 이후 연 12% 지연손해금 약정',
-  '입금 계좌': '국민은행 123456-01-123456 김민수',
+  '입금 계좌': '국민은행 123456-01-123456 예금주명',
   '특별한 손해': '약속한 날짜에 변제를 받지 못해 계약금 500,000원을 잃었음',
 };
 
@@ -369,8 +369,8 @@ const fieldExamples: Record<string, { placeholder: string; previewLabels: string
   준비일: { placeholder: '예: 2026-05-20', previewLabels: ['준비일'] },
   '이자율(연 %)': { placeholder: '예: 5', previewLabels: ['이자율'] },
   '지연손해금율(연 %)': { placeholder: '예: 12', previewLabels: ['지연손해금율'] },
-  상환계좌: { placeholder: '예: 국민은행 123456-01-123456 김민수', previewLabels: ['입금 계좌'] },
-  '입금 계좌': { placeholder: '예: 국민은행 123456-01-123456 김민수', previewLabels: ['입금 계좌'] },
+  상환계좌: { placeholder: '예: 국민은행 123456-01-123456 예금주명', previewLabels: ['입금 계좌'] },
+  '입금 계좌': { placeholder: '예: 국민은행 123456-01-123456 예금주명', previewLabels: ['입금 계좌'] },
   '특별한 손해 내용': { placeholder: '예: 약속한 날짜에 돈을 받지 못해 계약금 500,000원을 잃었음', previewLabels: ['특별한 손해'] },
   '이자/지연손해금 산정 근거': { placeholder: '예: 연 5% 이자 약정 및 변제기한 이후 연 12% 지연손해금 약정', previewLabels: ['이자/지연손해금 근거'] },
 };
@@ -665,10 +665,10 @@ function displayMoneyTerm(value: string) {
 
 function previewTermsForField(label: string, value: string) {
   const previewLabels = fieldExamples[label]?.previewLabels || [];
+  const enteredTerms = uniqueTerms([value, displayDateTerm(value), displayMoneyTerm(value)]);
+  if (enteredTerms.length > 0) return enteredTerms;
+
   return uniqueTerms([
-    value,
-    displayDateTerm(value),
-    displayMoneyTerm(value),
     ...previewLabels.map((previewLabel) => exampleValues[previewLabel] || ''),
   ]);
 }
