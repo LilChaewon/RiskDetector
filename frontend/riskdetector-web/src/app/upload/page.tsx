@@ -145,11 +145,10 @@ export default function UploadPage() {
             <span className="ardi-loader-spark s6" />
             <div className="ardi-loader-mascot">
               <Image
-                src="/ardi/ardi-working.png"
+                src="/ardi/ardi-hero.png"
                 alt="아르디가 계약서를 읽고 있어요"
-                width={152}
-                height={152}
-                unoptimized
+                width={168}
+                height={200}
                 priority
               />
             </div>
