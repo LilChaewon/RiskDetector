@@ -1779,7 +1779,50 @@ export default function DraftPage() {
 
   function printDocument() {
     if (warnMissing()) return;
-    window.print();
+
+    const source = document.getElementById('draft-print-area');
+    if (!source) {
+      window.print();
+      return;
+    }
+
+    // 미리보기 영역은 모바일 등에서 display:none 으로 숨겨질 수 있어
+    // 그대로 window.print()를 하면 백지가 나온다. 문서 영역을 깨끗한
+    // iframe에 복제해 인쇄하면 화면 상태와 무관하게 항상 출력된다.
+    const iframe = document.createElement('iframe');
+    iframe.setAttribute('aria-hidden', 'true');
+    iframe.style.cssText = 'position:fixed;right:0;bottom:0;width:0;height:0;border:0;visibility:hidden;';
+    document.body.appendChild(iframe);
+
+    const doc = iframe.contentWindow?.document;
+    if (!doc || !iframe.contentWindow) {
+      iframe.remove();
+      window.print();
+      return;
+    }
+
+    const styles = Array.from(document.querySelectorAll('style, link[rel="stylesheet"]'))
+      .map((el) => el.outerHTML)
+      .join('\n');
+
+    doc.open();
+    doc.write(
+      `<!doctype html><html><head><meta charset="utf-8">${styles}` +
+        '<style>@page{size:A4;margin:0}html,body{margin:0;background:#fff}' +
+        '#draft-print-area{box-shadow:none!important;margin:0 auto!important}</style>' +
+        `</head><body>${source.outerHTML}</body></html>`,
+    );
+    doc.close();
+
+    const printWindow = iframe.contentWindow;
+    const cleanup = () => window.setTimeout(() => iframe.remove(), 500);
+    printWindow.addEventListener('afterprint', cleanup, { once: true });
+
+    // 스타일·이미지가 적용될 시간을 준 뒤 인쇄한다.
+    window.setTimeout(() => {
+      printWindow.focus();
+      printWindow.print();
+    }, 300);
   }
 
   function reset() {

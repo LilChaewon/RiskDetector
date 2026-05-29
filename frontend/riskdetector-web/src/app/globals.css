@@ -187,12 +187,9 @@ button {
   width: 48px;
   height: 48px;
   border-radius: 14px;
-  background: linear-gradient(135deg, #2274eb 0%, #1b64da 100%);
-  color: #ffffff;
-  font-size: 15px;
-  font-weight: 800;
-  letter-spacing: 0.02em;
-  box-shadow: 0 6px 16px rgba(27, 100, 218, 0.25);
+  background: #ffffff;
+  border: 1px solid var(--rd-line);
+  box-shadow: 0 6px 16px rgba(27, 100, 218, 0.12);
 }
 
 .rd-btn {
