@@ -112,6 +112,14 @@ type Section = {
   body: React.ReactNode;
 };
 
+type LivePreview = {
+  count: number;
+  lines: Array<{
+    heading: string;
+    line: string;
+  }>;
+};
+
 const ExampleFocusContext = createContext<{
   onExampleFocus: (labels: string[], terms?: string[]) => void;
   onExampleBlur: () => void;
@@ -1312,14 +1320,20 @@ function findLivePreviewLine(text: string, terms: string[], labels: string[]) {
   };
 }
 
-function MobileDraftLivePreview({ preview }: { preview: { heading: string; line: string } | null }) {
+function MobileDraftLivePreview({ preview }: { preview: LivePreview | null }) {
   if (!preview) return null;
 
   return (
     <section className="rd-draft-live-preview" aria-live="polite">
-      <div className="rd-draft-live-preview-label">실시간 문서 반영</div>
-      <div className="rd-draft-live-preview-heading">{preview.heading}</div>
-      <p>{preview.line}</p>
+      <div className="rd-draft-live-preview-label">실시간 문서 반영 {preview.count > 1 ? `${preview.count}곳` : ''}</div>
+      <div className="grid gap-2">
+        {preview.lines.map((item, index) => (
+          <div key={`${item.heading}-${item.line}-${index}`}>
+            <div className="rd-draft-live-preview-heading">{item.heading}</div>
+            <p>{item.line}</p>
+          </div>
+        ))}
+      </div>
     </section>
   );
 }
