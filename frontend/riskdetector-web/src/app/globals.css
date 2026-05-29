@@ -1040,6 +1040,11 @@ button {
     line-height: 1.2;
   }
 
+  .rd-draft-inline-preview-item {
+    display: grid;
+    gap: 3px;
+  }
+
   .rd-draft-inline-preview p {
     display: -webkit-box;
     overflow: hidden;
