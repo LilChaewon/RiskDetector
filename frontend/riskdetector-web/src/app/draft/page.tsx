@@ -1938,6 +1938,17 @@ export default function DraftPage() {
             </button>
           </div>
 
+          <div className="rd-draft-mobile-actions">
+            <button type="button" onClick={copyDocument} className="rd-btn rd-btn-ghost min-h-10 flex-1 text-[13px]">
+              <Clipboard size={15} />
+              {copied ? '복사됨' : '복사'}
+            </button>
+            <button type="button" onClick={printDocument} className="rd-btn min-h-10 flex-1 text-[13px]">
+              <FileDown size={15} />
+              PDF 저장
+            </button>
+          </div>
+
           <div className="grid gap-4">
             <div className="rd-card flex items-center justify-between gap-3 p-4">
               <h2 className="text-[20px] font-extrabold">{draftType === 'loan' ? '차용증 입력' : draftType === 'notice' ? '내용증명 입력' : '지급명령 신청서 입력'}</h2>

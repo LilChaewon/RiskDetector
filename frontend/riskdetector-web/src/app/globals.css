@@ -659,7 +659,8 @@ button {
 }
 
 .rd-draft-mobile-choice,
-.rd-draft-mobile-current {
+.rd-draft-mobile-current,
+.rd-draft-mobile-actions {
   display: none;
 }
 
@@ -1008,6 +1009,12 @@ button {
     gap: 12px;
     margin-bottom: 14px;
     padding: 14px;
+  }
+
+  .rd-draft-mobile-actions {
+    display: flex;
+    gap: 8px;
+    margin-bottom: 14px;
   }
 
   .rd-draft-grid {
