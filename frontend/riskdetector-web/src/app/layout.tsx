@@ -7,8 +7,11 @@ export const metadata: Metadata = {
   description: "계약서 속 위험 조항을 AI가 찾아드립니다",
   manifest: "/manifest.webmanifest",
   icons: {
-    icon: "/icon.svg",
-    apple: "/icon.svg",
+    icon: [
+      { url: "/icon-192.png", sizes: "192x192", type: "image/png" },
+      { url: "/icon-512.png", sizes: "512x512", type: "image/png" },
+    ],
+    apple: "/apple-icon.png",
   },
   appleWebApp: {
     capable: true,
