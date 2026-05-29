@@ -5,6 +5,7 @@ import Image from 'next/image';
 import { useRouter } from 'next/navigation';
 import { Camera, ChevronRight, FileText, Plus, Trash2, UploadCloud, X } from 'lucide-react';
 import AppShell from '@/components/AppShell';
+import ArdiWaitingTip from '@/components/ArdiWaitingTip';
 import { uploadOCR } from '@/api/contract';
 
 type ContractType = 'RENTAL' | 'EMPLOYMENT';
@@ -133,8 +134,8 @@ export default function UploadPage() {
 
   if (step === 'uploading') {
     return (
-      <main className="flex min-h-screen items-center justify-center bg-[var(--rd-bg)] p-6 text-[var(--rd-ink)]">
-        <div className="w-full max-w-[460px] text-center">
+      <main className="flex min-h-screen items-center justify-center bg-[var(--rd-bg)] px-6 py-16 text-[var(--rd-ink)]">
+        <div className="w-full max-w-[540px]">
           <div className="ardi-loader">
             <div className="ardi-loader-halo" />
             <span className="ardi-loader-spark s1" />
@@ -153,13 +154,16 @@ export default function UploadPage() {
               />
             </div>
           </div>
-          <h1 className="mt-4 inline-flex items-center text-[23px] font-extrabold tracking-tight">
-            아르디가 계약서를 읽고 있어요
-            <span className="ardi-loader-dots" aria-hidden>
-              <span /><span /><span />
-            </span>
-          </h1>
-          <p className="mt-2 text-[14px] font-medium text-[var(--rd-ink-2)]">OCR 분석을 준비하는 중입니다.</p>
+          <div className="mt-4 text-center">
+            <h1 className="inline-flex items-center text-[23px] font-extrabold tracking-tight">
+              아르디가 계약서를 읽고 있어요
+              <span className="ardi-loader-dots" aria-hidden>
+                <span /><span /><span />
+              </span>
+            </h1>
+            <p className="mt-2 text-[14px] font-medium text-[var(--rd-ink-2)]">OCR 분석을 준비하는 중입니다.</p>
+          </div>
+          <ArdiWaitingTip className="mt-10" />
         </div>
       </main>
     );
