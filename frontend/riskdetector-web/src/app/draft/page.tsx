@@ -1877,7 +1877,16 @@ export default function DraftPage() {
           </div>
         </section>
 
-        <section className={`rd-draft-preview-wrap ${mobilePreviewOpen ? 'is-open' : ''}`}>
+        <section
+          className={`rd-draft-preview-wrap ${mobilePreviewOpen ? 'is-open' : ''}`}
+          style={{
+            top: 0,
+            bottom: 'auto',
+            borderTop: 0,
+            borderBottom: '1px solid var(--rd-line)',
+            borderRadius: '0 0 20px 20px',
+          }}
+        >
           <button
             type="button"
             onPointerDown={startPreviewPointerDrag}
