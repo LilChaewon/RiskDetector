@@ -1018,6 +1018,11 @@ button {
     line-height: 1.2;
   }
 
+  .rd-draft-inline-preview-item {
+    display: grid;
+    gap: 3px;
+  }
+
   .rd-draft-inline-preview p {
     display: -webkit-box;
     overflow: hidden;
@@ -1028,6 +1033,13 @@ button {
     font-size: 13px;
     font-weight: 800;
     line-height: 1.55;
+  }
+
+  .rd-draft-inline-preview-more {
+    color: var(--rd-ink-3);
+    font-size: 11px;
+    font-weight: 800;
+    line-height: 1.2;
   }
 
   .rd-draft-preview-wrap {
