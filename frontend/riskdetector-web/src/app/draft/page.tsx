@@ -663,10 +663,16 @@ function displayMoneyTerm(value: string) {
   return `${Number(raw).toLocaleString('ko-KR')}원`;
 }
 
+function meaningfulTextTerm(value: string) {
+  const trimmed = value.trim();
+  return trimmed;
+}
+
 function previewTermsForField(label: string, value: string) {
   const previewLabels = fieldExamples[label]?.previewLabels || [];
-  const enteredTerms = uniqueTerms([value, displayDateTerm(value), displayMoneyTerm(value)]);
+  const enteredTerms = uniqueTerms([meaningfulTextTerm(value), displayDateTerm(value), displayMoneyTerm(value)]);
   if (enteredTerms.length > 0) return enteredTerms;
+  if (value.trim()) return [];
 
   return uniqueTerms([
     ...previewLabels.map((previewLabel) => exampleValues[previewLabel] || ''),
@@ -1316,13 +1322,33 @@ function DocumentPreview({
   );
 }
 
-function findLivePreviewLine(text: string, terms: string[]) {
+function previewScopeTerms(labels: string[]) {
+  return uniqueTerms(labels.flatMap((label) => {
+    if (label.includes('주소')) return ['주소'];
+    if (label.includes('연락처')) return ['연락처'];
+    if (label.includes('계좌')) return ['계좌', '상환계좌', '변제 계좌', '입금 계좌'];
+    if (label.includes('발신인')) return ['발신인'];
+    if (label.includes('수신인')) return ['수신인'];
+    if (label.includes('채권자')) return ['채권자'];
+    if (label.includes('채무자')) return ['채무자'];
+    return [];
+  }));
+}
+
+function findLivePreviewLine(text: string, terms: string[], labels: string[]) {
   if (terms.length === 0) return null;
 
   const lines = text.split('\n').map((line) => line.trim());
-  const matches = lines
+  const scopes = previewScopeTerms(labels);
+  const matchingLine = ({ line }: { line: string }) => line && terms.some((term) => line.includes(term));
+  const scopedMatches = scopes.length > 0
+    ? lines
+      .map((line, index) => ({ line, index }))
+      .filter((match) => matchingLine(match) && scopes.some((scope) => match.line.includes(scope)))
+    : [];
+  const matches = scopedMatches.length > 0 ? scopedMatches : lines
     .map((line, index) => ({ line, index }))
-    .filter(({ line }) => line && terms.some((term) => line.includes(term)));
+    .filter((match) => matchingLine(match) && (scopes.length === 0 || terms.some((term) => term.replace(/\s/g, '').length >= 2)));
 
   if (matches.length === 0) return null;
 
@@ -1358,7 +1384,7 @@ export default function DraftPage() {
   const manualDirty = manualText !== null;
   const missing = draftType === 'loan' ? missingLoan(loan) : draftType === 'notice' ? missingNotice(notice) : missingOrder(order);
   const noticeAutoAmount = loanRecordTotal(notice.loanRecords);
-  const livePreview = useMemo(() => findLivePreviewLine(text, activePreviewTerms), [text, activePreviewTerms]);
+  const livePreview = useMemo(() => findLivePreviewLine(text, activePreviewTerms, activeExampleLabels), [text, activePreviewTerms, activeExampleLabels]);
   const exampleFocusHandlers = useMemo(
     () => ({
       onExampleFocus: (labels: string[], terms: string[] = []) => {
