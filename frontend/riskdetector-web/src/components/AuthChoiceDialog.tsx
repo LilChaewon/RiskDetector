@@ -1,6 +1,7 @@
 'use client';
 
 import { LogIn, UserRound, X } from 'lucide-react';
+import BrandBadge from '@/components/BrandBadge';
 import { startGuestMode } from '@/api/guest';
 
 const apiBase = process.env.NEXT_PUBLIC_API_BASE_URL || '/api';
@@ -42,7 +43,7 @@ export default function AuthChoiceDialog({
         )}
 
         <div className="text-center">
-          <div className="rd-brand-badge mx-auto">RD</div>
+          <BrandBadge className="mx-auto" />
           <h2 className="mt-4 text-[24px] font-extrabold tracking-tight">어떻게 시작할까요?</h2>
           <p className="mt-2 text-[14px] font-semibold leading-6 text-[var(--rd-ink-2)]">
             Google로 로그인하거나 게스트로 바로 둘러볼 수 있어요.

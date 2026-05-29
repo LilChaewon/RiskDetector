@@ -15,6 +15,7 @@ import {
   User,
 } from 'lucide-react';
 import AuthChoiceDialog from '@/components/AuthChoiceDialog';
+import BrandBadge from '@/components/BrandBadge';
 import { isGuestMode } from '@/api/guest';
 
 const navItems = [
@@ -81,7 +82,10 @@ export default function AppShell({ children }: { children: React.ReactNode }) {
     <div className="rd-shell">
       <aside className="rd-sidebar">
         <Link href="/" className="rd-logo">
-          <span>RD</span>
+          <span className="flex items-center gap-2">
+            <BrandBadge size={30} />
+            <span>RD</span>
+          </span>
           <span className="rd-logo-dot" />
         </Link>
 
@@ -130,7 +134,10 @@ export default function AppShell({ children }: { children: React.ReactNode }) {
 
       <main className="rd-main">
         <div className="rd-mobile-top">
-          <Link href="/" className="text-[20px] font-extrabold tracking-tight">RD</Link>
+          <Link href="/" className="flex items-center gap-2 text-[20px] font-extrabold tracking-tight">
+            <BrandBadge size={28} />
+            RD
+          </Link>
         </div>
         {children}
       </main>
