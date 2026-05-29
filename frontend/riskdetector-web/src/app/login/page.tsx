@@ -53,7 +53,7 @@ export default function LoginPage() {
         </div>
 
         <p className="mt-5 text-center text-[11px] font-semibold leading-5 text-[var(--rd-ink-3)]">
-          게스트 모드는 이 브라우저의 설치형 앱 안에서 분석 기록을 이어서 보여줍니다.
+          게스트 모드는 로그인 없이 바로 시작할 수 있어요.
         </p>
       </section>
     </main>
