@@ -52,6 +52,7 @@ const RETRIEVE_ENDPOINT = `${BACKEND_URL.replace(/\/$/, '')}/api/chatbot/retriev
 const RETRIEVE_TIMEOUT_MS = 4000;
 const RETRIEVE_TOP_K = 4;
 const OPENAI_MAX_ATTEMPTS = 3;
+const SUGGESTION_MARKER = '[RD_SUGGESTION]';
 
 const EASY_MODE_PATTERN = /(쉽게|쉬운\s*말|쉬운말|풀어서|풀어\s*서|초딩|초등학생|이해\s*안)/;
 const LAW_REF_PATTERN = /(민법|상법|형법|근로기준법|저작권법|주택임대차보호법|상가건물\s*임대차보호법)\s*제\s*(\d+)\s*조(?:\s*제\s*(\d+)\s*항)?/;
@@ -144,6 +145,19 @@ function collectAllowedCitations(req: ChatRequest, retrieved: RetrievedItem[]): 
     add(item.text);
   });
   return Array.from(refs);
+}
+
+function buildKnownLawContextBlock(citations: string[]): string {
+  const lines = citations
+    .map((citation) => {
+      const context = KNOWN_LAW_CONTEXT[citation];
+      return context ? `- ${citation}: ${context}` : null;
+    })
+    .filter((line): line is string => !!line);
+
+  if (lines.length === 0) return '';
+
+  return `\n\n## 분석 데이터에 포함된 참고 법령 요약\n${lines.join('\n')}`;
 }
 
 function inferContractType(req: ChatRequest): string {
@@ -312,7 +326,12 @@ async function createChatCompletionStreamWithRetry(
   throw lastError;
 }
 
-function buildSystemPrompt(req: ChatRequest, easyMode: boolean, retrieved: RetrievedItem[]): string {
+function buildSystemPrompt(
+  req: ChatRequest,
+  easyMode: boolean,
+  retrieved: RetrievedItem[],
+  lastUserMessage: string
+): string {
   const { selectedToxic, allToxics = [], contractTitle, overallComment, clauseSwitched } = req;
 
   const requestedLawRef = extractRequestedLawRef(lastUserMessage);
