@@ -366,6 +366,13 @@ function AnalysisResultContent() {
       .finally(() => setLoading(false));
   }, [contractId, analysisId, invalidAccess]);
 
+  useEffect(() => {
+    if (!data) return;
+    fetch('/api/chatbot/warmup', { method: 'GET', cache: 'no-store' }).catch((err) => {
+      console.warn('chatbot warmup failed:', err);
+    });
+  }, [data]);
+
   const selected = selectedIndex === null ? undefined : data?.toxics[selectedIndex];
   const originBlocks = useMemo(
     () => data?.ocrBlocks?.length
