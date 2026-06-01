@@ -47,6 +47,9 @@ const SUGGESTED_QUESTIONS = [
 ];
 
 const COMPOSER_CHIPS = ['쉽게 설명해줄 수 있어?'];
+const WARMUP_WAIT_MS = 2200;
+const OUT_OF_SCOPE_MESSAGE =
+  '저는 계약서 위험 분석을 도와드리는 아르디예요. 계약 조항에 대해 궁금한 점을 물어봐 주세요!';
 
 function variantFromQuestion(q: string): ArdiVariant {
   const lower = q.toLowerCase();
@@ -85,6 +88,7 @@ export default function ArdiChatbot({ open, onClose, selectedToxic, warningCount
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const abortRef = useRef<AbortController | null>(null);
   const lastSentToxicKeyRef = useRef<string>('');
+  const warmupRef = useRef<Promise<void> | null>(null);
 
   // SSR 이후 클라이언트에서만 portal 마운트
   useEffect(() => {
@@ -97,10 +101,29 @@ export default function ArdiChatbot({ open, onClose, selectedToxic, warningCount
 
   useEffect(() => {
     if (!open) return;
-    fetch('/api/chatbot/warmup', { method: 'GET', cache: 'no-store' }).catch((err) => {
-      console.warn('chatbot warmup failed:', err);
-    });
+    startWarmup();
   }, [open]);
+
+  function startWarmup() {
+    if (!warmupRef.current) {
+      warmupRef.current = fetch('/api/chatbot/warmup', { method: 'GET', cache: 'no-store' })
+        .then(() => undefined)
+        .catch((err) => {
+          console.warn('chatbot warmup failed:', err);
+          warmupRef.current = null;
+        });
+    }
+    return warmupRef.current;
+  }
+
+  async function waitForWarmup() {
+    await Promise.race([
+      startWarmup(),
+      new Promise<void>((resolve) => {
+        setTimeout(resolve, WARMUP_WAIT_MS);
+      }),
+    ]);
+  }
 
   // 챗 닫을 때 진행 중인 스트림 중단
   function handleClose() {
@@ -127,6 +150,10 @@ export default function ArdiChatbot({ open, onClose, selectedToxic, warningCount
     abortRef.current = controller;
 
     try {
+      if (selectedToxic) {
+        await waitForWarmup();
+      }
+
       const currentKey = toxicKey(selectedToxic);
       const clauseSwitched =
         !!selectedToxic &&
@@ -370,6 +397,8 @@ const LAW_TITLE_MAP: Record<string, string> = {
 };
 
 function extractCitation(text: string, fallbackRef?: string): { title: string; sub?: string } | null {
+  if (text.trim() === OUT_OF_SCOPE_MESSAGE) return null;
+
   // 1) 응답 본문에서 법령 조문 패턴 추출
   const lawMatch = text.match(/(민법|상법|형법|근로기준법|저작권법|주택임대차보호법|상가건물\s*임대차보호법)\s*제\s*(\d+)\s*조(?:\s*제\s*(\d+)\s*항)?/);
   if (lawMatch) {

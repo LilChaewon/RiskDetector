@@ -53,6 +53,8 @@ const RETRIEVE_TIMEOUT_MS = 4000;
 const RETRIEVE_TOP_K = 4;
 const OPENAI_MAX_ATTEMPTS = 3;
 const SUGGESTION_MARKER = '[RD_SUGGESTION]';
+const OUT_OF_SCOPE_MESSAGE =
+  '저는 계약서 위험 분석을 도와드리는 아르디예요. 계약 조항에 대해 궁금한 점을 물어봐 주세요!';
 
 const EASY_MODE_PATTERN = /(쉽게|쉬운\s*말|쉬운말|풀어서|풀어\s*서|초딩|초등학생|이해\s*안)/;
 const LAW_REF_PATTERN = /(민법|상법|형법|근로기준법|저작권법|주택임대차보호법|상가건물\s*임대차보호법)\s*제\s*(\d+)\s*조(?:\s*제\s*(\d+)\s*항)?/;
@@ -81,6 +83,70 @@ function warnLabel(level?: number) {
   if ((level ?? 0) >= 3) return '주의 필요';
   if ((level ?? 0) === 2) return '확인 권장';
   return '안전';
+}
+
+function compactText(value?: string, maxLength = 120): string {
+  const text = (value ?? '').replace(/\s+/g, ' ').trim();
+  if (text.length <= maxLength) return text;
+  return `${text.slice(0, maxLength).trim()}...`;
+}
+
+function buildDirectEasyAnswer(selectedToxic?: ToxicSlim): string | null {
+  if (!selectedToxic) return null;
+
+  const title = compactText(selectedToxic.title, 28) || '이 조항';
+  const reason = compactText(selectedToxic.reason, 120);
+  const suggestion = compactText(selectedToxic.suggestion, 120);
+  const clause = compactText(selectedToxic.clause, 100);
+
+  const lines = [
+    `${title}은 계약 한쪽에게 부담이 크게 몰릴 수 있는 조항이에요.`,
+    reason
+      ? `쉽게 말하면 ${reason}`
+      : clause
+        ? `쉽게 말하면 "${clause}" 부분 때문에 나중에 불리하게 해석될 수 있어요.`
+        : '쉽게 말하면 나중에 불리하게 해석될 수 있는 부분이에요.',
+    suggestion
+      ? `그래서 ${suggestion}`
+      : '그래서 조건과 예외를 더 구체적으로 적는 게 좋아요.',
+  ];
+
+  return lines.join('\n');
+}
+
+function buildDirectLawAnswer(lawRef: string, selectedToxic?: ToxicSlim): string | null {
+  const context = KNOWN_LAW_CONTEXT[lawRef];
+  if (!context) return null;
+
+  const reason = compactText(selectedToxic?.reason, 140);
+  const suggestion = compactText(selectedToxic?.suggestion, 140);
+  const lines = [
+    `${lawRef}는 ${context}`,
+    reason
+      ? `지금 선택한 조항에서는 ${reason}`
+      : '지금 선택한 조항과 연결해서 보면, 계약서에 정한 부담이 실제 손해나 공정한 범위를 넘는지 확인하는 기준으로 쓰입니다.',
+  ];
+
+  if (lawRef === '민법 제398조') {
+    lines.push('쉽게 말하면 계약서에 벌금처럼 큰 배상액을 미리 써놨어도, 그 금액이 지나치게 크면 법원이 줄일 수 있다는 뜻이에요.');
+  }
+
+  if (suggestion) {
+    lines.push(`그래서 수정 방향은 ${suggestion}`);
+  }
+
+  return lines.join('\n');
+}
+
+function isOutOfScopeAnswer(answer: string): boolean {
+  return answer.trim() === OUT_OF_SCOPE_MESSAGE;
+}
+
+function stripOutOfScopeHistory(messages: ChatRequest['messages']): ChatRequest['messages'] {
+  return messages.filter((message) => {
+    if (message.role !== 'assistant') return true;
+    return message.content.trim() !== OUT_OF_SCOPE_MESSAGE;
+  });
 }
 
 function normalizeLawRef(value: string): string {
@@ -326,6 +392,27 @@ async function createChatCompletionStreamWithRetry(
   throw lastError;
 }
 
+async function createChatCompletionWithRetry(
+  openai: OpenAI,
+  params: OpenAI.Chat.ChatCompletionCreateParamsNonStreaming
+) {
+  let lastError: unknown;
+
+  for (let attempt = 1; attempt <= OPENAI_MAX_ATTEMPTS; attempt += 1) {
+    try {
+      return await openai.chat.completions.create(params);
+    } catch (error) {
+      lastError = error;
+      if (attempt >= OPENAI_MAX_ATTEMPTS || !isRetryableOpenAIError(error)) {
+        throw error;
+      }
+      await sleep(700 * attempt);
+    }
+  }
+
+  throw lastError;
+}
+
 function buildSystemPrompt(
   req: ChatRequest,
   easyMode: boolean,
@@ -396,7 +483,9 @@ function buildSystemPrompt(
    (b) 분석 데이터의 reasonReference 필드에 명시된 법령·판례
    (c) **아래 "분석 데이터에 포함된 참고 법령 요약" 또는 "🔎 Knowledge Base 검색 결과" 발췌문에 사용자 질문의 답이 직접 포함되어 있는 경우** — 이때는 명시된 내용만 사용해서 짧게 답하세요. 발췌문 밖의 일반 지식·기억·추측으로 보충하지 마세요. 발췌문이 사용자 질문과 명백히 관련 없거나 비어 있으면 (c)에 해당하지 않습니다.
 
-   **다음은 모두 정중히 거절**하고 정확히 "저는 계약서 위험 분석을 도와드리는 아르디예요. 계약 조항에 대해 궁금한 점을 물어봐 주세요!"라고만 답하세요 (다른 부연 설명 X):
+   **중요**: 현재 선택된 조항이 있고 사용자가 "쉽게 설명", "왜 위험해", "어떻게 바꿔", "이거 뭐야"처럼 짧게 물으면 무조건 (a)에 해당합니다. KB 검색 결과가 비어 있어도 거절하지 말고 현재 선택 조항의 원문·위험 이유·수정 제안만 사용해 답하세요.
+
+   **다음은 모두 정중히 거절**하고 정확히 "${OUT_OF_SCOPE_MESSAGE}"라고만 답하세요 (다른 부연 설명 X):
    - 위 (a)~(c) 어디에도 해당하지 않는 일반 법률·판례 질문 (특히 KB 검색 결과가 비어 있거나 질문과 무관한 경우)
    - 분석 데이터 안에 없고 KB 검색 결과로도 뒷받침되지 않는 외부 판례·법령 검색 ("비슷한 판례 알려줘", "다른 판결은?", "관련 판례 뭐가 있어?")
    - 요리법, 일반 상식, 코딩, 잡담, 다른 사이트 이용법 등 비계약 주제
@@ -418,7 +507,7 @@ ${selectedSection}${knownLawBlock}${retrievedBlock}${citationBlock}${switchNotic
 export async function POST(req: NextRequest) {
   let body: ChatRequest;
   try {
-    body = await req.json();
+    body = normalizeRequest(await req.json());
   } catch {
     return chatbotErrorResponse(400, 'BAD_REQUEST', '질문 형식을 읽지 못했어요. 화면을 새로고침한 뒤 다시 시도해주세요.', false);
   }
@@ -434,6 +523,16 @@ export async function POST(req: NextRequest) {
     [...body.messages].reverse().find((m) => m.role === 'user')?.content ?? '';
   const retrievalQuery = buildRetrievalQuery(body, lastUserMessage);
   const requestedLawRef = extractRequestedLawRef(lastUserMessage);
+  const directLawAnswer = requestedLawRef ? buildDirectLawAnswer(requestedLawRef, body.selectedToxic) : null;
+  if (directLawAnswer) {
+    return new Response(directLawAnswer, {
+      headers: {
+        'Content-Type': 'text/plain; charset=utf-8',
+        'Cache-Control': 'no-cache',
+      },
+    });
+  }
+
   const contractType = requestedLawRef ? 'unknown' : inferContractType(body);
   const shouldRetrieve = !easyMode || !!requestedLawRef;
   const retrieved = shouldRetrieve
@@ -442,7 +541,7 @@ export async function POST(req: NextRequest) {
   const systemPrompt = buildSystemPrompt(body, easyMode, retrieved, lastUserMessage);
   const messages: OpenAI.Chat.ChatCompletionMessageParam[] = [
     { role: 'system', content: systemPrompt },
-    ...body.messages.map((m) => ({
+    ...stripOutOfScopeHistory(body.messages).map((m) => ({
       role: m.role as 'user' | 'assistant',
       content: m.content,
     })),
@@ -455,6 +554,38 @@ export async function POST(req: NextRequest) {
     const last = messages[lastIdx];
     if (last?.role === 'user' && typeof last.content === 'string') {
       last.content = `[참고: 사용자가 방금 "${body.selectedToxic.title}" 조항으로 전환했습니다. 이 질문은 이전 대화 주제가 아니라 위 조항에 대한 것입니다.]\n${last.content}`;
+    }
+  }
+
+  if (easyMode && body.selectedToxic) {
+    const fallback = buildDirectEasyAnswer(body.selectedToxic);
+    try {
+      const completion = await createChatCompletionWithRetry(openai, {
+        model: 'gpt-4o-mini',
+        messages,
+        stream: false,
+        max_tokens: 400,
+        temperature: 0.2,
+      });
+      const answer = completion.choices[0]?.message?.content?.trim() ?? '';
+      return new Response(answer && !isOutOfScopeAnswer(answer) ? answer : fallback, {
+        headers: {
+          'Content-Type': 'text/plain; charset=utf-8',
+          'Cache-Control': 'no-cache',
+        },
+      });
+    } catch (error) {
+      console.error('[chatbot] OpenAI easy-mode request failed:', error);
+      if (fallback) {
+        return new Response(fallback, {
+          headers: {
+            'Content-Type': 'text/plain; charset=utf-8',
+            'Cache-Control': 'no-cache',
+          },
+        });
+      }
+      const classified = classifyOpenAIError(error);
+      return chatbotErrorResponse(classified.status, classified.code, classified.message, classified.retryable);
     }
   }
 
