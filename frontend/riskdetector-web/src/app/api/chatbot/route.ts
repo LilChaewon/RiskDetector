@@ -114,6 +114,10 @@ function buildDirectEasyAnswer(selectedToxic?: ToxicSlim): string | null {
   return lines.join('\n');
 }
 
+function isOutOfScopeAnswer(answer: string): boolean {
+  return answer.trim() === OUT_OF_SCOPE_MESSAGE;
+}
+
 function stripOutOfScopeHistory(messages: ChatRequest['messages']): ChatRequest['messages'] {
   return messages.filter((message) => {
     if (message.role !== 'assistant') return true;
@@ -364,6 +368,27 @@ async function createChatCompletionStreamWithRetry(
   throw lastError;
 }
 
+async function createChatCompletionWithRetry(
+  openai: OpenAI,
+  params: OpenAI.Chat.ChatCompletionCreateParamsNonStreaming
+) {
+  let lastError: unknown;
+
+  for (let attempt = 1; attempt <= OPENAI_MAX_ATTEMPTS; attempt += 1) {
+    try {
+      return await openai.chat.completions.create(params);
+    } catch (error) {
+      lastError = error;
+      if (attempt >= OPENAI_MAX_ATTEMPTS || !isRetryableOpenAIError(error)) {
+        throw error;
+      }
+      await sleep(700 * attempt);
+    }
+  }
+
+  throw lastError;
+}
+
 function buildSystemPrompt(
   req: ChatRequest,
   easyMode: boolean,
@@ -472,16 +497,6 @@ export async function POST(req: NextRequest) {
   const easyMode = isEasyMode(body.messages);
   const lastUserMessage =
     [...body.messages].reverse().find((m) => m.role === 'user')?.content ?? '';
-  const directEasyAnswer = easyMode ? buildDirectEasyAnswer(body.selectedToxic) : null;
-  if (directEasyAnswer) {
-    return new Response(directEasyAnswer, {
-      headers: {
-        'Content-Type': 'text/plain; charset=utf-8',
-        'Cache-Control': 'no-cache',
-      },
-    });
-  }
-
   const retrievalQuery = buildRetrievalQuery(body, lastUserMessage);
   const requestedLawRef = extractRequestedLawRef(lastUserMessage);
   const contractType = requestedLawRef ? 'unknown' : inferContractType(body);
@@ -505,6 +520,38 @@ export async function POST(req: NextRequest) {
     const last = messages[lastIdx];
     if (last?.role === 'user' && typeof last.content === 'string') {
       last.content = `[참고: 사용자가 방금 "${body.selectedToxic.title}" 조항으로 전환했습니다. 이 질문은 이전 대화 주제가 아니라 위 조항에 대한 것입니다.]\n${last.content}`;
+    }
+  }
+
+  if (easyMode && body.selectedToxic) {
+    const fallback = buildDirectEasyAnswer(body.selectedToxic);
+    try {
+      const completion = await createChatCompletionWithRetry(openai, {
+        model: 'gpt-4o-mini',
+        messages,
+        stream: false,
+        max_tokens: 400,
+        temperature: 0.2,
+      });
+      const answer = completion.choices[0]?.message?.content?.trim() ?? '';
+      return new Response(answer && !isOutOfScopeAnswer(answer) ? answer : fallback, {
+        headers: {
+          'Content-Type': 'text/plain; charset=utf-8',
+          'Cache-Control': 'no-cache',
+        },
+      });
+    } catch (error) {
+      console.error('[chatbot] OpenAI easy-mode request failed:', error);
+      if (fallback) {
+        return new Response(fallback, {
+          headers: {
+            'Content-Type': 'text/plain; charset=utf-8',
+            'Cache-Control': 'no-cache',
+          },
+        });
+      }
+      const classified = classifyOpenAIError(error);
+      return chatbotErrorResponse(classified.status, classified.code, classified.message, classified.retryable);
     }
   }
 
