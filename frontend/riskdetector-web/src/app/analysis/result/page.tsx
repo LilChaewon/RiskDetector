@@ -275,11 +275,6 @@ function filterMatches(filter: FilterKey, matches: ToxicMatch[]) {
   return matches.some(({ toxic }) => toxic.warnLevel === 2);
 }
 
-function firstAdvice(value?: string) {
-  if (!value) return '';
-  return value.split(/\s*\/\s*/).map((item) => item.trim()).filter(Boolean)[0] || value;
-}
-
 function fallbackOriginBlocks(originContent: string): OcrBlock[] {
   if (!originContent) return [];
   if (typeof window === 'undefined') {
@@ -547,7 +542,6 @@ function AnalysisResultContent() {
               <aside className="rd-context-panel rd-result-context-panel">
                 <ClauseContext
                   toxic={selected}
-                  advice={data.riskdetectorCommentary?.advice}
                   onClear={() => setSelectedIndex(null)}
                   onAskArdi={() => setChatbotOpen(true)}
                 />
@@ -559,7 +553,6 @@ function AnalysisResultContent() {
               <div className="rd-mobile-sheet rd-result-sheet" onClick={(event) => event.stopPropagation()}>
                 <ClauseContext
                   toxic={selected}
-                  advice={data.riskdetectorCommentary?.advice}
                   onClear={() => { setSelectedIndex(null); setMobileContextOpen(false); }}
                   onAskArdi={() => setChatbotOpen(true)}
                 />
@@ -576,6 +569,7 @@ function AnalysisResultContent() {
         warningCount={warningCount}
         analysisData={data ? {
           title: data.title,
+          contractType: data.contractType,
           toxics: data.toxics,
           overallComment: data.riskdetectorCommentary?.overallComment,
         } : undefined}
@@ -584,7 +578,7 @@ function AnalysisResultContent() {
   );
 }
 
-function ClauseContext({ toxic, advice, onClear, onAskArdi }: { toxic?: Toxic; advice?: string; onClear?: () => void; onAskArdi?: () => void }) {
+function ClauseContext({ toxic, onClear, onAskArdi }: { toxic?: Toxic; onClear?: () => void; onAskArdi?: () => void }) {
   if (!toxic) {
     return (
       <div className="rd-context-empty">

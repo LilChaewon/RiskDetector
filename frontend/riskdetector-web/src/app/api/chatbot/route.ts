@@ -17,6 +17,7 @@ interface ChatRequest {
   selectedToxic?: ToxicSlim;
   allToxics?: ToxicSlim[];
   contractTitle?: string;
+  contractType?: string;
   overallComment?: string;
   clauseSwitched?: boolean;
 }
@@ -40,8 +41,21 @@ const BACKEND_URL = process.env.BACKEND_API_URL || process.env.NEXT_PUBLIC_API_U
 const RETRIEVE_ENDPOINT = `${BACKEND_URL.replace(/\/$/, '')}/api/chatbot/retrieve`;
 const RETRIEVE_TIMEOUT_MS = 4000;
 const RETRIEVE_TOP_K = 4;
+const SUGGESTION_MARKER = '[RD_SUGGESTION]';
 
 const EASY_MODE_PATTERN = /(쉽게|쉬운\s*말|쉬운말|풀어서|풀어\s*서|초딩|초등학생|이해\s*안)/;
+const LAW_REF_PATTERN = /(민법|상법|형법|근로기준법|저작권법|주택임대차보호법|상가건물\s*임대차보호법)\s*제\s*(\d+)\s*조(?:\s*제\s*(\d+)\s*항)?/;
+const CITATION_REGEX = /(민법|상법|형법|근로기준법|저작권법|주택임대차보호법|상가건물\s*임대차보호법)\s*제\s*\d+\s*조(?:\s*제\s*\d+\s*항)?|\d{4}\s*[다가나허누]\s*\d+/g;
+
+const KNOWN_LAW_CONTEXT: Record<string, string> = {
+  '민법 제623조': '임대인은 임차인이 목적물을 사용·수익할 수 있도록 넘겨주고, 계약 기간 동안 필요한 상태를 유지해야 한다는 임대인의 기본 의무 조항입니다.',
+  '민법 제398조': '계약에서 손해배상액을 미리 정할 수 있지만, 예정액이 부당하게 과다하면 법원이 감액할 수 있다는 조항입니다.',
+  '민법 제103조': '선량한 풍속이나 사회질서에 반하는 법률행위는 무효가 된다는 조항입니다.',
+  '민법 제104조': '상대방의 궁박·경솔·무경험을 이용해 현저하게 공정성을 잃은 법률행위는 무효가 될 수 있다는 조항입니다.',
+  '근로기준법 제17조': '근로계약을 맺을 때 임금, 소정근로시간, 휴일, 연차 유급휴가 등 중요한 근로조건을 명시하고, 임금 구성·계산·지급방법 등 핵심 조건은 서면으로 교부하도록 하는 조항입니다.',
+  '저작권법 제45조': '저작재산권은 전부 또는 일부를 양도할 수 있지만, 권리 범위가 불명확하면 2차적저작물작성권은 양도되지 않은 것으로 추정된다는 조항입니다.',
+  '주택임대차보호법 제7조': '차임이나 보증금이 경제 사정 변화 등으로 적절하지 않게 된 경우 당사자가 증감을 청구할 수 있다는 조항입니다.',
+};
 
 function isEasyMode(messages: { role: string; content: string }[]): boolean {
   const lastUser = [...messages].reverse().find((m) => m.role === 'user');
@@ -58,14 +72,55 @@ function warnLabel(level?: number) {
   return '안전';
 }
 
-const CITATION_REGEX = /(민법|상법|형법|근로기준법|저작권법|주택임대차보호법|상가건물\s*임대차보호법)\s*제\s*\d+\s*조(?:\s*제\s*\d+\s*항)?|\d{4}\s*[다가나허누]\s*\d+/g;
+function normalizeLawRef(value: string): string {
+  const match = value.match(LAW_REF_PATTERN);
+  if (!match) return value.replace(/\s+/g, ' ').trim();
+  return `${match[1].replace(/\s+/g, '')} 제${match[2]}조${match[3] ? ` 제${match[3]}항` : ''}`;
+}
+
+function splitReasonReference(value?: string) {
+  const raw = value ?? '';
+  const markerIndex = raw.indexOf(SUGGESTION_MARKER);
+  if (markerIndex < 0) {
+    return { reference: raw.trim(), suggestion: '' };
+  }
+
+  return {
+    reference: raw.slice(0, markerIndex).trim(),
+    suggestion: raw.slice(markerIndex + SUGGESTION_MARKER.length).trim(),
+  };
+}
+
+function normalizeToxic(toxic?: ToxicSlim): ToxicSlim | undefined {
+  if (!toxic) return undefined;
+  const parsed = splitReasonReference(toxic.reasonReference);
+  return {
+    ...toxic,
+    reasonReference: parsed.reference || toxic.reasonReference,
+    suggestion: hasField(toxic.suggestion) ? toxic.suggestion : parsed.suggestion || toxic.suggestion,
+  };
+}
+
+function normalizeRequest(req: ChatRequest): ChatRequest {
+  return {
+    ...req,
+    selectedToxic: normalizeToxic(req.selectedToxic),
+    allToxics: (req.allToxics ?? []).map((toxic) => normalizeToxic(toxic) ?? toxic),
+  };
+}
+
+function extractRequestedLawRef(message: string): string | null {
+  const match = message.match(LAW_REF_PATTERN);
+  if (!match) return null;
+  return normalizeLawRef(match[0]);
+}
 
 function collectAllowedCitations(req: ChatRequest, retrieved: RetrievedItem[]): string[] {
   const refs = new Set<string>();
   const add = (s?: string) => {
     if (!s) return;
     const matches = s.match(CITATION_REGEX);
-    if (matches) matches.forEach((m) => refs.add(m.replace(/\s+/g, ' ').trim()));
+    if (matches) matches.forEach((m) => refs.add(LAW_REF_PATTERN.test(m) ? normalizeLawRef(m) : m.replace(/\s+/g, ' ').trim()));
   };
   add(req.selectedToxic?.reasonReference);
   add(req.selectedToxic?.reason);
@@ -82,6 +137,9 @@ function collectAllowedCitations(req: ChatRequest, retrieved: RetrievedItem[]): 
 }
 
 function inferContractType(req: ChatRequest): string {
+  const explicitType = normalizeContractType(req.contractType);
+  if (explicitType) return explicitType;
+
   const haystack = `${req.contractTitle ?? ''} ${req.overallComment ?? ''} ${
     req.selectedToxic?.clause ?? ''
   } ${(req.allToxics ?? []).map((t) => t.clause ?? '').join(' ')}`;
@@ -91,7 +149,22 @@ function inferContractType(req: ChatRequest): string {
   return 'unknown';
 }
 
+function normalizeContractType(raw?: string): string | null {
+  const normalized = (raw ?? '').trim().toLowerCase();
+  if (!normalized) return null;
+  if (['labor', 'employment', 'work'].includes(normalized)) return 'labor';
+  if (['lease', 'rental', 'rent'].includes(normalized)) return 'lease';
+  if (['entertainment', 'artist', 'management'].includes(normalized)) return 'entertainment';
+  return normalized;
+}
+
 function buildRetrievalQuery(req: ChatRequest, lastUserMessage: string): string {
+  const requestedLawRef = extractRequestedLawRef(lastUserMessage);
+  if (requestedLawRef) {
+    const knownContext = KNOWN_LAW_CONTEXT[requestedLawRef];
+    return [requestedLawRef, knownContext, lastUserMessage].filter(Boolean).join(' ').slice(0, 1400);
+  }
+
   const parts: string[] = [];
   if (req.selectedToxic?.clause) parts.push(req.selectedToxic.clause);
   if (req.selectedToxic?.title) parts.push(req.selectedToxic.title);
@@ -112,7 +185,11 @@ async function fetchRetrievedContext(
     const res = await fetch(RETRIEVE_ENDPOINT, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ query, contractType, topK: RETRIEVE_TOP_K }),
+      body: JSON.stringify({
+        query,
+        ...(contractType !== 'unknown' ? { contractType } : {}),
+        topK: RETRIEVE_TOP_K,
+      }),
       signal: controller.signal,
     });
     if (!res.ok) return [];
@@ -136,11 +213,29 @@ function buildRetrievedContextBlock(retrieved: RetrievedItem[]): string {
   return `\n\n## 🔎 Knowledge Base 검색 결과 (이 발췌문을 우선 근거로 사용)\n사용자의 질문과 관련해 법령·판례·생활법령 DB에서 자동 검색한 결과입니다. 답변에 인용하거나 근거로 사용할 때 반드시 이 발췌문에 명시된 내용만 사용하세요. 발췌문에 없는 사실은 추측하지 마세요.\n\n${lines.join('\n\n')}`;
 }
 
-function buildSystemPrompt(req: ChatRequest, easyMode: boolean, retrieved: RetrievedItem[]): string {
+function buildKnownLawContextBlock(allowedCitations: string[]): string {
+  const lines = allowedCitations
+    .map((citation) => {
+      const baseCitation = citation.replace(/\s제\d+항$/, '');
+      const context = KNOWN_LAW_CONTEXT[citation] ?? KNOWN_LAW_CONTEXT[baseCitation];
+      return context ? `- ${citation}: ${context}` : '';
+    })
+    .filter(Boolean);
+
+  if (lines.length === 0) return '';
+  return `\n\n## 분석 데이터에 포함된 참고 법령 요약\n아래 법령은 현재 분석 결과나 사용자의 질문에 포함된 참고 법령입니다. 사용자가 이 법령의 의미를 물으면 이 요약 범위 안에서 답하세요.\n${lines.join('\n')}`;
+}
+
+function buildSystemPrompt(req: ChatRequest, easyMode: boolean, retrieved: RetrievedItem[], lastUserMessage: string): string {
   const { selectedToxic, allToxics = [], contractTitle, overallComment, clauseSwitched } = req;
 
-  const allowedCitations = collectAllowedCitations(req, retrieved);
+  const requestedLawRef = extractRequestedLawRef(lastUserMessage);
+  const allowedCitations = Array.from(new Set([
+    ...collectAllowedCitations(req, retrieved),
+    ...(requestedLawRef ? [requestedLawRef] : []),
+  ]));
   const retrievedBlock = buildRetrievedContextBlock(retrieved);
+  const knownLawBlock = buildKnownLawContextBlock(allowedCitations);
   const citationBlock =
     allowedCitations.length > 0
       ? `\n\n## 인용 가능한 법령·판례 (이 목록 외 인용 금지)\n${allowedCitations.map((c) => `- ${c}`).join('\n')}`
@@ -149,6 +244,7 @@ function buildSystemPrompt(req: ChatRequest, easyMode: boolean, retrieved: Retri
   const toxicsList = allToxics
     .map((t, i) =>
       `${i + 1}. [${warnLabel(t.warnLevel)}] ${t.title ?? '조항'}\n   원문: ${t.clause ?? '없음'}\n   이유: ${t.reason ?? '없음'}`
+      + `\n   법적 근거: ${hasField(t.reasonReference) ? t.reasonReference : '없음'}`
     )
     .join('\n');
 
@@ -193,7 +289,7 @@ function buildSystemPrompt(req: ChatRequest, easyMode: boolean, retrieved: Retri
 1. **범위 제한**: 다음 셋 중 하나에 해당하는 경우에만 답합니다:
    (a) 현재 선택된 조항 또는 분석 데이터에 포함된 다른 조항·전체 계약에 대한 해석/위험 평가/수정 제안
    (b) 분석 데이터의 reasonReference 필드에 명시된 법령·판례
-   (c) **아래 "🔎 Knowledge Base 검색 결과" 발췌문에 사용자 질문의 답이 직접 포함되어 있는 경우** — 이때는 그 발췌문에 명시된 내용만 사용해서 짧게 답하세요. 발췌문 밖의 일반 지식·기억·추측으로 보충하지 마세요. 발췌문이 사용자 질문과 명백히 관련 없거나 비어 있으면 (c)에 해당하지 않습니다.
+   (c) **아래 "분석 데이터에 포함된 참고 법령 요약" 또는 "🔎 Knowledge Base 검색 결과" 발췌문에 사용자 질문의 답이 직접 포함되어 있는 경우** — 이때는 명시된 내용만 사용해서 짧게 답하세요. 발췌문 밖의 일반 지식·기억·추측으로 보충하지 마세요. 발췌문이 사용자 질문과 명백히 관련 없거나 비어 있으면 (c)에 해당하지 않습니다.
 
    **다음은 모두 정중히 거절**하고 정확히 "저는 계약서 위험 분석을 도와드리는 아르디예요. 계약 조항에 대해 궁금한 점을 물어봐 주세요!"라고만 답하세요 (다른 부연 설명 X):
    - 위 (a)~(c) 어디에도 해당하지 않는 일반 법률·판례 질문 (특히 KB 검색 결과가 비어 있거나 질문과 무관한 경우)
@@ -211,11 +307,11 @@ function buildSystemPrompt(req: ChatRequest, easyMode: boolean, retrieved: Retri
 
 ## 발견된 독소조항 전체 목록
 ${toxicsList || '없음'}
-${selectedSection}${retrievedBlock}${citationBlock}${switchNotice}${easyModeBlock}`;
+${selectedSection}${knownLawBlock}${retrievedBlock}${citationBlock}${switchNotice}${easyModeBlock}`;
 }
 
 export async function POST(req: NextRequest) {
-  const body: ChatRequest = await req.json();
+  const body = normalizeRequest(await req.json());
 
   const apiKey = process.env.OPENAI_API_KEY;
   if (!apiKey) {
@@ -227,9 +323,13 @@ export async function POST(req: NextRequest) {
   const lastUserMessage =
     [...body.messages].reverse().find((m) => m.role === 'user')?.content ?? '';
   const retrievalQuery = buildRetrievalQuery(body, lastUserMessage);
-  const contractType = inferContractType(body);
-  const retrieved = await fetchRetrievedContext(retrievalQuery, contractType);
-  const systemPrompt = buildSystemPrompt(body, easyMode, retrieved);
+  const requestedLawRef = extractRequestedLawRef(lastUserMessage);
+  const contractType = requestedLawRef ? 'unknown' : inferContractType(body);
+  const shouldRetrieve = !easyMode || !!requestedLawRef;
+  const retrieved = shouldRetrieve
+    ? await fetchRetrievedContext(retrievalQuery, contractType)
+    : [];
+  const systemPrompt = buildSystemPrompt(body, easyMode, retrieved, lastUserMessage);
   const messages: OpenAI.Chat.ChatCompletionMessageParam[] = [
     { role: 'system', content: systemPrompt },
     ...body.messages.map((m) => ({
