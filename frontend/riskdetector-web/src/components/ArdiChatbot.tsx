@@ -29,6 +29,7 @@ interface Message {
 
 interface AnalysisData {
   title?: string;
+  contractType?: string;
   toxics: Toxic[];
   overallComment?: string;
 }
@@ -146,6 +147,7 @@ export default function ArdiChatbot({ open, onClose, selectedToxic, warningCount
           selectedToxic,
           allToxics: analysisData?.toxics ?? [],
           contractTitle: analysisData?.title,
+          contractType: analysisData?.contractType,
           overallComment: analysisData?.overallComment,
           clauseSwitched,
         }),
