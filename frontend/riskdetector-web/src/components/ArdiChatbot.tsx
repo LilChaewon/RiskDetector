@@ -60,6 +60,21 @@ function toxicKey(t?: Toxic): string {
   return `${t.title ?? ''}::${(t.clause ?? '').slice(0, 30)}`;
 }
 
+function fallbackChatbotErrorMessage(status?: number) {
+  if (status === 400) return '질문 형식을 읽지 못했어요. 화면을 새로고침한 뒤 다시 시도해주세요.';
+  if (status === 429) return '요청이 잠시 몰려 있어요. 조금 뒤 다시 물어봐 주세요.';
+  if (status === 502) return 'AI 연결 설정에 문제가 있어요. 서버 설정을 확인해야 합니다.';
+  if (status === 503) return 'AI 서버가 잠시 준비 중이거나 불안정해요. 부팅 직후라면 1분 뒤 다시 시도해주세요.';
+  if (status === 504) return 'AI 응답이 시간 안에 도착하지 않았어요. 잠시 후 다시 시도해주세요.';
+  return '아르디 답변 생성 중 알 수 없는 오류가 발생했어요.';
+}
+
+async function chatbotErrorMessage(res: Response) {
+  const data = await res.json().catch(() => null) as { message?: string; code?: string } | null;
+  if (data?.message) return data.message;
+  return fallbackChatbotErrorMessage(res.status);
+}
+
 export default function ArdiChatbot({ open, onClose, selectedToxic, warningCount = 0, analysisData }: ArdiChatbotProps) {
   void warningCount;
   const [messages, setMessages] = useState<Message[]>([]);
@@ -131,8 +146,12 @@ export default function ArdiChatbot({ open, onClose, selectedToxic, warningCount
 
       lastSentToxicKeyRef.current = currentKey;
 
-      if (!res.ok || !res.body) {
-        throw new Error(`API error ${res.status}`);
+      if (!res.ok) {
+        throw new Error(await chatbotErrorMessage(res));
+      }
+
+      if (!res.body) {
+        throw new Error('AI 응답 스트림을 열지 못했어요. 잠시 후 다시 시도해주세요.');
       }
 
       const reader = res.body.getReader();
@@ -155,10 +174,11 @@ export default function ArdiChatbot({ open, onClose, selectedToxic, warningCount
       );
     } catch (err: unknown) {
       if (err instanceof Error && err.name === 'AbortError') return;
+      const message = err instanceof Error ? err.message : fallbackChatbotErrorMessage();
       setMessages((prev) =>
         prev.map((m) =>
           m.id === aiId
-            ? { ...m, content: '잠시 후 다시 시도해주세요.', streaming: false }
+            ? { ...m, content: message, streaming: false }
             : m
         )
       );

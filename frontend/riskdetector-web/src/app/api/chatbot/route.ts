@@ -36,6 +36,16 @@ interface ChatbotRetrieveResponse {
   results?: RetrievedItem[];
 }
 
+type ChatbotErrorCode =
+  | 'CONFIG_MISSING'
+  | 'BAD_REQUEST'
+  | 'OPENAI_AUTH'
+  | 'OPENAI_RATE_LIMIT'
+  | 'OPENAI_TIMEOUT'
+  | 'OPENAI_UNAVAILABLE'
+  | 'STREAM_FAILED'
+  | 'UNKNOWN';
+
 const BACKEND_URL = process.env.BACKEND_API_URL || process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8080';
 const RETRIEVE_ENDPOINT = `${BACKEND_URL.replace(/\/$/, '')}/api/chatbot/retrieve`;
 const RETRIEVE_TIMEOUT_MS = 4000;
@@ -136,6 +146,56 @@ function buildRetrievedContextBlock(retrieved: RetrievedItem[]): string {
   return `\n\n## 🔎 Knowledge Base 검색 결과 (이 발췌문을 우선 근거로 사용)\n사용자의 질문과 관련해 법령·판례·생활법령 DB에서 자동 검색한 결과입니다. 답변에 인용하거나 근거로 사용할 때 반드시 이 발췌문에 명시된 내용만 사용하세요. 발췌문에 없는 사실은 추측하지 마세요.\n\n${lines.join('\n\n')}`;
 }
 
+function chatbotErrorResponse(status: number, code: ChatbotErrorCode, message: string, retryable = true) {
+  return Response.json({ code, message, retryable }, { status });
+}
+
+function classifyOpenAIError(error: unknown): { status: number; code: ChatbotErrorCode; message: string; retryable: boolean } {
+  const err = error as { status?: number; code?: string; name?: string; message?: string };
+  const status = err.status ?? 500;
+  const message = err.message ?? '';
+
+  if (status === 401 || status === 403) {
+    return {
+      status: 502,
+      code: 'OPENAI_AUTH',
+      message: 'AI 연결 인증 설정에 문제가 있어요. 서버 환경변수를 확인해야 합니다.',
+      retryable: false,
+    };
+  }
+  if (status === 429) {
+    return {
+      status: 429,
+      code: 'OPENAI_RATE_LIMIT',
+      message: 'AI 요청이 잠시 몰려 답변이 지연되고 있어요. 조금 뒤 다시 시도해주세요.',
+      retryable: true,
+    };
+  }
+  if (status === 408 || err.code === 'ETIMEDOUT' || err.name === 'TimeoutError' || /timeout|timed out/i.test(message)) {
+    return {
+      status: 504,
+      code: 'OPENAI_TIMEOUT',
+      message: 'AI 서버 응답이 시간 안에 도착하지 않았어요. 부팅 직후라면 1분 정도 뒤 다시 시도해주세요.',
+      retryable: true,
+    };
+  }
+  if (status >= 500) {
+    return {
+      status: 503,
+      code: 'OPENAI_UNAVAILABLE',
+      message: 'AI 서버가 잠시 불안정해요. 잠깐 후 다시 물어봐 주세요.',
+      retryable: true,
+    };
+  }
+
+  return {
+    status: 500,
+    code: 'UNKNOWN',
+    message: '아르디 답변 생성 중 알 수 없는 오류가 발생했어요.',
+    retryable: true,
+  };
+}
+
 function buildSystemPrompt(req: ChatRequest, easyMode: boolean, retrieved: RetrievedItem[]): string {
   const { selectedToxic, allToxics = [], contractTitle, overallComment, clauseSwitched } = req;
 
@@ -215,11 +275,16 @@ ${selectedSection}${retrievedBlock}${citationBlock}${switchNotice}${easyModeBloc
 }
 
 export async function POST(req: NextRequest) {
-  const body: ChatRequest = await req.json();
+  let body: ChatRequest;
+  try {
+    body = await req.json();
+  } catch {
+    return chatbotErrorResponse(400, 'BAD_REQUEST', '질문 형식을 읽지 못했어요. 화면을 새로고침한 뒤 다시 시도해주세요.', false);
+  }
 
   const apiKey = process.env.OPENAI_API_KEY;
   if (!apiKey) {
-    return new Response('OPENAI_API_KEY가 설정되지 않았습니다.', { status: 500 });
+    return chatbotErrorResponse(500, 'CONFIG_MISSING', 'AI 연결 설정이 아직 준비되지 않았어요. 서버의 OPENAI_API_KEY 설정이 필요합니다.', false);
   }
 
   const openai = new OpenAI({ apiKey });
@@ -248,13 +313,20 @@ export async function POST(req: NextRequest) {
     }
   }
 
-  const stream = await openai.chat.completions.create({
-    model: 'gpt-4o-mini',
-    messages,
-    stream: true,
-    max_tokens: easyMode ? 400 : 800,
-    temperature: 0.2,
-  });
+  let stream: AsyncIterable<OpenAI.Chat.ChatCompletionChunk>;
+  try {
+    stream = await openai.chat.completions.create({
+      model: 'gpt-4o-mini',
+      messages,
+      stream: true,
+      max_tokens: easyMode ? 400 : 800,
+      temperature: 0.2,
+    });
+  } catch (error) {
+    console.error('[chatbot] OpenAI request failed:', error);
+    const classified = classifyOpenAIError(error);
+    return chatbotErrorResponse(classified.status, classified.code, classified.message, classified.retryable);
+  }
 
   const encoder = new TextEncoder();
   const readable = new ReadableStream({
@@ -266,8 +338,10 @@ export async function POST(req: NextRequest) {
             controller.enqueue(encoder.encode(delta));
           }
         }
-      } finally {
         controller.close();
+      } catch (error) {
+        console.error('[chatbot] OpenAI stream failed:', error);
+        controller.error(error);
       }
     },
   });
