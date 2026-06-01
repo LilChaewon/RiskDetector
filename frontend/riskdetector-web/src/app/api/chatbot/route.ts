@@ -114,6 +114,30 @@ function buildDirectEasyAnswer(selectedToxic?: ToxicSlim): string | null {
   return lines.join('\n');
 }
 
+function buildDirectLawAnswer(lawRef: string, selectedToxic?: ToxicSlim): string | null {
+  const context = KNOWN_LAW_CONTEXT[lawRef];
+  if (!context) return null;
+
+  const reason = compactText(selectedToxic?.reason, 140);
+  const suggestion = compactText(selectedToxic?.suggestion, 140);
+  const lines = [
+    `${lawRef}는 ${context}`,
+    reason
+      ? `지금 선택한 조항에서는 ${reason}`
+      : '지금 선택한 조항과 연결해서 보면, 계약서에 정한 부담이 실제 손해나 공정한 범위를 넘는지 확인하는 기준으로 쓰입니다.',
+  ];
+
+  if (lawRef === '민법 제398조') {
+    lines.push('쉽게 말하면 계약서에 벌금처럼 큰 배상액을 미리 써놨어도, 그 금액이 지나치게 크면 법원이 줄일 수 있다는 뜻이에요.');
+  }
+
+  if (suggestion) {
+    lines.push(`그래서 수정 방향은 ${suggestion}`);
+  }
+
+  return lines.join('\n');
+}
+
 function isOutOfScopeAnswer(answer: string): boolean {
   return answer.trim() === OUT_OF_SCOPE_MESSAGE;
 }
@@ -483,7 +507,7 @@ ${selectedSection}${knownLawBlock}${retrievedBlock}${citationBlock}${switchNotic
 export async function POST(req: NextRequest) {
   let body: ChatRequest;
   try {
-    body = await req.json();
+    body = normalizeRequest(await req.json());
   } catch {
     return chatbotErrorResponse(400, 'BAD_REQUEST', '질문 형식을 읽지 못했어요. 화면을 새로고침한 뒤 다시 시도해주세요.', false);
   }
@@ -499,6 +523,16 @@ export async function POST(req: NextRequest) {
     [...body.messages].reverse().find((m) => m.role === 'user')?.content ?? '';
   const retrievalQuery = buildRetrievalQuery(body, lastUserMessage);
   const requestedLawRef = extractRequestedLawRef(lastUserMessage);
+  const directLawAnswer = requestedLawRef ? buildDirectLawAnswer(requestedLawRef, body.selectedToxic) : null;
+  if (directLawAnswer) {
+    return new Response(directLawAnswer, {
+      headers: {
+        'Content-Type': 'text/plain; charset=utf-8',
+        'Cache-Control': 'no-cache',
+      },
+    });
+  }
+
   const contractType = requestedLawRef ? 'unknown' : inferContractType(body);
   const shouldRetrieve = !easyMode || !!requestedLawRef;
   const retrieved = shouldRetrieve
