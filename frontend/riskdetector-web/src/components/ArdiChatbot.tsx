@@ -23,6 +23,7 @@ interface Message {
   id: string;
   role: 'user' | 'assistant';
   content: string;
+  citationRef?: string;
   variant?: ArdiVariant;
   streaming?: boolean;
 }
@@ -137,11 +138,12 @@ export default function ArdiChatbot({ open, onClose, selectedToxic, warningCount
     const userMsg: Message = { id: Date.now().toString(), role: 'user', content: text };
     const aiId = (Date.now() + 1).toString();
     const variant = variantFromQuestion(text);
+    const citationRef = selectedToxic?.reasonReference;
 
     setMessages((prev) => [
       ...prev,
       userMsg,
-      { id: aiId, role: 'assistant', content: '', variant, streaming: true },
+      { id: aiId, role: 'assistant', content: '', citationRef, variant, streaming: true },
     ]);
     setInput('');
     setStreaming(true);
@@ -292,7 +294,7 @@ export default function ArdiChatbot({ open, onClose, selectedToxic, warningCount
                     <div className="ardi-ai-bubble">
                       <span style={{ whiteSpace: 'pre-wrap' }}>{msg.content}</span>
                       {!msg.streaming && (() => {
-                        const cite = extractCitation(msg.content, selectedToxic?.reasonReference);
+                        const cite = extractCitation(msg.content, msg.citationRef);
                         return cite ? (
                           <div className="ardi-citation">
                             <BookOpen size={11} className="ardi-citation-icon" />
