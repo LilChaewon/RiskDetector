@@ -50,6 +50,7 @@ const BACKEND_URL = process.env.BACKEND_API_URL || process.env.NEXT_PUBLIC_API_U
 const RETRIEVE_ENDPOINT = `${BACKEND_URL.replace(/\/$/, '')}/api/chatbot/retrieve`;
 const RETRIEVE_TIMEOUT_MS = 4000;
 const RETRIEVE_TOP_K = 4;
+const OPENAI_MAX_ATTEMPTS = 3;
 
 const EASY_MODE_PATTERN = /(쉽게|쉬운\s*말|쉬운말|풀어서|풀어\s*서|초딩|초등학생|이해\s*안)/;
 
@@ -196,6 +197,45 @@ function classifyOpenAIError(error: unknown): { status: number; code: ChatbotErr
   };
 }
 
+function sleep(ms: number) {
+  return new Promise((resolve) => setTimeout(resolve, ms));
+}
+
+function isRetryableOpenAIError(error: unknown) {
+  const err = error as { status?: number; code?: string; name?: string; message?: string };
+  const message = err.message ?? '';
+  return (
+    err.status === 408 ||
+    err.status === 409 ||
+    err.status === 429 ||
+    (typeof err.status === 'number' && err.status >= 500) ||
+    err.code === 'ETIMEDOUT' ||
+    err.name === 'TimeoutError' ||
+    /timeout|timed out|fetch failed|socket|ECONNRESET/i.test(message)
+  );
+}
+
+async function createChatCompletionStreamWithRetry(
+  openai: OpenAI,
+  params: OpenAI.Chat.ChatCompletionCreateParamsStreaming
+) {
+  let lastError: unknown;
+
+  for (let attempt = 1; attempt <= OPENAI_MAX_ATTEMPTS; attempt += 1) {
+    try {
+      return await openai.chat.completions.create(params);
+    } catch (error) {
+      lastError = error;
+      if (attempt >= OPENAI_MAX_ATTEMPTS || !isRetryableOpenAIError(error)) {
+        throw error;
+      }
+      await sleep(700 * attempt);
+    }
+  }
+
+  throw lastError;
+}
+
 function buildSystemPrompt(req: ChatRequest, easyMode: boolean, retrieved: RetrievedItem[]): string {
   const { selectedToxic, allToxics = [], contractTitle, overallComment, clauseSwitched } = req;
 
@@ -315,7 +355,7 @@ export async function POST(req: NextRequest) {
 
   let stream: AsyncIterable<OpenAI.Chat.ChatCompletionChunk>;
   try {
-    stream = await openai.chat.completions.create({
+    stream = await createChatCompletionStreamWithRetry(openai, {
       model: 'gpt-4o-mini',
       messages,
       stream: true,

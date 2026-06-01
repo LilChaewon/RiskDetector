@@ -94,6 +94,13 @@ export default function ArdiChatbot({ open, onClose, selectedToxic, warningCount
     messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
   }, [messages]);
 
+  useEffect(() => {
+    if (!open) return;
+    fetch('/api/chatbot/warmup', { method: 'GET', cache: 'no-store' }).catch((err) => {
+      console.warn('chatbot warmup failed:', err);
+    });
+  }, [open]);
+
   // 챗 닫을 때 진행 중인 스트림 중단
   function handleClose() {
     abortRef.current?.abort();
