@@ -97,7 +97,9 @@ export default function UploadPage() {
     setError(null);
     try {
       const files = staged.map((item) => item.file);
+      console.log('[submitStaged] staged files:', files.map((f) => ({ name: f.name, type: f.type, size: f.size })));
       const uploadFiles = await expandPdfFiles(files);
+      console.log('[submitStaged] after expand: count =', uploadFiles.length, uploadFiles.map((f) => f.name));
       await handleUpload(uploadFiles);
     } catch (err) {
       console.error('파일 준비 실패:', err);
@@ -378,7 +380,9 @@ async function expandPdfFiles(files: File[]) {
   const expanded: File[] = [];
 
   for (const file of files) {
-    if (isPdfFile(file)) {
+    const pdf = isPdfFile(file);
+    console.log(`[expandPdfFiles] ${file.name}: type=${file.type} isPdf=${pdf}`);
+    if (pdf) {
       expanded.push(...await pdfToImageFiles(file));
     } else {
       expanded.push(file);
