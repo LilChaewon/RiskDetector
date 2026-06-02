@@ -1,8 +1,20 @@
+import { getSupabaseBrowserClient } from '@/lib/supabase';
+
 const API_BASE = process.env.NEXT_PUBLIC_API_BASE_URL || '/api';
 const IS_MOCK = process.env.NEXT_PUBLIC_MOCK_MODE === 'true';
 
-function getToken(): string | null {
+async function getToken(): Promise<string | null> {
     if (typeof window === 'undefined') return null;
+    const supabase = getSupabaseBrowserClient();
+    if (supabase) {
+        const { data } = await supabase.auth.getSession();
+        const token = data.session?.access_token ?? null;
+        if (token) {
+            localStorage.setItem('accessToken', token);
+            localStorage.setItem('isLoggedIn', 'true');
+            return token;
+        }
+    }
     return localStorage.getItem('accessToken');
 }
 
@@ -28,7 +40,7 @@ export async function apiFetch<T>(
     const { mockData: _mockData, ...fetchOptions } = options;
     void _mockData;
 
-    const token = getToken();
+    const token = await getToken();
     const headers: Record<string, string> = {};
 
     if (!(options.body instanceof FormData)) {
@@ -47,7 +59,7 @@ export async function apiFetch<T>(
 
     const res = await fetch(`${API_BASE}${path}`, {
         ...fetchOptions,
-        credentials: 'include', // 쿠키 자동 포함 (백엔드 auth_token 처리용)
+        credentials: 'include',
         headers: { ...headers, ...(fetchOptions.headers as Record<string, string>) },
     });
 

@@ -1,7 +1,7 @@
 import OpenAI from 'openai';
 
-const BACKEND_URL = process.env.BACKEND_API_URL || process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8080';
-const RETRIEVE_ENDPOINT = `${BACKEND_URL.replace(/\/$/, '')}/api/chatbot/retrieve`;
+const API_BASE = process.env.NEXT_PUBLIC_API_BASE_URL || 'http://localhost:54321/functions/v1/rd-api';
+const RETRIEVE_ENDPOINT = `${API_BASE.replace(/\/$/, '')}/chatbot/retrieve`;
 const WARMUP_TIMEOUT_MS = 3500;
 
 async function withTimeout<T>(task: Promise<T>, timeoutMs: number): Promise<T> {

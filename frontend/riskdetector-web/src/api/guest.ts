@@ -1,5 +1,7 @@
 'use client';
 
+import { getSupabaseBrowserClient } from '@/lib/supabase';
+
 const GUEST_TOKEN = 'guest';
 const GUEST_NAME = '게스트';
 const LOGOUT_TIMEOUT_MS = 2500;
@@ -60,6 +62,10 @@ export function isGuestMode() {
 
 export function startGuestMode(apiBase: string) {
   const storage = getStorage();
+
+  getSupabaseBrowserClient()?.auth.signOut().catch((err) => {
+    console.warn('guest mode Supabase cleanup failed:', err);
+  });
 
   storage?.removeItem('refreshToken');
   storage?.removeItem('userPicture');

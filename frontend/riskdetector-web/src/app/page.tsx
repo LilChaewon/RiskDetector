@@ -15,25 +15,27 @@ const emptyDashboard: DashboardResponse = {
   featuredTips: [],
 };
 
+function initialDashboard(): DashboardResponse {
+  if (typeof window === 'undefined') return emptyDashboard;
+  const cachedName = localStorage.getItem('userName');
+  const isLoggedIn = localStorage.getItem('isLoggedIn') === 'true';
+  if (!cachedName || !isLoggedIn) return emptyDashboard;
+  return {
+    ...emptyDashboard,
+    user: {
+      name: cachedName,
+      email: localStorage.getItem('userEmail'),
+      picture: localStorage.getItem('userPicture'),
+      guest: false,
+    },
+  };
+}
+
 export default function Home() {
-  const [dashboard, setDashboard] = useState<DashboardResponse>(emptyDashboard);
+  const [dashboard, setDashboard] = useState<DashboardResponse>(() => initialDashboard());
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    const cachedName = localStorage.getItem('userName');
-    const isLoggedIn = localStorage.getItem('isLoggedIn') === 'true';
-    if (cachedName && isLoggedIn) {
-      setDashboard((prev) => ({
-        ...prev,
-        user: {
-          name: cachedName,
-          email: localStorage.getItem('userEmail'),
-          picture: localStorage.getItem('userPicture'),
-          guest: false,
-        },
-      }));
-    }
-
     getDashboard()
       .then(setDashboard)
       .catch((err) => console.error('dashboard load failed:', err))

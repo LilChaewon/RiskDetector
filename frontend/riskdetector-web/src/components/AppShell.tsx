@@ -17,6 +17,7 @@ import {
 import AuthChoiceDialog from '@/components/AuthChoiceDialog';
 import BrandBadge from '@/components/BrandBadge';
 import { isGuestMode } from '@/api/guest';
+import { getSupabaseBrowserClient } from '@/lib/supabase';
 
 const navItems = [
   { href: '/', label: '홈', icon: Home },
@@ -63,6 +64,10 @@ export default function AppShell({ children }: { children: React.ReactNode }) {
   }
 
   async function logout() {
+    await getSupabaseBrowserClient()?.auth.signOut().catch((err) => {
+      console.warn('Supabase sign-out failed:', err);
+    });
+
     await fetch(`${apiBase}/auth/logout`, {
       method: 'POST',
       credentials: 'include',

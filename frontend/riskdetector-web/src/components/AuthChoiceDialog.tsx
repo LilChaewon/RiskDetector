@@ -3,6 +3,7 @@
 import { LogIn, UserRound, X } from 'lucide-react';
 import BrandBadge from '@/components/BrandBadge';
 import { startGuestMode } from '@/api/guest';
+import { signInWithGoogle } from '@/api/auth';
 
 const apiBase = process.env.NEXT_PUBLIC_API_BASE_URL || '/api';
 
@@ -15,9 +16,8 @@ export default function AuthChoiceDialog({
   onClose?: () => void;
   required?: boolean;
 }) {
-  function handleGoogleLogin() {
-    const backendUrl = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8080';
-    window.location.href = `${backendUrl}/oauth2/authorization/google`;
+  async function handleGoogleLogin() {
+    await signInWithGoogle();
   }
 
   function handleGuestLogin() {
