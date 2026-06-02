@@ -130,14 +130,15 @@ def call_upstage_document_parse(file_bytes: bytes, filename: str, content_type: 
 
 
 def build_lambda_response(result: dict[str, Any], bucket: str, s3_key: str, page_idx: int | None) -> dict[str, Any]:
-    target_page = page_idx + 1 if page_idx is not None else None
     elements = result.get("elements", []) or []
 
+    # The caller now sends one image per page (frontend pre-splits PDFs),
+    # so each Upstage response only describes a single page. Filtering by
+    # element.page == page_idx + 1 used to drop everything except page 1.
     html_array = [
         element.get("content", {}).get("html", "")
         for element in elements
         if element.get("content", {}).get("html")
-        and (target_page is None or element.get("page") == target_page)
     ]
 
     return {
