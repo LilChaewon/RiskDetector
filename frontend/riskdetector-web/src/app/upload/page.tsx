@@ -390,10 +390,12 @@ async function expandPdfFiles(files: File[]) {
 
 async function pdfToImageFiles(file: File) {
   const pdfjs = await import('pdfjs-dist');
-  pdfjs.GlobalWorkerOptions.workerSrc = new URL('pdfjs-dist/build/pdf.worker.mjs', import.meta.url).toString();
+  const pdfjsVersion = (pdfjs as unknown as { version?: string }).version || '5.7.284';
+  pdfjs.GlobalWorkerOptions.workerSrc = `https://cdn.jsdelivr.net/npm/pdfjs-dist@${pdfjsVersion}/build/pdf.worker.min.mjs`;
 
   const data = await file.arrayBuffer();
   const pdf = await pdfjs.getDocument({ data }).promise;
+  console.log(`[pdfToImageFiles] ${file.name}: numPages=${pdf.numPages}`);
   const pages: File[] = [];
 
   for (let pageNumber = 1; pageNumber <= pdf.numPages; pageNumber += 1) {
