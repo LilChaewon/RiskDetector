@@ -43,6 +43,11 @@ def build_ssl_context() -> ssl.SSLContext | None:
     sslmode = os.getenv("DB_SSLMODE", "").strip() or "disable"
     if sslmode == "disable":
         return None
+    if sslmode in {"require", "prefer"}:
+        context = ssl.SSLContext(ssl.PROTOCOL_TLS_CLIENT)
+        context.check_hostname = False
+        context.verify_mode = ssl.CERT_NONE
+        return context
     return ssl.create_default_context()
 
 
