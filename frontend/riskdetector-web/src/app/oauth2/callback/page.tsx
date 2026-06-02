@@ -2,6 +2,7 @@
 
 import { Suspense, useEffect } from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
+import { requireSupabaseBrowserClient } from '@/lib/supabase';
 
 // useSearchParams()를 사용하는 컴포넌트는 반드시 Suspense로 감싸야 함
 function CallbackHandler() {
@@ -11,19 +12,27 @@ function CallbackHandler() {
     useEffect(() => {
         async function fetchUserAndRedirect() {
             try {
-                // 1. URL 파라미터로 토큰이 전달된 경우 localStorage에 저장
-                const tokenFromUrl = searchParams.get('token');
-                if (tokenFromUrl) {
-                    localStorage.setItem('accessToken', tokenFromUrl);
+                const supabase = requireSupabaseBrowserClient();
+                const code = searchParams.get('code');
+                if (code) {
+                    await supabase.auth.exchangeCodeForSession(code);
+                }
+
+                const { data } = await supabase.auth.getSession();
+                const token = data.session?.access_token;
+                if (token) {
+                    localStorage.setItem('accessToken', token);
+                    if (data.session?.refresh_token) {
+                        localStorage.setItem('refreshToken', data.session.refresh_token);
+                    }
                     localStorage.setItem('isLoggedIn', 'true');
                 }
 
-                // 2. 백엔드에서 유저 정보 조회
                 const apiBase = process.env.NEXT_PUBLIC_API_BASE_URL || '/api';
                 const res = await fetch(`${apiBase}/auth/me`, {
                     credentials: 'include',
-                    headers: tokenFromUrl
-                        ? { Authorization: `Bearer ${tokenFromUrl}` }
+                    headers: token
+                        ? { Authorization: `Bearer ${token}` }
                         : {},
                 });
 

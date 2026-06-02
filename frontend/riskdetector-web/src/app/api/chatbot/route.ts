@@ -47,8 +47,8 @@ type ChatbotErrorCode =
   | 'STREAM_FAILED'
   | 'UNKNOWN';
 
-const BACKEND_URL = process.env.BACKEND_API_URL || process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8080';
-const RETRIEVE_ENDPOINT = `${BACKEND_URL.replace(/\/$/, '')}/api/chatbot/retrieve`;
+const API_BASE = process.env.NEXT_PUBLIC_API_BASE_URL || 'http://localhost:54321/functions/v1/rd-api';
+const RETRIEVE_ENDPOINT = `${API_BASE.replace(/\/$/, '')}/chatbot/retrieve`;
 const RETRIEVE_TIMEOUT_MS = 4000;
 const RETRIEVE_TOP_K = 4;
 const OPENAI_MAX_ATTEMPTS = 3;

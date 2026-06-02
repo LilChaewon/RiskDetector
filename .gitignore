@@ -15,6 +15,7 @@ ai_rag/.env
 backend_ai/lambdas/bedrock_lambda/.env
 backend_ai/lambdas/ocr_lambda/.env
 !*.env.example
+!*.env.*.example
 .env.*.local
 
 # ========================
@@ -43,6 +44,7 @@ dist/
 build/
 .next/
 out/
+tmp/
 
 # ========================
 # IDE (개발 도구 설정)
@@ -59,3 +61,6 @@ out/
 Thumbs.db
 *.log
 npm-debug.log*
+
+# Supabase CLI local cache
+supabase/.temp/

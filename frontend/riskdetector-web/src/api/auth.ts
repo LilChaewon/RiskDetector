@@ -1,4 +1,4 @@
-import { apiFetch } from './client';
+import { getSupabaseBrowserClient, requireSupabaseBrowserClient } from '@/lib/supabase';
 
 interface AuthResponse {
     accessToken: string;
@@ -6,54 +6,64 @@ interface AuthResponse {
     isNewUser: boolean;
 }
 
-// 회원가입
-export async function signup(email: string, password: string, name: string) {
-    const res = await apiFetch<{ success: boolean; data: AuthResponse }>(
-        '/auth/signup',
-        {
-            method: 'POST',
-            body: JSON.stringify({ email, password, name }),
-            mockData: {
-                success: true,
-                data: {
-                    accessToken: 'mock-token-' + Date.now(),
-                    refreshToken: 'mock-refresh-' + Date.now(),
-                    isNewUser: true
-                }
-            }
-        }
-    );
+function persistSession(accessToken?: string, refreshToken?: string | null, isNewUser = false) {
+    if (!accessToken) return;
+    localStorage.setItem('accessToken', accessToken);
+    if (refreshToken) localStorage.setItem('refreshToken', refreshToken);
+    localStorage.setItem('isLoggedIn', 'true');
+    return {
+        accessToken,
+        refreshToken: refreshToken || '',
+        isNewUser,
+    };
+}
 
-    localStorage.setItem('accessToken', res.data.accessToken);
-    localStorage.setItem('refreshToken', res.data.refreshToken);
-    return res.data;
+// 회원가입
+export async function signup(email: string, password: string, name: string): Promise<AuthResponse> {
+    const supabase = requireSupabaseBrowserClient();
+    const { data, error } = await supabase.auth.signUp({
+        email,
+        password,
+        options: {
+            data: { name, full_name: name },
+        },
+    });
+    if (error) throw error;
+    return persistSession(data.session?.access_token, data.session?.refresh_token, true) || {
+        accessToken: '',
+        refreshToken: '',
+        isNewUser: true,
+    };
 }
 // 로그인
-export async function login(email: string, password: string) {
-    const res = await apiFetch<{ success: boolean; data: AuthResponse }>(
-        '/auth/login',
-        {
-            method: 'POST',
-            body: JSON.stringify({ email, password }),
-            mockData: {
-                success: true,
-                data: {
-                    accessToken: 'mock-token-' + Date.now(),
-                    refreshToken: 'mock-refresh-' + Date.now(),
-                    isNewUser: false
-                }
-            }
-        }
-    );
+export async function login(email: string, password: string): Promise<AuthResponse> {
+    const supabase = requireSupabaseBrowserClient();
+    const { data, error } = await supabase.auth.signInWithPassword({ email, password });
+    if (error) throw error;
+    return persistSession(data.session?.access_token, data.session?.refresh_token, false) || {
+        accessToken: '',
+        refreshToken: '',
+        isNewUser: false,
+    };
+}
 
-    localStorage.setItem('accessToken', res.data.accessToken);
-    localStorage.setItem('refreshToken', res.data.refreshToken);
-    return res.data;
+export async function signInWithGoogle() {
+    const supabase = requireSupabaseBrowserClient();
+    const redirectTo = `${window.location.origin}/oauth2/callback`;
+    const { error } = await supabase.auth.signInWithOAuth({
+        provider: 'google',
+        options: { redirectTo },
+    });
+    if (error) throw error;
 }
 
 // 로그아웃
-export function logout() {
+export async function logout() {
+    await getSupabaseBrowserClient()?.auth.signOut().catch((err) => {
+        console.warn('Supabase sign-out failed:', err);
+    });
     localStorage.removeItem('accessToken');
     localStorage.removeItem('refreshToken');
+    localStorage.removeItem('isLoggedIn');
     window.location.href = '/login';
 }

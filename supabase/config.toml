@@ -1,0 +1,8 @@
+project_id = "riskdetector"
+
+[api]
+schemas = ["public", "prod"]
+
+[functions.rd-api]
+verify_jwt = false
+
