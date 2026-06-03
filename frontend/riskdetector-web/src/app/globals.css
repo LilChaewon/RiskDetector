@@ -424,9 +424,28 @@ button {
 }
 
 .rd-result-context-panel {
-  min-height: calc(100vh - 56px);
+  position: sticky;
+  top: 28px;
+  max-height: calc(100vh - 56px);
+  overflow-y: auto;
+  overscroll-behavior: contain;
+  -webkit-overflow-scrolling: touch;
+  scrollbar-gutter: stable;
   border-left: 1px solid var(--rd-line);
   padding-left: 28px;
+}
+
+.rd-result-context-panel::-webkit-scrollbar {
+  width: 6px;
+}
+
+.rd-result-context-panel::-webkit-scrollbar-thumb {
+  background: var(--rd-line);
+  border-radius: 999px;
+}
+
+.rd-result-context-panel::-webkit-scrollbar-thumb:hover {
+  background: var(--rd-ink-3);
 }
 
 .rd-ask-ardi-cta {
@@ -617,26 +636,43 @@ button {
   padding-bottom: 28px;
 }
 
-.rd-reason-scroll {
-  max-height: 220px;
-  overflow-y: auto;
-  overscroll-behavior: contain;
-  -webkit-overflow-scrolling: touch;
-  padding-right: 8px;
-  scrollbar-gutter: stable;
+.rd-unmatched-toxics {
+  margin-top: 22px;
+  border: 1px dashed var(--rd-line);
+  border-radius: 16px;
+  background: #fff;
+  padding: 22px 24px;
 }
 
-.rd-reason-scroll::-webkit-scrollbar {
-  width: 6px;
+.rd-unmatched-hint {
+  margin-top: 6px;
+  color: var(--rd-ink-3);
+  font-size: 12px;
+  font-weight: 700;
 }
 
-.rd-reason-scroll::-webkit-scrollbar-thumb {
-  background: var(--rd-line);
-  border-radius: 999px;
+.rd-unmatched-list {
+  margin-top: 14px;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
 }
 
-.rd-reason-scroll::-webkit-scrollbar-thumb:hover {
-  background: var(--rd-ink-3);
+.rd-unmatched-list .rd-block-fallback {
+  margin-top: 0;
+  cursor: pointer;
+  transition: border-color 140ms ease, box-shadow 140ms ease, background 140ms ease;
+}
+
+.rd-unmatched-list .rd-block-fallback:hover {
+  border-color: var(--rd-blue);
+  background: var(--rd-blue-soft);
+}
+
+.rd-unmatched-list .rd-block-fallback.is-active {
+  border-color: var(--rd-blue);
+  background: var(--rd-blue-soft);
+  box-shadow: 0 0 0 2px rgba(27, 100, 218, 0.22);
 }
 
 .rd-draft-workspace {
@@ -1215,6 +1251,11 @@ button {
   .rd-document-block p {
     font-size: 15px;
     line-height: 1.9;
+  }
+
+  .rd-unmatched-toxics {
+    padding: 18px 16px;
+    border-radius: 14px;
   }
 }
 
