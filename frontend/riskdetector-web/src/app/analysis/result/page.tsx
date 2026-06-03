@@ -395,6 +395,36 @@ function AnalysisResultContent() {
     () => blocksWithMatches.filter((item) => filterMatches(filter, item.matches)),
     [blocksWithMatches, filter]
   );
+  const unmatchedToxics = useMemo<ToxicMatch[]>(() => {
+    if (!data) return [];
+    const matched = new Set<number>();
+    blocksWithMatches.forEach(({ matches }) => {
+      matches.forEach(({ toxicIndex }) => matched.add(toxicIndex));
+    });
+    return data.toxics
+      .map((toxic, toxicIndex) => ({ toxic, toxicIndex }))
+      .filter(({ toxicIndex }) => !matched.has(toxicIndex));
+  }, [data, blocksWithMatches]);
+  const visibleUnmatchedToxics = useMemo(() => {
+    if (filter === 'safe') return [];
+    return unmatchedToxics.filter(({ toxic }) => {
+      if (filter === 'all') return true;
+      if (filter === 'warning') return (toxic.warnLevel || 0) >= 3;
+      return toxic.warnLevel === 2;
+    });
+  }, [unmatchedToxics, filter]);
+
+  useEffect(() => {
+    if (selectedIndex === null) return;
+    const inBlocks = filteredBlocks.some(({ matches }) =>
+      matches.some(({ toxicIndex }) => toxicIndex === selectedIndex)
+    );
+    const inUnmatched = visibleUnmatchedToxics.some(({ toxicIndex }) => toxicIndex === selectedIndex);
+    if (!inBlocks && !inUnmatched) {
+      setSelectedIndex(null);
+      setMobileContextOpen(false);
+    }
+  }, [filteredBlocks, visibleUnmatchedToxics, selectedIndex]);
 
   async function handleShare() {
     if (!data) return;
@@ -544,6 +574,26 @@ function AnalysisResultContent() {
                     />
                   ))}
                 </section>
+
+                {visibleUnmatchedToxics.length > 0 && (
+                  <section className="rd-unmatched-toxics">
+                    <div className="rd-section-label">본문에서 위치를 찾지 못한 위험 조항</div>
+                    <p className="rd-unmatched-hint">조항을 클릭하면 오른쪽에서 상세 분석을 볼 수 있어요.</p>
+                    <div className="rd-unmatched-list">
+                      {visibleUnmatchedToxics.map(({ toxic, toxicIndex }) => (
+                        <button
+                          key={toxicIndex}
+                          type="button"
+                          className={`rd-block-fallback ${selectedIndex === toxicIndex ? 'is-active' : ''}`}
+                          onClick={() => selectToxic(toxicIndex, true)}
+                        >
+                          <RiskTag level={toxic.warnLevel} />
+                          <span>{toxic.title || '위험 조항'} 자세히 보기</span>
+                        </button>
+                      ))}
+                    </div>
+                  </section>
+                )}
               </div>
 
               <aside className="rd-context-panel rd-result-context-panel">
@@ -631,7 +681,7 @@ function ClauseContext({ toxic, onClear, onAskArdi }: { toxic?: Toxic; onClear?:
       </div>
       <h2 className="mt-4 text-[22px] font-extrabold leading-8">{toxic.title}</h2>
       {toxic.reason && (
-        <p className="mt-4 rd-reason-scroll text-[14px] font-semibold leading-8 text-[var(--rd-ink-2)]">{toxic.reason}</p>
+        <p className="mt-4 text-[14px] font-semibold leading-8 text-[var(--rd-ink-2)]">{toxic.reason}</p>
       )}
 
       {toxic.clause && (
