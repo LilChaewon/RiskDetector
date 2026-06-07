@@ -1,0 +1,194 @@
+<!doctype html>
+<html lang="ko">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
+    <meta
+      name="description"
+      content="RiskDetector는 계약서를 읽고 독소조항, 위험 근거, 수정 제안을 한눈에 정리해주는 AI 계약서 분석 서비스입니다."
+    />
+    <meta property="og:title" content="RiskDetector" />
+    <meta
+      property="og:description"
+      content="계약서의 위험한 문장을 찾고, 근거와 수정 방향까지 아르디와 함께 확인하세요."
+    />
+    <meta property="og:image" content="./assets/ardi/ardi-hero.png" />
+    <meta name="theme-color" content="#f4f7fb" />
+    <title>RiskDetector | 계약서 위험 탐지 서비스</title>
+    <link rel="icon" href="./assets/icon-512.png" />
+    <link rel="stylesheet" href="./styles.css" />
+  </head>
+  <body>
+    <header class="site-header" aria-label="상단 메뉴">
+      <a class="brand" href="#top" aria-label="RiskDetector 홈">
+        <img src="./assets/ardi/ardi-head.png" alt="" />
+        <span>RiskDetector</span>
+      </a>
+      <nav class="header-links" aria-label="바로가기">
+        <a href="#flow">분석 흐름</a>
+        <a href="#features">기능</a>
+        <a class="header-cta" href="https://riskdetectorpeuronteuendeu.onrender.com">서비스 열기</a>
+      </nav>
+    </header>
+
+    <main id="top">
+      <section class="hero" aria-labelledby="hero-title">
+        <div class="hero-copy">
+          <p class="eyebrow">AI Contract Risk Assistant</p>
+          <h1 id="hero-title">계약서의 위험한 문장, 아르디가 먼저 찾아드립니다.</h1>
+          <p class="hero-sub">
+            PDF, 이미지, 사진 속 계약서를 읽고 독소조항과 법적 근거, 수정 제안까지
+            보기 쉽게 정리하는 RiskDetector 소개 페이지입니다.
+          </p>
+          <div class="hero-actions">
+            <a class="primary-action" href="https://riskdetectorpeuronteuendeu.onrender.com">
+              서비스 사용하기
+            </a>
+            <a class="secondary-action" href="#flow">작동 방식 보기</a>
+          </div>
+        </div>
+
+        <div class="hero-visual" aria-label="RiskDetector 분석 화면 미리보기">
+          <div class="document-panel">
+            <div class="panel-top">
+              <span></span>
+              <span></span>
+              <span></span>
+            </div>
+            <div class="doc-title">근로계약서 분석 결과</div>
+            <div class="doc-line"></div>
+            <div class="doc-line short"></div>
+            <div class="risk-row high">
+              <strong>위험</strong>
+              <p>일방적 해지 조항이 포함되어 있어요.</p>
+            </div>
+            <div class="risk-row medium">
+              <strong>검토</strong>
+              <p>손해배상 범위가 과도할 수 있어요.</p>
+            </div>
+          </div>
+          <img class="ardi-main" src="./assets/ardi/ardi-hero.png" alt="RiskDetector 캐릭터 아르디" />
+        </div>
+      </section>
+
+      <section class="trust-strip" aria-label="핵심 가치">
+        <div>
+          <strong>OCR</strong>
+          <span>문서와 사진을 텍스트로 변환</span>
+        </div>
+        <div>
+          <strong>AI 분석</strong>
+          <span>계약 유형별 위험 조항 탐지</span>
+        </div>
+        <div>
+          <strong>근거 제시</strong>
+          <span>법령과 판례 흐름을 함께 확인</span>
+        </div>
+      </section>
+
+      <section class="intro-section" aria-labelledby="intro-title">
+        <div class="section-copy">
+          <p class="eyebrow">Why RiskDetector</p>
+          <h2 id="intro-title">어려운 계약서를 읽기 쉬운 체크리스트로 바꿉니다.</h2>
+          <p>
+            계약서는 작은 문장 하나가 큰 부담으로 돌아올 수 있습니다. RiskDetector는
+            임대차, 근로, 용역 계약서에서 놓치기 쉬운 위험 표현을 찾아 사용자가 바로
+            판단할 수 있는 형태로 정리합니다.
+          </p>
+        </div>
+        <div class="chat-preview" aria-label="아르디 상담 예시">
+          <div class="chat-header">
+            <img src="./assets/ardi/ardi-head.png" alt="" />
+            <div>
+              <strong>아르디</strong>
+              <span>계약서 위험 분석 도우미</span>
+            </div>
+          </div>
+          <div class="bubble user">이 조항이 왜 위험한지 쉽게 설명해줘.</div>
+          <div class="bubble ardi">
+            <img src="./assets/ardi/ardi-shield.png" alt="" />
+            <p>
+              상대방에게만 해지 권한이 몰려 있어요. 해지 사유와 통지 기간을 명확히
+              적는 방향으로 수정하는 게 좋아요.
+            </p>
+          </div>
+        </div>
+      </section>
+
+      <section id="flow" class="flow-section" aria-labelledby="flow-title">
+        <div class="section-heading">
+          <p class="eyebrow">How It Works</p>
+          <h2 id="flow-title">업로드부터 상담까지, 한 화면에서 이어집니다.</h2>
+        </div>
+        <div class="flow-grid">
+          <article>
+            <img src="./assets/ardi/ardi-working.png" alt="" />
+            <span>01</span>
+            <h3>계약서 업로드</h3>
+            <p>PDF, 이미지, 촬영본을 올리면 문서 내용을 읽기 시작합니다.</p>
+          </article>
+          <article>
+            <img src="./assets/ardi/ardi-alert.png" alt="" />
+            <span>02</span>
+            <h3>독소조항 탐지</h3>
+            <p>위험도에 따라 조항을 분류하고 원문 위치를 함께 보여줍니다.</p>
+          </article>
+          <article>
+            <img src="./assets/ardi/ardi-thumbsup.png" alt="" />
+            <span>03</span>
+            <h3>수정 방향 제안</h3>
+            <p>왜 문제가 되는지와 어떻게 고치면 좋은지 바로 확인할 수 있습니다.</p>
+          </article>
+        </div>
+      </section>
+
+      <section id="features" class="features-section" aria-labelledby="features-title">
+        <div class="feature-copy">
+          <p class="eyebrow">Features</p>
+          <h2 id="features-title">읽는 부담은 줄이고, 판단에 필요한 정보는 남깁니다.</h2>
+        </div>
+        <div class="feature-list">
+          <article data-reveal>
+            <strong>문서 기반 분석</strong>
+            <p>OCR 결과와 원문 문장을 연결해 어떤 문장이 문제인지 빠르게 찾습니다.</p>
+          </article>
+          <article data-reveal>
+            <strong>위험도 태그</strong>
+            <p>주의, 검토, 위험 단계로 정리해 먼저 봐야 할 항목을 놓치지 않게 합니다.</p>
+          </article>
+          <article data-reveal>
+            <strong>아르디 챗봇</strong>
+            <p>선택한 조항에 대해 쉬운 설명, 수정 방향, 관련 근거를 대화로 확인합니다.</p>
+          </article>
+          <article data-reveal>
+            <strong>법률 팁 피드</strong>
+            <p>계약 전 알아두면 좋은 생활 법률 정보를 가볍게 다시 볼 수 있습니다.</p>
+          </article>
+        </div>
+      </section>
+
+      <section class="final-section" aria-labelledby="final-title">
+        <img src="./assets/ardi/ardi-waving.png" alt="인사하는 아르디" />
+        <div>
+          <p class="eyebrow">Ready To Check</p>
+          <h2 id="final-title">계약 전 마지막 확인, RiskDetector와 함께하세요.</h2>
+          <p>
+            중요한 계약서를 혼자 읽기 어렵다면 먼저 업로드해 보세요. 아르디가 위험 신호를
+            차분하게 정리해 드립니다.
+          </p>
+          <a class="primary-action" href="https://riskdetectorpeuronteuendeu.onrender.com">
+            RiskDetector 열기
+          </a>
+        </div>
+      </section>
+    </main>
+
+    <footer class="site-footer">
+      <span>RiskDetector</span>
+      <span>AI contract risk analysis project</span>
+      <a href="https://github.com/LilChaewon/RiskDetector">GitHub</a>
+    </footer>
+
+    <script src="./script.js"></script>
+  </body>
+</html>
